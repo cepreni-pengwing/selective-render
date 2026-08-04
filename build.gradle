@@ -23,7 +23,6 @@ dependencies {
     implementation annotationProcessor("io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}")
     include "io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}"
     modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
-    modCompileOnly "maven.modrinth:uCdwusMi:${project.distant_horizons_version}"
 }
 
 loom {

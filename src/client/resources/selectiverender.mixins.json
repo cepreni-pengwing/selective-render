@@ -7,7 +7,6 @@
     "BlockEntityRenderDispatcherMixin",
     "ParticleManagerMixin",
     "ParticlePositionView",
-    "distanthorizons.LodRendererMixin",
     "sodium.RenderSectionManagerMixin",
     "sodium.VisibleChunkCollectorMixin"
   ],

@@ -22,7 +22,6 @@
   },
   "suggests": {
     "sodium": "*",
-    "iris": "*",
-    "distanthorizons": "*"
+    "iris": "*"
   }
 }

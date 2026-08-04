@@ -20,10 +20,6 @@ public record ChunkRegion(int minX, int maxX, int minZ, int maxZ) {
         return chunkX >= minX && chunkX <= maxX && chunkZ >= minZ && chunkZ <= maxZ;
     }
 
-    public boolean contains(int areaMinX, int areaMaxX, int areaMinZ, int areaMaxZ) {
-        return areaMinX >= minX && areaMaxX <= maxX && areaMinZ >= minZ && areaMaxZ <= maxZ;
-    }
-
     public boolean contains(BlockPos position) {
         return contains(position.getX() >> 4, position.getZ() >> 4);
     }

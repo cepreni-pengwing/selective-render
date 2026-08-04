@@ -1,6 +1,7 @@
 package de.selectiverender;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
@@ -18,16 +19,22 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-                ClientCommandManager.literal("selectiverender")
-                        .then(ClientCommandManager.literal("pos1").executes(context -> setPosition(context.getSource(), true)))
-                        .then(ClientCommandManager.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
-                        .then(ClientCommandManager.literal("save").executes(context -> save(context.getSource())))
-                        .then(ClientCommandManager.literal("toggle").executes(context -> toggle(context.getSource())))));
+        ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
+            dispatcher.register(command("selectiverender"));
+            dispatcher.register(command("sr"));
+        });
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 client.execute(() -> SelectiveRenderConfig.load(client)));
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> SelectiveRenderState.resetForDisconnect());
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> command(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.literal("pos1").executes(context -> setPosition(context.getSource(), true)))
+                .then(ClientCommandManager.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
+                .then(ClientCommandManager.literal("save").executes(context -> save(context.getSource())))
+                .then(ClientCommandManager.literal("toggle").executes(context -> toggle(context.getSource())));
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
@@ -39,7 +46,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static int save(FabricClientCommandSource source) {
         if (!SelectiveRenderState.saveSelection()) {
-            feedback(source, "Set /selectiverender pos1 and /selectiverender pos2 first.", Formatting.RED);
+            feedback(source, "Set pos1 and pos2 first.", Formatting.RED);
             return 0;
         }
         SelectiveRenderConfig.save(MinecraftClient.getInstance());

@@ -11,6 +11,9 @@ everything outside a saved rectangular chunk region from the render lists.
 3. Run `/selectiverender save` to save the inclusive rectangular region.
 4. Run `/selectiverender toggle` to enable or disable the render filter.
 
+The shorter `/sr` alias supports the same subcommands, for example `/sr pos1`
+and `/sr toggle`.
+
 The region and its enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining the world. The hashed file name prevents server
@@ -29,10 +32,6 @@ hidden outside the selected region.
   unrendered outer sections, allowing the plot to remain visible from outside.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
-- Distant Horizons 3.2.x GPU buffer sets are filtered at the final terrain draw
-  boundary for normal and shadow passes unless their entire area is contained
-  in the selected region. LOD storage, generation, and networking remain
-  unchanged.
 - Entities, block entities, and particle geometry use separate render filters.
 
 The mod does not change render distance, server packets, chunk loading, game
@@ -40,9 +39,6 @@ logic, or collision. Sodium support is optional and its mixins are skipped when
 Sodium is not installed. The implementation does not use reflection.
 
 The selected region must still be within the normal Minecraft render distance.
-The smallest Distant Horizons render section is 4 by 4 chunks. Regions that are
-not aligned to this grid can have a narrow missing LOD strip along their inner
-edge, but no Distant Horizons geometry is rendered beyond the selected border.
 
 ## Building
 
@@ -58,7 +54,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.0.5.jar`.
+The installable file is generated at `build/libs/selective-render-1.0.6.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
@@ -67,7 +63,6 @@ Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 - Fabric API 0.92.2+1.20.1
 - Sodium 0.5.x
 - Iris for Minecraft 1.20.1
-- Distant Horizons 3.2.x for Minecraft 1.20.1
 
 ## License
 
