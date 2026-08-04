@@ -29,9 +29,10 @@ hidden outside the selected region.
   unrendered outer sections, allowing the plot to remain visible from outside.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
-- Distant Horizons 3.2.x LOD sections are filtered from its shared normal and
-  shadow render list unless their entire area is contained in the selected
-  region. LOD storage, generation, and networking remain unchanged.
+- Distant Horizons 3.2.x GPU buffer sets are filtered at the final terrain draw
+  boundary for normal and shadow passes unless their entire area is contained
+  in the selected region. LOD storage, generation, and networking remain
+  unchanged.
 - Entities, block entities, and particle geometry use separate render filters.
 
 The mod does not change render distance, server packets, chunk loading, game
@@ -57,7 +58,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.0.4.jar`.
+The installable file is generated at `build/libs/selective-render-1.0.5.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
