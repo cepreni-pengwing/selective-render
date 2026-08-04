@@ -1,4 +1,4 @@
-package de.plotrender;
+package de.selectiverender;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
@@ -7,14 +7,13 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 
-/** Runtime state queried from hot renderer paths. */
-public final class PlotRenderState {
+public final class SelectiveRenderState {
     private static ChunkPos first;
     private static ChunkPos second;
     private static ChunkRegion region;
     private static boolean enabled;
 
-    private PlotRenderState() { }
+    private SelectiveRenderState() { }
 
     public static void setFirst(ChunkPos position) { first = position; }
     public static void setSecond(ChunkPos position) { second = position; }

@@ -1,4 +1,4 @@
-package de.plotrender;
+package de.selectiverender;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -15,35 +15,34 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
-/** One small JSON file per server/save and dimension. */
-public final class PlotRenderConfig {
+public final class SelectiveRenderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("plotrender");
+    private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
 
-    private PlotRenderConfig() { }
+    private SelectiveRenderConfig() { }
 
     public static void load(MinecraftClient client) {
         Path path = pathFor(client);
         if (path == null || !Files.isRegularFile(path)) {
-            PlotRenderState.setSavedState(null, false);
+            SelectiveRenderState.setSavedState(null, false);
             return;
         }
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             StoredRegion stored = GSON.fromJson(reader, StoredRegion.class);
             if (stored == null) {
-                PlotRenderState.setSavedState(null, false);
+                SelectiveRenderState.setSavedState(null, false);
             } else {
-                PlotRenderState.setSavedState(
+                SelectiveRenderState.setSavedState(
                         new ChunkRegion(stored.minX, stored.maxX, stored.minZ, stored.maxZ), stored.enabled);
             }
         } catch (RuntimeException | IOException exception) {
-            PlotRenderClient.LOGGER.error("Could not load plot render config {}", path, exception);
-            PlotRenderState.setSavedState(null, false);
+            SelectiveRenderClient.LOGGER.error("Could not load selective render config {}", path, exception);
+            SelectiveRenderState.setSavedState(null, false);
         }
     }
 
     public static void save(MinecraftClient client) {
-        ChunkRegion region = PlotRenderState.region();
+        ChunkRegion region = SelectiveRenderState.region();
         Path path = pathFor(client);
         if (region == null || path == null) return;
         try {
@@ -53,12 +52,12 @@ public final class PlotRenderConfig {
             stored.maxX = region.maxX();
             stored.minZ = region.minZ();
             stored.maxZ = region.maxZ();
-            stored.enabled = PlotRenderState.enabled();
+            stored.enabled = SelectiveRenderState.enabled();
             try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
                 GSON.toJson(stored, writer);
             }
         } catch (IOException exception) {
-            PlotRenderClient.LOGGER.error("Could not save plot render config {}", path, exception);
+            SelectiveRenderClient.LOGGER.error("Could not save selective render config {}", path, exception);
         }
     }
 

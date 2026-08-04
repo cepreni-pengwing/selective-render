@@ -1,67 +1,66 @@
-# Plot Render
+# Selective Render
 
-Rein clientseitige Fabric-Mod für Minecraft 1.20.1. Plot Render lässt geladene
-Chunks, Netzwerkverkehr, Weltzustand und Kollision unverändert, nimmt aber alles
-außerhalb einer gespeicherten rechteckigen Chunk-Region aus den Renderlisten.
+Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
+chunks, network traffic, world state, and collision unchanged while removing
+everything outside a saved rectangular chunk region from the render lists.
 
-## Verwendung
+## Usage
 
-1. Im ersten Eck-Chunk `/plotrender pos1` ausführen.
-2. Im gegenüberliegenden Eck-Chunk `/plotrender pos2` ausführen.
-3. Mit `/plotrender save` die inklusive Rechteckregion speichern.
-4. Mit `/plotrender toggle` den Filter ein- oder ausschalten.
+1. Stand in the first corner chunk and run `/selectiverender pos1`.
+2. Stand in the opposite corner chunk and run `/selectiverender pos2`.
+3. Run `/selectiverender save` to save the inclusive rectangular region.
+4. Run `/selectiverender toggle` to enable or disable the render filter.
 
-Die Region und der Aktivierungszustand werden pro Server bzw. Singleplayer-Welt
-und Dimension unter `config/plotrender/<sha256>.json` gespeichert und beim
-Betreten automatisch geladen. Die gehashte Bezeichnung verhindert, dass eine
-Serveradresse als Dateiname offengelegt wird.
+The region and its enabled state are stored per server or single-player world
+and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
+automatically when joining the world. The hashed file name prevents server
+addresses from being exposed as file names.
 
-Spieler werden immer gerendert. Alle anderen Entities, BlockEntities und
-Partikel werden außerhalb der Region nicht gerendert.
+Players are always rendered. Every other entity, block entity, and particle is
+hidden outside the selected region.
 
-## Technische Umsetzung
+## Implementation
 
-- Vanilla: Filter in `WorldRenderer.addBuiltChunk`, bevor sichtbare Terrainlisten
-  und Chunk-Rebuild-Arbeit entstehen.
-- Sodium 0.5.x: optionaler `VisibleChunkCollector`-Mixin, der Sections vor
-  Renderlisten, Draw-Commands und Rebuild-Queues verwirft. Während der Filter
-  aktiv ist, bleibt die reine Graph-Traversierung unabhängig von Occlusion-Daten
-  ungezeichneter Außen-Sections, damit der Plot auch von außen erreichbar bleibt.
-- Iris: dessen normale und Shadow-Passes verwenden die bereits gefilterten
-  Vanilla-/Sodium-Terrainlisten. Damit gelangt außerhalb der Region keine
-  Chunk-Geometrie in den Shadow-Pass.
-- Separate Filter für Entities, BlockEntities und die eigentliche
-  Partikel-Geometrie.
+- Vanilla sections are filtered in `WorldRenderer.addBuiltChunk` before terrain
+  render lists and chunk rebuild work are created.
+- Sodium 0.5.x sections are filtered through `VisibleChunkCollector` before
+  render lists, draw commands, and rebuild queues are created. While the filter
+  is active, graph traversal remains independent of occlusion data from
+  unrendered outer sections, allowing the plot to remain visible from outside.
+- Iris normal and shadow passes use the already filtered Vanilla or Sodium
+  terrain lists, so geometry outside the region never enters a shadow pass.
+- Entities, block entities, and particle geometry use separate render filters.
 
-Es werden weder Render Distance noch Serverpakete, Chunk-Laden, Logik oder
-Kollision verändert. Die Sodium-Integration ist optional und wird ohne Sodium
-über `@Pseudo`-Mixins sauber übersprungen. Es werden keine Reflection-Hacks
-verwendet.
+The mod does not change render distance, server packets, chunk loading, game
+logic, or collision. Sodium support is optional and its mixins are skipped when
+Sodium is not installed. The implementation does not use reflection.
 
-## Build
+The selected region must still be within the normal Minecraft render distance.
 
-Voraussetzungen: JDK 17 oder neuer und Internetzugriff beim ersten Build.
+## Building
+
+Requirements: JDK 17 or newer and internet access for the first build.
 
 ```bash
 ./gradlew build
 ```
 
-Unter Windows:
+On Windows:
 
 ```powershell
 .\gradlew.bat build
 ```
 
-Die installierbare Datei entsteht als `build/libs/plot-render-1.0.2.jar`.
-Benötigt werden Fabric Loader und Fabric API. Sodium und Iris sind optional.
+The installable file is generated at `build/libs/selective-render-1.0.2.jar`.
+Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
-## Zielversionen
+## Target versions
 
 - Minecraft 1.20.1
 - Fabric API 0.92.2+1.20.1
-- Sodium 0.5.11 (optionale Integration; 0.5.x-Klassenlayout)
-- Iris für Minecraft 1.20.1 über dessen Vanilla-/Sodium-Renderpfade
+- Sodium 0.5.x
+- Iris for Minecraft 1.20.1
 
-## Lizenz
+## License
 
-MIT, siehe `LICENSE`.
+MIT. See `LICENSE`.

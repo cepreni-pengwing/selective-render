@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "de.plotrender.mixin",
+  "package": "de.selectiverender.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
     "WorldRendererMixin",

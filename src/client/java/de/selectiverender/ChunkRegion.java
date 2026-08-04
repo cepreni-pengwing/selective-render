@@ -1,9 +1,8 @@
-package de.plotrender;
+package de.selectiverender;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 
-/** Inclusive, axis-aligned rectangle in chunk coordinates. */
 public record ChunkRegion(int minX, int maxX, int minZ, int maxZ) {
     public ChunkRegion {
         if (minX > maxX || minZ > maxZ) {

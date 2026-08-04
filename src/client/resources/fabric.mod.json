@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "id": "plotrender",
+  "id": "selectiverender",
   "version": "${version}",
-  "name": "Plot Render",
+  "name": "Selective Render",
   "description": "Client-side chunk render whitelist for plot servers.",
   "authors": ["Codex"],
   "license": "MIT",
   "environment": "client",
   "entrypoints": {
-    "client": ["de.plotrender.PlotRenderClient"]
+    "client": ["de.selectiverender.SelectiveRenderClient"]
   },
   "mixins": [
-    "plotrender.mixins.json"
+    "selectiverender.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.14.21",

@@ -28,7 +28,7 @@ dependencies {
 loom {
     splitEnvironmentSourceSets()
     mods {
-        plotrender {
+        selectiverender {
             sourceSet sourceSets.client
         }
     }

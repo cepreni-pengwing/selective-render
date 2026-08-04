@@ -1,4 +1,4 @@
-package de.plotrender;
+package de.selectiverender;
 
 import com.mojang.brigadier.Command;
 import net.fabricmc.api.ClientModInitializer;
@@ -13,55 +13,55 @@ import net.minecraft.util.math.ChunkPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public final class PlotRenderClient implements ClientModInitializer {
-    public static final Logger LOGGER = LoggerFactory.getLogger("plotrender");
+public final class SelectiveRenderClient implements ClientModInitializer {
+    public static final Logger LOGGER = LoggerFactory.getLogger("selectiverender");
 
     @Override
     public void onInitializeClient() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> dispatcher.register(
-                ClientCommandManager.literal("plotrender")
+                ClientCommandManager.literal("selectiverender")
                         .then(ClientCommandManager.literal("pos1").executes(context -> setPosition(context.getSource(), true)))
                         .then(ClientCommandManager.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
                         .then(ClientCommandManager.literal("save").executes(context -> save(context.getSource())))
                         .then(ClientCommandManager.literal("toggle").executes(context -> toggle(context.getSource())))));
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                client.execute(() -> PlotRenderConfig.load(client)));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> PlotRenderState.resetForDisconnect());
+                client.execute(() -> SelectiveRenderConfig.load(client)));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> SelectiveRenderState.resetForDisconnect());
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
         ChunkPos position = source.getPlayer().getChunkPos();
-        if (isFirst) PlotRenderState.setFirst(position); else PlotRenderState.setSecond(position);
+        if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
         feedback(source, (isFirst ? "Pos1" : "Pos2") + " = Chunk " + position.x + ", " + position.z, Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 
     private static int save(FabricClientCommandSource source) {
-        if (!PlotRenderState.saveSelection()) {
-            feedback(source, "Zuerst /plotrender pos1 und /plotrender pos2 setzen.", Formatting.RED);
+        if (!SelectiveRenderState.saveSelection()) {
+            feedback(source, "Set /selectiverender pos1 and /selectiverender pos2 first.", Formatting.RED);
             return 0;
         }
-        PlotRenderConfig.save(MinecraftClient.getInstance());
-        PlotRenderState.refreshRenderer();
-        ChunkRegion region = PlotRenderState.region();
-        feedback(source, "Region gespeichert: " + region.chunkCount() + " Chunks.", Formatting.GREEN);
+        SelectiveRenderConfig.save(MinecraftClient.getInstance());
+        SelectiveRenderState.refreshRenderer();
+        ChunkRegion region = SelectiveRenderState.region();
+        feedback(source, "Region saved: " + region.chunkCount() + " chunks.", Formatting.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 
     private static int toggle(FabricClientCommandSource source) {
-        if (!PlotRenderState.toggle()) {
-            feedback(source, "Keine Region gespeichert.", Formatting.RED);
+        if (!SelectiveRenderState.toggle()) {
+            feedback(source, "No region has been saved.", Formatting.RED);
             return 0;
         }
-        PlotRenderConfig.save(MinecraftClient.getInstance());
-        feedback(source, "Plot-Rendering " + (PlotRenderState.enabled() ? "aktiviert" : "deaktiviert") + ".",
-                PlotRenderState.enabled() ? Formatting.GREEN : Formatting.YELLOW);
+        SelectiveRenderConfig.save(MinecraftClient.getInstance());
+        feedback(source, "Selective rendering " + (SelectiveRenderState.enabled() ? "enabled" : "disabled") + ".",
+                SelectiveRenderState.enabled() ? Formatting.GREEN : Formatting.YELLOW);
         return Command.SINGLE_SUCCESS;
     }
 
     private static void feedback(FabricClientCommandSource source, String message, Formatting color) {
-        source.sendFeedback(Text.literal("[PlotRender] ").formatted(Formatting.GRAY)
+        source.sendFeedback(Text.literal("[SelectiveRender] ").formatted(Formatting.GRAY)
                 .append(Text.literal(message).formatted(color)));
     }
 }

@@ -1,6 +1,6 @@
-package de.plotrender.mixin;
+package de.selectiverender.mixin;
 
-import de.plotrender.PlotRenderState;
+import de.selectiverender.SelectiveRenderState;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.block.entity.BlockEntityRenderDispatcher;
@@ -14,8 +14,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class BlockEntityRenderDispatcherMixin {
     @Inject(method = "render(Lnet/minecraft/block/entity/BlockEntity;FLnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;)V",
             at = @At("HEAD"), cancellable = true)
-    private void plotrender$filterBlockEntity(BlockEntity blockEntity, float tickDelta, MatrixStack matrices,
+    private void selectiverender$filterBlockEntity(BlockEntity blockEntity, float tickDelta, MatrixStack matrices,
                                                VertexConsumerProvider consumers, CallbackInfo ci) {
-        if (!PlotRenderState.shouldRender(blockEntity.getPos())) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(blockEntity.getPos())) ci.cancel();
     }
 }
