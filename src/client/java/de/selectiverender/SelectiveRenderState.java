@@ -53,6 +53,17 @@ public final class SelectiveRenderState {
         return shouldRenderChunk(MathHelper.floor(x) >> 4, MathHelper.floor(z) >> 4);
     }
 
+    public static boolean shouldRenderBlockArea(long minBlockX, long minBlockZ,
+                                                long maxBlockXExclusive, long maxBlockZExclusive) {
+        ChunkRegion current = region;
+        if (!enabled || current == null) return true;
+        int minChunkX = (int) Math.floorDiv(minBlockX, 16L);
+        int minChunkZ = (int) Math.floorDiv(minBlockZ, 16L);
+        int maxChunkX = (int) Math.floorDiv(maxBlockXExclusive - 1L, 16L);
+        int maxChunkZ = (int) Math.floorDiv(maxBlockZExclusive - 1L, 16L);
+        return current.intersects(minChunkX, maxChunkX, minChunkZ, maxChunkZ);
+    }
+
     public static boolean shouldRender(Entity entity) {
         return entity instanceof PlayerEntity || shouldRender(entity.getX(), entity.getZ());
     }
