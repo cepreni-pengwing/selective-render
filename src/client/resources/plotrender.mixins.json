@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "package": "de.plotrender.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "WorldRendererMixin",
+    "BlockEntityRenderDispatcherMixin",
+    "ParticleManagerMixin",
+    "ParticlePositionView",
+    "sodium.RenderSectionManagerMixin",
+    "sodium.VisibleChunkCollectorMixin"
+  ],
+  "injectors": { "defaultRequire": 1 },
+  "minVersion": "0.8"
+}
