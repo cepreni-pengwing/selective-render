@@ -61,7 +61,7 @@ public final class SelectiveRenderState {
         int minChunkZ = (int) Math.floorDiv(minBlockZ, 16L);
         int maxChunkX = (int) Math.floorDiv(maxBlockXExclusive - 1L, 16L);
         int maxChunkZ = (int) Math.floorDiv(maxBlockZExclusive - 1L, 16L);
-        return current.intersects(minChunkX, maxChunkX, minChunkZ, maxChunkZ);
+        return current.contains(minChunkX, maxChunkX, minChunkZ, maxChunkZ);
     }
 
     public static boolean shouldRender(Entity entity) {

@@ -30,8 +30,8 @@ hidden outside the selected region.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
 - Distant Horizons 3.2.x LOD sections are filtered from its shared normal and
-  shadow render list when they do not overlap the selected region. LOD storage,
-  generation, and networking remain unchanged.
+  shadow render list unless their entire area is contained in the selected
+  region. LOD storage, generation, and networking remain unchanged.
 - Entities, block entities, and particle geometry use separate render filters.
 
 The mod does not change render distance, server packets, chunk loading, game
@@ -39,6 +39,9 @@ logic, or collision. Sodium support is optional and its mixins are skipped when
 Sodium is not installed. The implementation does not use reflection.
 
 The selected region must still be within the normal Minecraft render distance.
+The smallest Distant Horizons render section is 4 by 4 chunks. Regions that are
+not aligned to this grid can have a narrow missing LOD strip along their inner
+edge, but no Distant Horizons geometry is rendered beyond the selected border.
 
 ## Building
 
@@ -54,7 +57,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.0.3.jar`.
+The installable file is generated at `build/libs/selective-render-1.0.4.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions

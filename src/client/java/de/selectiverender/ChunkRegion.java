@@ -20,8 +20,8 @@ public record ChunkRegion(int minX, int maxX, int minZ, int maxZ) {
         return chunkX >= minX && chunkX <= maxX && chunkZ >= minZ && chunkZ <= maxZ;
     }
 
-    public boolean intersects(int areaMinX, int areaMaxX, int areaMinZ, int areaMaxZ) {
-        return areaMaxX >= minX && areaMinX <= maxX && areaMaxZ >= minZ && areaMinZ <= maxZ;
+    public boolean contains(int areaMinX, int areaMaxX, int areaMinZ, int areaMaxZ) {
+        return areaMinX >= minX && areaMaxX <= maxX && areaMinZ >= minZ && areaMaxZ <= maxZ;
     }
 
     public boolean contains(BlockPos position) {
