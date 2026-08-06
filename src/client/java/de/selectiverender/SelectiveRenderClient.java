@@ -1,6 +1,7 @@
 package de.selectiverender;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
@@ -14,6 +15,9 @@ import net.minecraft.util.math.ChunkPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+import java.util.Locale;
+
 public final class SelectiveRenderClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("selectiverender");
 
@@ -26,44 +30,97 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
                 client.execute(() -> SelectiveRenderConfig.load(client)));
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> SelectiveRenderState.resetForDisconnect());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            SelectiveRenderConfig.reset();
+            SelectiveRenderState.resetForDisconnect();
+        });
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> command(String name) {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.literal("pos1").executes(context -> setPosition(context.getSource(), true)))
                 .then(ClientCommandManager.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
-                .then(ClientCommandManager.literal("save").executes(context -> save(context.getSource())))
-                .then(ClientCommandManager.literal("toggle").executes(context -> toggle(context.getSource())));
+                .then(saveCommand("save"))
+                .then(saveCommand("s"))
+                .then(toggleCommand("toggle"))
+                .then(toggleCommand("t"))
+                .then(deleteCommand("delete"))
+                .then(deleteCommand("d"))
+                .then(ClientCommandManager.literal("list").executes(context -> list(context.getSource())));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> saveCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> save(context.getSource(), StringArgumentType.getString(context, "name"))));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .executes(context -> toggle(context.getSource(), null))
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> toggle(context.getSource(), StringArgumentType.getString(context, "name"))));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> deleteCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> delete(context.getSource(), StringArgumentType.getString(context, "name"))));
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
         ChunkPos position = source.getPlayer().getChunkPos();
         if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
-        feedback(source, (isFirst ? "Pos1" : "Pos2") + " = Chunk " + position.x + ", " + position.z, Formatting.AQUA);
+        feedback(source, (isFirst ? "Pos1" : "Pos2") + " = chunk " + position.x + ", " + position.z, Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int save(FabricClientCommandSource source) {
-        if (!SelectiveRenderState.saveSelection()) {
+    private static int save(FabricClientCommandSource source, String name) {
+        if (!SelectiveRenderConfig.saveSelection(MinecraftClient.getInstance(), name)) {
             feedback(source, "Set pos1 and pos2 first.", Formatting.RED);
             return 0;
         }
-        SelectiveRenderConfig.save(MinecraftClient.getInstance());
-        SelectiveRenderState.refreshRenderer();
         ChunkRegion region = SelectiveRenderState.region();
-        feedback(source, "Region saved: " + region.chunkCount() + " chunks.", Formatting.GREEN);
+        feedback(source, "Preset '" + SelectiveRenderConfig.activePreset() + "' saved with "
+                + region.chunkCount() + " chunks.", Formatting.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int toggle(FabricClientCommandSource source) {
-        if (!SelectiveRenderState.toggle()) {
-            feedback(source, "No region has been saved.", Formatting.RED);
+    private static int toggle(FabricClientCommandSource source, String name) {
+        boolean toggled = name == null
+                ? SelectiveRenderConfig.toggleCurrent(MinecraftClient.getInstance())
+                : SelectiveRenderConfig.togglePreset(MinecraftClient.getInstance(), name);
+        if (!toggled) {
+            feedback(source, name == null ? "No preset has been saved." : "Preset '" + name + "' does not exist.",
+                    Formatting.RED);
             return 0;
         }
-        SelectiveRenderConfig.save(MinecraftClient.getInstance());
-        feedback(source, "Selective rendering " + (SelectiveRenderState.enabled() ? "enabled" : "disabled") + ".",
+        feedback(source, "Preset '" + SelectiveRenderConfig.activePreset() + "' "
+                        + (SelectiveRenderState.enabled() ? "enabled." : "disabled."),
                 SelectiveRenderState.enabled() ? Formatting.GREEN : Formatting.YELLOW);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int delete(FabricClientCommandSource source, String name) {
+        if (!SelectiveRenderConfig.deletePreset(MinecraftClient.getInstance(), name)) {
+            feedback(source, "Preset '" + name + "' does not exist.", Formatting.RED);
+            return 0;
+        }
+        feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' deleted.", Formatting.YELLOW);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int list(FabricClientCommandSource source) {
+        List<String> names = SelectiveRenderConfig.presetNames();
+        if (names.isEmpty()) {
+            feedback(source, "No presets have been saved.", Formatting.YELLOW);
+            return Command.SINGLE_SUCCESS;
+        }
+        String active = SelectiveRenderConfig.activePreset();
+        String selected = active == null
+                ? "none"
+                : active + (SelectiveRenderState.enabled() ? " (enabled)" : " (disabled)");
+        feedback(source, "Presets: " + String.join(", ", names) + ". Selected: " + selected + ".", Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 

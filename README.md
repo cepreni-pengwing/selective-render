@@ -8,13 +8,26 @@ everything outside a saved rectangular chunk region from the render lists.
 
 1. Stand in the first corner chunk and run `/selectiverender pos1`.
 2. Stand in the opposite corner chunk and run `/selectiverender pos2`.
-3. Run `/selectiverender save` to save the inclusive rectangular region.
-4. Run `/selectiverender toggle` to enable or disable the render filter.
+3. Run `/selectiverender save NAME` to save the inclusive rectangular region as
+   a named preset.
+4. Run `/selectiverender toggle NAME` to enable that preset. Running the same
+   command again disables it.
 
-The shorter `/sr` alias supports the same subcommands, for example `/sr pos1`
-and `/sr toggle`.
+The shorter `/sr` alias supports the same subcommands. `save`, `toggle`, and
+`delete` also have single-letter aliases:
 
-The region and its enabled state are stored per server or single-player world
+```text
+/sr s NAME
+/sr t NAME
+/sr d NAME
+/sr list
+```
+
+`/sr t` toggles the currently selected preset. Saving always requires a name;
+`/sr save` and `/sr s` without one do not modify the configuration.
+`/sr list` displays all saved presets and the currently selected preset.
+
+Presets and their enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining the world. The hashed file name prevents server
 addresses from being exposed as file names.
@@ -54,7 +67,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.0.6.jar`.
+The installable file is generated at `build/libs/selective-render-1.1.0.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
