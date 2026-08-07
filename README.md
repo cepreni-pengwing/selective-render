@@ -3,29 +3,46 @@
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
 everything outside a saved three-dimensional block region from the render lists.
+This prevents hidden buildings and terrain from contributing geometry, lighting,
+or shader shadows outside the selected area. Players remain visible everywhere;
+all other entities, block entities, particles, block models, and fluids are
+restricted to the active region.
 
 ## Usage
 
-1. Stand on the first corner block and run `/selectiverender pos1`.
-2. Stand on the diagonally opposite corner block and run `/selectiverender pos2`.
-3. Run `/selectiverender save NAME` to save the inclusive X/Y/Z cuboid as
-   a named preset.
-4. Run `/selectiverender toggle NAME` to enable that preset. Running the same
-   command again disables it.
+`/sr` is the short alias for `/selectiverender`; both command names provide the
+same features.
 
-The shorter `/sr` alias supports the same subcommands. `save`, `toggle`, and
-`delete` also have single-letter aliases:
+1. Stand at one corner of the desired cuboid and run `/sr pos1`.
+2. Stand at the diagonally opposite corner and run `/sr pos2`.
+3. Run `/sr s NAME` to save the inclusive cuboid as a named preset.
+4. Run `/sr t NAME` to enable it. Run the same command again to disable it.
+
+Both positions use whole-block X, Y, and Z coordinates. Make sure the two corners
+cover the full width, height, and depth you want to render. For example, one
+position can be the lower north-west corner and the other the upper south-east
+corner. The order of `pos1` and `pos2` does not matter, and both boundary blocks
+are included.
+
+Available short commands:
 
 ```text
+/sr pos1
+/sr pos2
 /sr s NAME
 /sr t NAME
 /sr d NAME
 /sr list
 ```
 
-`/sr t` toggles the currently selected preset. Saving always requires a name;
-`/sr save` and `/sr s` without one do not modify the configuration.
-`/sr list` displays all saved presets and the currently selected preset.
+- `/sr s NAME` saves the current selection. A name is always required.
+- `/sr t NAME` selects and toggles a saved preset.
+- `/sr t` toggles the currently selected preset.
+- `/sr d NAME` permanently deletes a preset.
+- `/sr list` displays every saved preset and the currently selected one.
+
+The long `save`, `toggle`, and `delete` subcommands remain available as
+`/sr save NAME`, `/sr toggle NAME`, and `/sr delete NAME`.
 
 The default keybind for toggling the currently selected preset is the physical
 minus key, which is the `ß` key on German keyboard layouts. It can be reassigned
