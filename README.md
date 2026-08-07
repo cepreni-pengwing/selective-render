@@ -70,7 +70,9 @@ hidden outside the selected region.
   Sodium's render-only world slice exposes blocks outside the cuboid as air, so
   standard and custom-rendered terrain is clipped at the exact block boundaries.
   Light samples beyond those boundaries use unobstructed sky light, preventing
-  hidden terrain from darkening newly exposed cut faces.
+  hidden terrain from darkening newly exposed cut faces. Vertical skylight is
+  recalculated against occluding blocks inside the selected Y range, so roofs
+  above the cuboid cannot leave baked darkness behind.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
 - Entities, block entities, and particle geometry use separate render filters.
@@ -97,7 +99,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.2.3.jar`.
+The installable file is generated at `build/libs/selective-render-1.2.4.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
