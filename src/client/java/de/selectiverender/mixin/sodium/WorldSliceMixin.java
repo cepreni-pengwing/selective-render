@@ -1,6 +1,5 @@
 package de.selectiverender.mixin.sodium;
 
-import de.selectiverender.BlockRegion;
 import de.selectiverender.SelectiveRenderState;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -58,19 +57,23 @@ abstract class WorldSliceMixin {
 
     @Unique
     private boolean selectiverender$hasOpenVirtualSky(BlockPos pos) {
-        BlockRegion region = SelectiveRenderState.region();
-        if (!SelectiveRenderState.enabled() || region == null || !region.contains(pos)
-                || region.minY() == Integer.MIN_VALUE || region.maxY() == Integer.MAX_VALUE) {
+        if (!SelectiveRenderState.enabled() || !SelectiveRenderState.containsActive(pos)) {
             return false;
         }
+
+        boolean unbounded = SelectiveRenderState.activeRegions().stream().anyMatch(region ->
+                region.contains(pos.getX(), pos.getY(), pos.getZ())
+                        && (region.minY() == Integer.MIN_VALUE || region.maxY() == Integer.MAX_VALUE));
+        if (unbounded) return false;
 
         long column = ChunkPos.toLong(pos.getX(), pos.getZ());
         int highestOccluder = selectiverender$highestOccluders.computeIfAbsent(column, ignored -> {
             BlockPos.Mutable cursor = new BlockPos.Mutable(pos.getX(), 0, pos.getZ());
-            int top = Math.min(region.maxY(), world.getTopY() - 1);
-            int bottom = Math.max(region.minY(), world.getBottomY());
+            int top = world.getTopY() - 1;
+            int bottom = world.getBottomY();
             for (int y = top; y >= bottom; y--) {
                 cursor.setY(y);
+                if (!SelectiveRenderState.containsActive(cursor)) continue;
                 BlockState state = world.getBlockState(cursor);
                 if (state.getOpacity(world, cursor) > 0) return y;
             }

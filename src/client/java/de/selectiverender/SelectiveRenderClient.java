@@ -94,8 +94,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, "Set pos1 and pos2 first.", Formatting.RED);
             return 0;
         }
-        BlockRegion region = SelectiveRenderState.region();
-        feedback(source, "Preset '" + SelectiveRenderConfig.activePreset() + "' saved with "
+        BlockRegion region = SelectiveRenderState.selection();
+        feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' saved with "
                 + region.blockCount() + " blocks.", Formatting.GREEN);
         return Command.SINGLE_SUCCESS;
     }
@@ -109,9 +109,18 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     Formatting.RED);
             return 0;
         }
-        feedback(source, "Preset '" + SelectiveRenderConfig.activePreset() + "' "
-                        + (SelectiveRenderState.enabled() ? "enabled." : "disabled."),
-                SelectiveRenderState.enabled() ? Formatting.GREEN : Formatting.YELLOW);
+        if (name == null) {
+            int count = SelectiveRenderConfig.activePresetNames().size();
+            feedback(source, "Render group " + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled")
+                            + " (" + count + (count == 1 ? " region)." : " regions)."),
+                    SelectiveRenderConfig.groupEnabled() ? Formatting.GREEN : Formatting.YELLOW);
+        } else {
+            boolean active = SelectiveRenderConfig.isPresetActive(name);
+            String suffix = SelectiveRenderConfig.groupEnabled() ? "" : " The render group is currently disabled.";
+            feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' "
+                            + (active ? "added to" : "removed from") + " the render group." + suffix,
+                    active ? Formatting.GREEN : Formatting.YELLOW);
+        }
         return Command.SINGLE_SUCCESS;
     }
 
@@ -130,11 +139,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, "No presets have been saved.", Formatting.YELLOW);
             return Command.SINGLE_SUCCESS;
         }
-        String active = SelectiveRenderConfig.activePreset();
-        String selected = active == null
-                ? "none"
-                : active + (SelectiveRenderState.enabled() ? " (enabled)" : " (disabled)");
-        feedback(source, "Presets: " + String.join(", ", names) + ". Selected: " + selected + ".", Formatting.AQUA);
+        String presets = names.stream().map(name -> name + (SelectiveRenderConfig.isPresetActive(name)
+                ? " [in group]" : " [inactive]")).reduce((left, right) -> left + ", " + right).orElse("none");
+        feedback(source, "Presets: " + presets + ". Render group: "
+                + (SelectiveRenderConfig.groupEnabled() ? "enabled." : "disabled."), Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -144,10 +152,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             client.player.sendMessage(message("No preset has been saved.", Formatting.RED), false);
             return;
         }
-        client.player.sendMessage(message(
-                "Preset '" + SelectiveRenderConfig.activePreset() + "' "
-                        + (SelectiveRenderState.enabled() ? "enabled." : "disabled."),
-                SelectiveRenderState.enabled() ? Formatting.GREEN : Formatting.YELLOW), false);
+        int count = SelectiveRenderConfig.activePresetNames().size();
+        client.player.sendMessage(message("Render group "
+                        + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled") + " (" + count
+                        + (count == 1 ? " region)." : " regions)."),
+                SelectiveRenderConfig.groupEnabled() ? Formatting.GREEN : Formatting.YELLOW), false);
     }
 
     private static void feedback(FabricClientCommandSource source, String message, Formatting color) {

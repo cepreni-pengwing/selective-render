@@ -15,6 +15,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -23,7 +24,8 @@ public final class SelectiveRenderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
     private static final Map<String, BlockRegion> PRESETS = new LinkedHashMap<>();
-    private static String activePreset;
+    private static final LinkedHashSet<String> ACTIVE_PRESETS = new LinkedHashSet<>();
+    private static boolean groupEnabled;
 
     private SelectiveRenderConfig() { }
 
@@ -48,13 +50,17 @@ public final class SelectiveRenderConfig {
                         stored.minX, stored.maxX, stored.minZ, stored.maxZ));
             }
 
-            String requestedActive = normalize(stored.activePreset);
-            activePreset = PRESETS.containsKey(requestedActive)
-                    ? requestedActive
-                    : PRESETS.keySet().stream().findFirst().orElse(null);
-            SelectiveRenderState.setSavedState(
-                    activePreset == null ? null : PRESETS.get(activePreset),
-                    stored.enabled && activePreset != null);
+            if (stored.formatVersion >= 4 && stored.activePresets != null) {
+                stored.activePresets.stream().map(SelectiveRenderConfig::normalize)
+                        .filter(PRESETS::containsKey).forEach(ACTIVE_PRESETS::add);
+            } else {
+                String requestedActive = normalize(stored.activePreset);
+                String migratedActive = PRESETS.containsKey(requestedActive)
+                        ? requestedActive : PRESETS.keySet().stream().findFirst().orElse(null);
+                if (migratedActive != null) ACTIVE_PRESETS.add(migratedActive);
+            }
+            groupEnabled = stored.enabled;
+            applyState();
         } catch (RuntimeException | IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not load selective render config {}", path, exception);
             reset();
@@ -64,26 +70,27 @@ public final class SelectiveRenderConfig {
     public static boolean saveSelection(MinecraftClient client, String requestedName) {
         if (!SelectiveRenderState.saveSelection()) return false;
         String name = normalize(requestedName);
-        PRESETS.put(name, SelectiveRenderState.region());
-        activePreset = name;
+        PRESETS.put(name, SelectiveRenderState.selection());
+        applyState();
         write(client);
         SelectiveRenderState.refreshRenderer();
         return true;
     }
 
     public static boolean toggleCurrent(MinecraftClient client) {
-        if (!SelectiveRenderState.toggle()) return false;
+        if (ACTIVE_PRESETS.isEmpty()) return false;
+        groupEnabled = !groupEnabled;
+        applyState();
+        SelectiveRenderState.refreshRenderer();
         write(client);
         return true;
     }
 
     public static boolean togglePreset(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        BlockRegion region = PRESETS.get(name);
-        if (region == null) return false;
-        boolean newEnabled = !(SelectiveRenderState.enabled() && name.equals(activePreset));
-        activePreset = name;
-        SelectiveRenderState.setSavedState(region, newEnabled);
+        if (!PRESETS.containsKey(name)) return false;
+        if (!ACTIVE_PRESETS.remove(name)) ACTIVE_PRESETS.add(name);
+        applyState();
         SelectiveRenderState.refreshRenderer();
         write(client);
         return true;
@@ -92,18 +99,24 @@ public final class SelectiveRenderConfig {
     public static boolean deletePreset(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
         if (PRESETS.remove(name) == null) return false;
-        if (name.equals(activePreset)) {
-            activePreset = PRESETS.keySet().stream().findFirst().orElse(null);
-            SelectiveRenderState.setSavedState(
-                    activePreset == null ? null : PRESETS.get(activePreset), false);
+        if (ACTIVE_PRESETS.remove(name)) {
+            applyState();
             SelectiveRenderState.refreshRenderer();
         }
         write(client);
         return true;
     }
 
-    public static String activePreset() {
-        return activePreset;
+    public static boolean isPresetActive(String name) {
+        return ACTIVE_PRESETS.contains(normalize(name));
+    }
+
+    public static List<String> activePresetNames() {
+        return List.copyOf(ACTIVE_PRESETS);
+    }
+
+    public static boolean groupEnabled() {
+        return groupEnabled;
     }
 
     public static List<String> presetNames() {
@@ -112,8 +125,9 @@ public final class SelectiveRenderConfig {
 
     public static void reset() {
         PRESETS.clear();
-        activePreset = null;
-        SelectiveRenderState.setSavedState(null, false);
+        ACTIVE_PRESETS.clear();
+        groupEnabled = false;
+        SelectiveRenderState.setSavedState(List.of(), false);
     }
 
     private static void write(MinecraftClient client) {
@@ -122,9 +136,9 @@ public final class SelectiveRenderConfig {
         try {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
-            stored.formatVersion = 3;
-            stored.activePreset = activePreset;
-            stored.enabled = SelectiveRenderState.enabled();
+            stored.formatVersion = 4;
+            stored.activePresets = List.copyOf(ACTIVE_PRESETS);
+            stored.enabled = groupEnabled;
             stored.presets = new LinkedHashMap<>();
             PRESETS.forEach((name, region) -> stored.presets.put(name, StoredRegion.from(region)));
             try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
@@ -133,6 +147,11 @@ public final class SelectiveRenderConfig {
         } catch (IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not save selective render config {}", path, exception);
         }
+    }
+
+    private static void applyState() {
+        SelectiveRenderState.setSavedState(
+                ACTIVE_PRESETS.stream().map(PRESETS::get).toList(), groupEnabled);
     }
 
     private static Path pathFor(MinecraftClient client) {
@@ -166,6 +185,7 @@ public final class SelectiveRenderConfig {
         Map<String, StoredRegion> presets;
         int formatVersion;
         String activePreset;
+        List<String> activePresets;
         boolean enabled;
         Integer minX;
         Integer maxX;

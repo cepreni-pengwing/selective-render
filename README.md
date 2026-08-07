@@ -7,11 +7,11 @@
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
-everything outside a saved three-dimensional block region from the render lists.
+everything outside selected three-dimensional block regions from the render lists.
 This prevents hidden buildings and terrain from contributing geometry, lighting,
 or shader shadows outside the selected area. Players remain visible everywhere;
 all other entities, block entities, particles, block models, and fluids are
-restricted to the active region.
+restricted to the active regions.
 
 ## Usage
 
@@ -21,7 +21,8 @@ same features.
 1. Stand at one corner of the desired cuboid and run `/sr pos1`.
 2. Stand at the diagonally opposite corner and run `/sr pos2`.
 3. Run `/sr s NAME` to save the inclusive cuboid as a named preset.
-4. Run `/sr t NAME` to enable it. Run the same command again to disable it.
+4. Run `/sr t NAME` to add it to the render group. Add any other presets the same way.
+5. Run `/sr t` to enable or disable every region in the render group at once.
 
 Both positions use whole-block X, Y, and Z coordinates. Make sure the two corners
 cover the full width, height, and depth you want to render. For example, one
@@ -41,25 +42,29 @@ Available short commands:
 ```
 
 - `/sr s NAME` saves the current selection. A name is always required.
-- `/sr t NAME` selects and toggles a saved preset.
-- `/sr t` toggles the currently selected preset.
+- `/sr t NAME` adds a preset to the render group or removes it again.
+- `/sr t` enables or disables the entire render group while preserving its members.
 - `/sr d NAME` permanently deletes a preset.
-- `/sr list` displays every saved preset and the currently selected one.
+- `/sr list` displays every saved preset, its group membership, and the group state.
 
 The long `save`, `toggle`, and `delete` subcommands remain available as
 `/sr save NAME`, `/sr toggle NAME`, and `/sr delete NAME`.
 
-The default keybind for toggling the currently selected preset is the physical
+All regions in the enabled render group are combined. A block is rendered when
+it is inside at least one of them, so separate areas can be visible at the same
+time.
+
+The default keybind for toggling the entire render group is the physical
 minus key, which is the `ß` key on German keyboard layouts. It can be reassigned
 under Minecraft's Controls settings in the Selective Render category.
 
-Presets and their enabled state are stored per server or single-player world
+Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining the world. The hashed file name prevents server
 addresses from being exposed as file names.
 
 Players are always rendered. Every other entity, block entity, and particle is
-hidden outside the selected region.
+hidden outside the combined active regions.
 
 ## Implementation
 
@@ -84,7 +89,7 @@ The mod does not change render distance, server packets, chunk loading, game
 logic, or collision. Sodium support is optional and its mixins are skipped when
 Sodium is not installed. The implementation does not use reflection.
 
-The selected region must still be within the normal Minecraft render distance.
+The selected regions must still be within the normal Minecraft render distance.
 All region boundaries use inclusive whole-block coordinates. Existing horizontal
 presets are migrated without a vertical limit so their previous behavior is kept.
 
@@ -102,7 +107,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.2.4.jar`.
+The installable file is generated at `build/libs/selective-render-1.2.5.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions

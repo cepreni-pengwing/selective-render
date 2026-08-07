@@ -6,10 +6,14 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
+import java.util.Collection;
+import java.util.List;
+
 public final class SelectiveRenderState {
     private static BlockPos first;
     private static BlockPos second;
-    private static BlockRegion region;
+    private static BlockRegion selection;
+    private static List<BlockRegion> activeRegions = List.of();
     private static boolean enabled;
 
     private SelectiveRenderState() { }
@@ -18,40 +22,44 @@ public final class SelectiveRenderState {
     public static void setSecond(BlockPos position) { second = position; }
     public static BlockPos first() { return first; }
     public static BlockPos second() { return second; }
-    public static BlockRegion region() { return region; }
-    public static boolean enabled() { return enabled && region != null; }
+    public static BlockRegion selection() { return selection; }
+    public static List<BlockRegion> activeRegions() { return activeRegions; }
+    public static boolean enabled() { return enabled && !activeRegions.isEmpty(); }
 
-    public static void setSavedState(BlockRegion newRegion, boolean newEnabled) {
-        region = newRegion;
-        enabled = newEnabled && newRegion != null;
+    public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled) {
+        activeRegions = List.copyOf(regions);
+        enabled = newEnabled;
     }
 
     public static boolean saveSelection() {
         if (first == null || second == null) return false;
-        region = BlockRegion.between(first, second);
+        selection = BlockRegion.between(first, second);
         return true;
     }
 
     public static boolean toggle() {
-        if (region == null) return false;
+        if (activeRegions.isEmpty()) return false;
         enabled = !enabled;
         refreshRenderer();
         return true;
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
-        BlockRegion current = region;
-        return !enabled || current == null || current.intersectsSection(sectionX, sectionY, sectionZ);
+        return !enabled() || activeRegions.stream()
+                .anyMatch(region -> region.intersectsSection(sectionX, sectionY, sectionZ));
     }
 
     public static boolean shouldRender(BlockPos position) {
-        BlockRegion current = region;
-        return !enabled || current == null || current.contains(position);
+        return !enabled() || containsActive(position);
     }
 
     public static boolean shouldRender(double x, double y, double z) {
-        BlockRegion current = region;
-        return !enabled || current == null || current.contains(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
+        return !enabled() || activeRegions.stream()
+                .anyMatch(region -> region.contains(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z)));
+    }
+
+    public static boolean containsActive(BlockPos position) {
+        return activeRegions.stream().anyMatch(region -> region.contains(position));
     }
 
     public static boolean shouldRender(Entity entity) {
@@ -61,7 +69,8 @@ public final class SelectiveRenderState {
     public static void resetForDisconnect() {
         first = null;
         second = null;
-        region = null;
+        selection = null;
+        activeRegions = List.of();
         enabled = false;
     }
 
