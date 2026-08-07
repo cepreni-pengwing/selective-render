@@ -1,6 +1,8 @@
 # Selective Render
 
-![Selective Render enabled and disabled comparison](docs/images/selective-render-comparison.gif)
+| Selective Render ON | Selective Render OFF |
+|:---:|:---:|
+| ![Only the selected render regions are visible](docs/images/selective-render-on.png) | ![The complete surrounding world is visible](docs/images/selective-render-off.png) |
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
