@@ -25,7 +25,9 @@ public final class SelectiveRenderConfig {
     private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
     private static final Map<String, BlockRegion> PRESETS = new LinkedHashMap<>();
     private static final LinkedHashSet<String> ACTIVE_PRESETS = new LinkedHashSet<>();
+    private static final LinkedHashSet<String> HIDDEN_PRESETS = new LinkedHashSet<>();
     private static boolean groupEnabled;
+    private static boolean hideGroupEnabled = true;
 
     private SelectiveRenderConfig() { }
 
@@ -60,6 +62,11 @@ public final class SelectiveRenderConfig {
                 if (migratedActive != null) ACTIVE_PRESETS.add(migratedActive);
             }
             groupEnabled = stored.enabled;
+            if (stored.formatVersion >= 5 && stored.hiddenPresets != null) {
+                stored.hiddenPresets.stream().map(SelectiveRenderConfig::normalize)
+                        .filter(PRESETS::containsKey).forEach(HIDDEN_PRESETS::add);
+            }
+            hideGroupEnabled = stored.formatVersion >= 5 ? stored.hideEnabled : true;
             applyState();
         } catch (RuntimeException | IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not load selective render config {}", path, exception);
@@ -96,10 +103,30 @@ public final class SelectiveRenderConfig {
         return true;
     }
 
+    public static boolean toggleHiddenPreset(MinecraftClient client, String requestedName) {
+        String name = normalize(requestedName);
+        if (!PRESETS.containsKey(name)) return false;
+        if (!HIDDEN_PRESETS.remove(name)) HIDDEN_PRESETS.add(name);
+        applyState();
+        SelectiveRenderState.refreshRenderer();
+        write(client);
+        return true;
+    }
+
+    public static boolean toggleHiddenGroup(MinecraftClient client) {
+        if (HIDDEN_PRESETS.isEmpty()) return false;
+        hideGroupEnabled = !hideGroupEnabled;
+        applyState();
+        SelectiveRenderState.refreshRenderer();
+        write(client);
+        return true;
+    }
+
     public static boolean deletePreset(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
         if (PRESETS.remove(name) == null) return false;
-        if (ACTIVE_PRESETS.remove(name)) {
+        boolean changed = ACTIVE_PRESETS.remove(name) | HIDDEN_PRESETS.remove(name);
+        if (changed) {
             applyState();
             SelectiveRenderState.refreshRenderer();
         }
@@ -119,6 +146,18 @@ public final class SelectiveRenderConfig {
         return groupEnabled;
     }
 
+    public static boolean isPresetHidden(String name) {
+        return HIDDEN_PRESETS.contains(normalize(name));
+    }
+
+    public static List<String> hiddenPresetNames() {
+        return List.copyOf(HIDDEN_PRESETS);
+    }
+
+    public static boolean hideGroupEnabled() {
+        return hideGroupEnabled;
+    }
+
     public static List<String> presetNames() {
         return List.copyOf(PRESETS.keySet());
     }
@@ -126,8 +165,10 @@ public final class SelectiveRenderConfig {
     public static void reset() {
         PRESETS.clear();
         ACTIVE_PRESETS.clear();
+        HIDDEN_PRESETS.clear();
         groupEnabled = false;
-        SelectiveRenderState.setSavedState(List.of(), false);
+        hideGroupEnabled = true;
+        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false);
     }
 
     private static void write(MinecraftClient client) {
@@ -136,9 +177,11 @@ public final class SelectiveRenderConfig {
         try {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
-            stored.formatVersion = 4;
+            stored.formatVersion = 5;
             stored.activePresets = List.copyOf(ACTIVE_PRESETS);
+            stored.hiddenPresets = List.copyOf(HIDDEN_PRESETS);
             stored.enabled = groupEnabled;
+            stored.hideEnabled = hideGroupEnabled;
             stored.presets = new LinkedHashMap<>();
             PRESETS.forEach((name, region) -> stored.presets.put(name, StoredRegion.from(region)));
             try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
@@ -151,7 +194,8 @@ public final class SelectiveRenderConfig {
 
     private static void applyState() {
         SelectiveRenderState.setSavedState(
-                ACTIVE_PRESETS.stream().map(PRESETS::get).toList(), groupEnabled);
+                ACTIVE_PRESETS.stream().map(PRESETS::get).toList(), groupEnabled,
+                HIDDEN_PRESETS.stream().map(PRESETS::get).toList(), hideGroupEnabled);
     }
 
     private static Path pathFor(MinecraftClient client) {
@@ -186,7 +230,9 @@ public final class SelectiveRenderConfig {
         int formatVersion;
         String activePreset;
         List<String> activePresets;
+        List<String> hiddenPresets;
         boolean enabled;
+        boolean hideEnabled;
         Integer minX;
         Integer maxX;
         Integer minZ;

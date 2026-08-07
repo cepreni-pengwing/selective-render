@@ -57,14 +57,10 @@ abstract class WorldSliceMixin {
 
     @Unique
     private boolean selectiverender$hasOpenVirtualSky(BlockPos pos) {
-        if (!SelectiveRenderState.enabled() || !SelectiveRenderState.containsActive(pos)) {
+        if ((!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())
+                || !SelectiveRenderState.shouldRender(pos)) {
             return false;
         }
-
-        boolean unbounded = SelectiveRenderState.activeRegions().stream().anyMatch(region ->
-                region.contains(pos.getX(), pos.getY(), pos.getZ())
-                        && (region.minY() == Integer.MIN_VALUE || region.maxY() == Integer.MAX_VALUE));
-        if (unbounded) return false;
 
         long column = ChunkPos.toLong(pos.getX(), pos.getZ());
         int highestOccluder = selectiverender$highestOccluders.computeIfAbsent(column, ignored -> {
@@ -73,7 +69,7 @@ abstract class WorldSliceMixin {
             int bottom = world.getBottomY();
             for (int y = top; y >= bottom; y--) {
                 cursor.setY(y);
-                if (!SelectiveRenderState.containsActive(cursor)) continue;
+                if (!SelectiveRenderState.shouldRender(cursor)) continue;
                 BlockState state = world.getBlockState(cursor);
                 if (state.getOpacity(world, cursor) > 0) return y;
             }

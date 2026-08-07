@@ -35,6 +35,15 @@ public record BlockRegion(int minX, int maxX, int minY, int maxY, int minZ, int 
                 && maxZ >= sectionMinZ && minZ <= sectionMinZ + 15;
     }
 
+    public boolean containsSection(int sectionX, int sectionY, int sectionZ) {
+        long sectionMinX = (long) sectionX << 4;
+        long sectionMinY = (long) sectionY << 4;
+        long sectionMinZ = (long) sectionZ << 4;
+        return minX <= sectionMinX && maxX >= sectionMinX + 15
+                && minY <= sectionMinY && maxY >= sectionMinY + 15
+                && minZ <= sectionMinZ && maxZ >= sectionMinZ + 15;
+    }
+
     public long blockCount() {
         return (long) (maxX - minX + 1) * (long) (maxY - minY + 1) * (long) (maxZ - minZ + 1);
     }

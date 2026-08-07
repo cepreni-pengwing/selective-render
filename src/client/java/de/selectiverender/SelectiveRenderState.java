@@ -14,7 +14,9 @@ public final class SelectiveRenderState {
     private static BlockPos second;
     private static BlockRegion selection;
     private static List<BlockRegion> activeRegions = List.of();
+    private static List<BlockRegion> hiddenRegions = List.of();
     private static boolean enabled;
+    private static boolean hideEnabled;
 
     private SelectiveRenderState() { }
 
@@ -24,11 +26,16 @@ public final class SelectiveRenderState {
     public static BlockPos second() { return second; }
     public static BlockRegion selection() { return selection; }
     public static List<BlockRegion> activeRegions() { return activeRegions; }
+    public static List<BlockRegion> hiddenRegions() { return hiddenRegions; }
     public static boolean enabled() { return enabled && !activeRegions.isEmpty(); }
+    public static boolean hideEnabled() { return hideEnabled && !hiddenRegions.isEmpty(); }
 
-    public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled) {
+    public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
+                                     Collection<BlockRegion> hidden, boolean newHideEnabled) {
         activeRegions = List.copyOf(regions);
+        hiddenRegions = List.copyOf(hidden);
         enabled = newEnabled;
+        hideEnabled = newHideEnabled;
     }
 
     public static boolean saveSelection() {
@@ -45,21 +52,34 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
-        return !enabled() || activeRegions.stream()
+        boolean included = !enabled() || activeRegions.stream()
                 .anyMatch(region -> region.intersectsSection(sectionX, sectionY, sectionZ));
+        boolean fullyHidden = hideEnabled() && hiddenRegions.stream()
+                .anyMatch(region -> region.containsSection(sectionX, sectionY, sectionZ));
+        return included && !fullyHidden;
     }
 
     public static boolean shouldRender(BlockPos position) {
-        return !enabled() || containsActive(position);
+        return (!enabled() || containsActive(position)) && (!hideEnabled() || !containsHidden(position));
     }
 
     public static boolean shouldRender(double x, double y, double z) {
-        return !enabled() || activeRegions.stream()
-                .anyMatch(region -> region.contains(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z)));
+        int blockX = MathHelper.floor(x);
+        int blockY = MathHelper.floor(y);
+        int blockZ = MathHelper.floor(z);
+        boolean included = !enabled() || activeRegions.stream()
+                .anyMatch(region -> region.contains(blockX, blockY, blockZ));
+        boolean hidden = hideEnabled() && hiddenRegions.stream()
+                .anyMatch(region -> region.contains(blockX, blockY, blockZ));
+        return included && !hidden;
     }
 
     public static boolean containsActive(BlockPos position) {
         return activeRegions.stream().anyMatch(region -> region.contains(position));
+    }
+
+    public static boolean containsHidden(BlockPos position) {
+        return hiddenRegions.stream().anyMatch(region -> region.contains(position));
     }
 
     public static boolean shouldRender(Entity entity) {
@@ -71,7 +91,9 @@ public final class SelectiveRenderState {
         second = null;
         selection = null;
         activeRegions = List.of();
+        hiddenRegions = List.of();
         enabled = false;
+        hideEnabled = false;
     }
 
     public static void refreshRenderer() {

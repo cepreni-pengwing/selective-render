@@ -13,6 +13,10 @@ or shader shadows outside the selected area. Players remain visible everywhere;
 all other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
+Version 1.3 adds a separate hide group for temporarily removing named areas such
+as floating block palettes. Hide regions take priority over the normal render
+group and can be controlled individually or all at once.
+
 ## Usage
 
 `/sr` is the short alias for `/selectiverender`; both command names provide the
@@ -37,6 +41,8 @@ Available short commands:
 /sr pos2
 /sr s NAME
 /sr t NAME
+/sr h NAME
+/sr h
 /sr d NAME
 /sr list
 ```
@@ -44,19 +50,25 @@ Available short commands:
 - `/sr s NAME` saves the current selection. A name is always required.
 - `/sr t NAME` adds a preset to the render group or removes it again.
 - `/sr t` enables or disables the entire render group while preserving its members.
+- `/sr h NAME` adds a preset to the hide group or removes it again.
+- `/sr h` enables or disables the entire hide group while preserving its members.
 - `/sr d NAME` permanently deletes a preset.
 - `/sr list` displays every saved preset, its group membership, and the group state.
 
-The long `save`, `toggle`, and `delete` subcommands remain available as
-`/sr save NAME`, `/sr toggle NAME`, and `/sr delete NAME`.
+The long `save`, `toggle`, `hide`, and `delete` subcommands remain available as
+`/sr save NAME`, `/sr toggle NAME`, `/sr hide NAME`, and `/sr delete NAME`.
 
 All regions in the enabled render group are combined. A block is rendered when
 it is inside at least one of them, so separate areas can be visible at the same
-time.
+time. Active hide regions are then subtracted from that result. When the normal
+render group is disabled, the hide group can remove regions from the full world.
 
 The default keybind for toggling the entire render group is the physical
 minus key, which is the `ß` key on German keyboard layouts. It can be reassigned
 under Minecraft's Controls settings in the Selective Render category.
+
+The hide-group keybind is the physical equals key, which is the `´` key directly
+to the right of `ß` on German keyboard layouts. It can also be reassigned.
 
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
@@ -107,7 +119,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.2.5.jar`.
+The installable file is generated at `build/libs/selective-render-1.3.0.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions

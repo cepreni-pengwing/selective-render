@@ -28,12 +28,18 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.toggle",
             GLFW.GLFW_KEY_MINUS,
             "category.selectiverender");
+    private static final KeyBinding HIDE_TOGGLE_KEY = new KeyBinding(
+            "key.selectiverender.toggle_hide",
+            GLFW.GLFW_KEY_EQUAL,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
         KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
+        KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
+            while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
@@ -57,9 +63,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(saveCommand("s"))
                 .then(toggleCommand("toggle"))
                 .then(toggleCommand("t"))
+                .then(hideCommand("hide"))
+                .then(hideCommand("h"))
                 .then(deleteCommand("delete"))
                 .then(deleteCommand("d"))
                 .then(ClientCommandManager.literal("list").executes(context -> list(context.getSource())));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> hideCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .executes(context -> toggleHide(context.getSource(), null))
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> toggleHide(context.getSource(),
+                                StringArgumentType.getString(context, "name"))));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> saveCommand(String name) {
@@ -133,16 +149,44 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static int toggleHide(FabricClientCommandSource source, String name) {
+        boolean toggled = name == null
+                ? SelectiveRenderConfig.toggleHiddenGroup(MinecraftClient.getInstance())
+                : SelectiveRenderConfig.toggleHiddenPreset(MinecraftClient.getInstance(), name);
+        if (!toggled) {
+            feedback(source, name == null ? "No presets are in the hide group."
+                    : "Preset '" + name + "' does not exist.", Formatting.RED);
+            return 0;
+        }
+        if (name == null) {
+            int count = SelectiveRenderConfig.hiddenPresetNames().size();
+            feedback(source, "Hide group " + (SelectiveRenderConfig.hideGroupEnabled() ? "enabled" : "disabled")
+                            + " (" + count + (count == 1 ? " region)." : " regions)."),
+                    SelectiveRenderConfig.hideGroupEnabled() ? Formatting.GREEN : Formatting.YELLOW);
+        } else {
+            boolean hidden = SelectiveRenderConfig.isPresetHidden(name);
+            String suffix = SelectiveRenderConfig.hideGroupEnabled() ? "" : " The hide group is currently disabled.";
+            feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' "
+                            + (hidden ? "added to" : "removed from") + " the hide group." + suffix,
+                    hidden ? Formatting.GREEN : Formatting.YELLOW);
+        }
+        return Command.SINGLE_SUCCESS;
+    }
+
     private static int list(FabricClientCommandSource source) {
         List<String> names = SelectiveRenderConfig.presetNames();
         if (names.isEmpty()) {
             feedback(source, "No presets have been saved.", Formatting.YELLOW);
             return Command.SINGLE_SUCCESS;
         }
-        String presets = names.stream().map(name -> name + (SelectiveRenderConfig.isPresetActive(name)
-                ? " [in group]" : " [inactive]")).reduce((left, right) -> left + ", " + right).orElse("none");
+        String presets = names.stream().map(name -> name
+                + (SelectiveRenderConfig.isPresetActive(name) ? " [render]" : "")
+                + (SelectiveRenderConfig.isPresetHidden(name) ? " [hide]" : "")
+                + (!SelectiveRenderConfig.isPresetActive(name) && !SelectiveRenderConfig.isPresetHidden(name)
+                ? " [inactive]" : "")).reduce((left, right) -> left + ", " + right).orElse("none");
         feedback(source, "Presets: " + presets + ". Render group: "
-                + (SelectiveRenderConfig.groupEnabled() ? "enabled." : "disabled."), Formatting.AQUA);
+                + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled") + ". Hide group: "
+                + (SelectiveRenderConfig.hideGroupEnabled() ? "enabled." : "disabled."), Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -157,6 +201,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled") + " (" + count
                         + (count == 1 ? " region)." : " regions)."),
                 SelectiveRenderConfig.groupEnabled() ? Formatting.GREEN : Formatting.YELLOW), false);
+    }
+
+    private static void toggleHideFromKey(MinecraftClient client) {
+        if (client.player == null) return;
+        if (!SelectiveRenderConfig.toggleHiddenGroup(client)) {
+            client.player.sendMessage(message("No presets are in the hide group.", Formatting.RED), false);
+            return;
+        }
+        int count = SelectiveRenderConfig.hiddenPresetNames().size();
+        client.player.sendMessage(message("Hide group "
+                        + (SelectiveRenderConfig.hideGroupEnabled() ? "enabled" : "disabled") + " (" + count
+                        + (count == 1 ? " region)." : " regions)."),
+                SelectiveRenderConfig.hideGroupEnabled() ? Formatting.GREEN : Formatting.YELLOW), false);
     }
 
     private static void feedback(FabricClientCommandSource source, String message, Formatting color) {
