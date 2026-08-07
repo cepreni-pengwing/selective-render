@@ -15,7 +15,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class WorldRendererMixin {
     @Inject(method = "addBuiltChunk", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterTerrain(ChunkBuilder.BuiltChunk chunk, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(chunk.getOrigin())) ci.cancel();
+        if (!SelectiveRenderState.shouldRenderChunk(
+                chunk.getOrigin().getX() >> 4, chunk.getOrigin().getZ() >> 4)) ci.cancel();
     }
 
     @Inject(method = "renderEntity", at = @At("HEAD"), cancellable = true)

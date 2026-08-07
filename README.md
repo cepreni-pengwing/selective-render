@@ -2,12 +2,12 @@
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
-everything outside a saved rectangular chunk region from the render lists.
+everything outside a saved rectangular block region from the render lists.
 
 ## Usage
 
-1. Stand in the first corner chunk and run `/selectiverender pos1`.
-2. Stand in the opposite corner chunk and run `/selectiverender pos2`.
+1. Stand on the first corner block and run `/selectiverender pos1`.
+2. Stand on the opposite corner block and run `/selectiverender pos2`.
 3. Run `/selectiverender save NAME` to save the inclusive rectangular region as
    a named preset.
 4. Run `/selectiverender toggle NAME` to enable that preset. Running the same
@@ -42,11 +42,13 @@ hidden outside the selected region.
 ## Implementation
 
 - Vanilla sections are filtered in `WorldRenderer.addBuiltChunk` before terrain
-  render lists and chunk rebuild work are created.
+  render lists and chunk rebuild work are created. Boundary chunks are retained,
+  then individual block models and fluids are filtered by block position.
 - Sodium 0.5.x sections are filtered through `VisibleChunkCollector` before
   render lists, draw commands, and rebuild queues are created. While the filter
   is active, graph traversal remains independent of occlusion data from
-  unrendered outer sections, allowing the plot to remain visible from outside.
+  unrendered outer sections, allowing the region to remain visible from outside.
+  Sodium block models and fluids in boundary chunks are filtered separately.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
 - Entities, block entities, and particle geometry use separate render filters.
@@ -56,6 +58,8 @@ logic, or collision. Sodium support is optional and its mixins are skipped when
 Sodium is not installed. The implementation does not use reflection.
 
 The selected region must still be within the normal Minecraft render distance.
+Horizontal region boundaries use inclusive whole-block coordinates. Existing
+chunk-based presets are migrated to the complete block area of their old chunks.
 
 ## Building
 

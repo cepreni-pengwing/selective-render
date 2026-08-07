@@ -3,7 +3,7 @@
   "id": "selectiverender",
   "version": "${version}",
   "name": "Selective Render",
-  "description": "Client-side chunk render whitelist for plot servers.",
+  "description": "Client-side block-precise render whitelist for selected world regions.",
   "authors": ["Codex"],
   "license": "MIT",
   "environment": "client",

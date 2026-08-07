@@ -14,7 +14,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.BlockPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.lwjgl.glfw.GLFW;
@@ -82,9 +82,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
-        ChunkPos position = source.getPlayer().getChunkPos();
+        BlockPos position = source.getPlayer().getBlockPos();
         if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
-        feedback(source, (isFirst ? "Pos1" : "Pos2") + " = chunk " + position.x + ", " + position.z, Formatting.AQUA);
+        feedback(source, (isFirst ? "Pos1" : "Pos2") + " = block "
+                + position.getX() + ", " + position.getZ(), Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -93,9 +94,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, "Set pos1 and pos2 first.", Formatting.RED);
             return 0;
         }
-        ChunkRegion region = SelectiveRenderState.region();
+        BlockRegion region = SelectiveRenderState.region();
         feedback(source, "Preset '" + SelectiveRenderConfig.activePreset() + "' saved with "
-                + region.chunkCount() + " chunks.", Formatting.GREEN);
+                + region.blockCount() + " columns.", Formatting.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

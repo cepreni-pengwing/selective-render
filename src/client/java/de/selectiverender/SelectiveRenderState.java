@@ -4,32 +4,31 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 
 public final class SelectiveRenderState {
-    private static ChunkPos first;
-    private static ChunkPos second;
-    private static ChunkRegion region;
+    private static BlockPos first;
+    private static BlockPos second;
+    private static BlockRegion region;
     private static boolean enabled;
 
     private SelectiveRenderState() { }
 
-    public static void setFirst(ChunkPos position) { first = position; }
-    public static void setSecond(ChunkPos position) { second = position; }
-    public static ChunkPos first() { return first; }
-    public static ChunkPos second() { return second; }
-    public static ChunkRegion region() { return region; }
+    public static void setFirst(BlockPos position) { first = position; }
+    public static void setSecond(BlockPos position) { second = position; }
+    public static BlockPos first() { return first; }
+    public static BlockPos second() { return second; }
+    public static BlockRegion region() { return region; }
     public static boolean enabled() { return enabled && region != null; }
 
-    public static void setSavedState(ChunkRegion newRegion, boolean newEnabled) {
+    public static void setSavedState(BlockRegion newRegion, boolean newEnabled) {
         region = newRegion;
         enabled = newEnabled && newRegion != null;
     }
 
     public static boolean saveSelection() {
         if (first == null || second == null) return false;
-        region = ChunkRegion.between(first, second);
+        region = BlockRegion.between(first, second);
         return true;
     }
 
@@ -41,16 +40,18 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRenderChunk(int chunkX, int chunkZ) {
-        ChunkRegion current = region;
-        return !enabled || current == null || current.contains(chunkX, chunkZ);
+        BlockRegion current = region;
+        return !enabled || current == null || current.intersectsChunk(chunkX, chunkZ);
     }
 
     public static boolean shouldRender(BlockPos position) {
-        return shouldRenderChunk(position.getX() >> 4, position.getZ() >> 4);
+        BlockRegion current = region;
+        return !enabled || current == null || current.contains(position);
     }
 
     public static boolean shouldRender(double x, double z) {
-        return shouldRenderChunk(MathHelper.floor(x) >> 4, MathHelper.floor(z) >> 4);
+        BlockRegion current = region;
+        return !enabled || current == null || current.contains(MathHelper.floor(x), MathHelper.floor(z));
     }
 
     public static boolean shouldRender(Entity entity) {

@@ -22,7 +22,7 @@ import java.util.Map;
 public final class SelectiveRenderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
-    private static final Map<String, ChunkRegion> PRESETS = new LinkedHashMap<>();
+    private static final Map<String, BlockRegion> PRESETS = new LinkedHashMap<>();
     private static String activePreset;
 
     private SelectiveRenderConfig() { }
@@ -39,12 +39,12 @@ public final class SelectiveRenderConfig {
             if (stored.presets != null) {
                 stored.presets.forEach((name, region) -> {
                     if (name != null && region != null) {
-                        PRESETS.put(normalize(name), region.toRegion());
+                        PRESETS.put(normalize(name), region.toRegion(stored.formatVersion));
                     }
                 });
             } else if (stored.minX != null && stored.maxX != null
                     && stored.minZ != null && stored.maxZ != null) {
-                PRESETS.put("default", new ChunkRegion(
+                PRESETS.put("default", StoredRegion.fromLegacyChunks(
                         stored.minX, stored.maxX, stored.minZ, stored.maxZ));
             }
 
@@ -79,7 +79,7 @@ public final class SelectiveRenderConfig {
 
     public static boolean togglePreset(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        ChunkRegion region = PRESETS.get(name);
+        BlockRegion region = PRESETS.get(name);
         if (region == null) return false;
         boolean newEnabled = !(SelectiveRenderState.enabled() && name.equals(activePreset));
         activePreset = name;
@@ -122,6 +122,7 @@ public final class SelectiveRenderConfig {
         try {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
+            stored.formatVersion = 2;
             stored.activePreset = activePreset;
             stored.enabled = SelectiveRenderState.enabled();
             stored.presets = new LinkedHashMap<>();
@@ -163,6 +164,7 @@ public final class SelectiveRenderConfig {
 
     private static final class StoredConfig {
         Map<String, StoredRegion> presets;
+        int formatVersion;
         String activePreset;
         boolean enabled;
         Integer minX;
@@ -177,7 +179,7 @@ public final class SelectiveRenderConfig {
         int minZ;
         int maxZ;
 
-        static StoredRegion from(ChunkRegion region) {
+        static StoredRegion from(BlockRegion region) {
             StoredRegion stored = new StoredRegion();
             stored.minX = region.minX();
             stored.maxX = region.maxX();
@@ -186,8 +188,14 @@ public final class SelectiveRenderConfig {
             return stored;
         }
 
-        ChunkRegion toRegion() {
-            return new ChunkRegion(minX, maxX, minZ, maxZ);
+        BlockRegion toRegion(int formatVersion) {
+            return formatVersion >= 2
+                    ? new BlockRegion(minX, maxX, minZ, maxZ)
+                    : fromLegacyChunks(minX, maxX, minZ, maxZ);
+        }
+
+        static BlockRegion fromLegacyChunks(int minX, int maxX, int minZ, int maxZ) {
+            return new BlockRegion(minX << 4, (maxX << 4) + 15, minZ << 4, (maxZ << 4) + 15);
         }
     }
 }
