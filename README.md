@@ -100,6 +100,8 @@ hidden outside the combined active regions.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
 - Entities, block entities, and particle geometry use separate render filters.
+  Player lightmap sampling also ignores filtered overhead blocks, preventing
+  invisible roofs or platforms from darkening players below them.
 
 The mod does not change render distance, server packets, chunk loading, game
 logic, or collision. Sodium support is optional and its mixins are skipped when
@@ -123,7 +125,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.3.1.jar`.
+The installable file is generated at `build/libs/selective-render-1.3.2.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
