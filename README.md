@@ -45,6 +45,7 @@ Available short commands:
 /sr h
 /sr d NAME
 /sr list
+/sr list h
 ```
 
 - `/sr s NAME` saves the current selection. A name is always required.
@@ -53,7 +54,8 @@ Available short commands:
 - `/sr h NAME` adds a preset to the hide group or removes it again.
 - `/sr h` enables or disables the entire hide group while preserving its members.
 - `/sr d NAME` permanently deletes a preset.
-- `/sr list` displays every saved preset, its group membership, and the group state.
+- `/sr list` displays regular presets on separate lines with status and a corner coordinate.
+- `/sr list h` or `/sr list hidden` exclusively displays hide-group regions in the same format.
 
 The long `save`, `toggle`, `hide`, and `delete` subcommands remain available as
 `/sr save NAME`, `/sr toggle NAME`, `/sr hide NAME`, and `/sr delete NAME`.
@@ -119,7 +121,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.3.0.jar`.
+The installable file is generated at `build/libs/selective-render-1.3.1.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions

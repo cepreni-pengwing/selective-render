@@ -162,6 +162,10 @@ public final class SelectiveRenderConfig {
         return List.copyOf(PRESETS.keySet());
     }
 
+    public static BlockRegion presetRegion(String name) {
+        return PRESETS.get(normalize(name));
+    }
+
     public static void reset() {
         PRESETS.clear();
         ACTIVE_PRESETS.clear();

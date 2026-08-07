@@ -67,7 +67,16 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(hideCommand("h"))
                 .then(deleteCommand("delete"))
                 .then(deleteCommand("d"))
-                .then(ClientCommandManager.literal("list").executes(context -> list(context.getSource())));
+                .then(listCommand());
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> listCommand() {
+        return ClientCommandManager.literal("list")
+                .executes(context -> list(context.getSource(), false))
+                .then(ClientCommandManager.literal("hidden")
+                        .executes(context -> list(context.getSource(), true)))
+                .then(ClientCommandManager.literal("h")
+                        .executes(context -> list(context.getSource(), true)));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> hideCommand(String name) {
@@ -173,20 +182,28 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
-    private static int list(FabricClientCommandSource source) {
-        List<String> names = SelectiveRenderConfig.presetNames();
+    private static int list(FabricClientCommandSource source, boolean hiddenOnly) {
+        List<String> names = SelectiveRenderConfig.presetNames().stream()
+                .filter(name -> SelectiveRenderConfig.isPresetHidden(name) == hiddenOnly)
+                .toList();
         if (names.isEmpty()) {
-            feedback(source, "No presets have been saved.", Formatting.YELLOW);
+            feedback(source, hiddenOnly ? "No presets are in the hide group."
+                    : "No regular presets have been saved.", Formatting.YELLOW);
             return Command.SINGLE_SUCCESS;
         }
-        String presets = names.stream().map(name -> name
-                + (SelectiveRenderConfig.isPresetActive(name) ? " [render]" : "")
-                + (SelectiveRenderConfig.isPresetHidden(name) ? " [hide]" : "")
-                + (!SelectiveRenderConfig.isPresetActive(name) && !SelectiveRenderConfig.isPresetHidden(name)
-                ? " [inactive]" : "")).reduce((left, right) -> left + ", " + right).orElse("none");
-        feedback(source, "Presets: " + presets + ". Render group: "
-                + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled") + ". Hide group: "
-                + (SelectiveRenderConfig.hideGroupEnabled() ? "enabled." : "disabled."), Formatting.AQUA);
+        boolean groupEnabled = hiddenOnly
+                ? SelectiveRenderConfig.hideGroupEnabled() : SelectiveRenderConfig.groupEnabled();
+        feedback(source, (hiddenOnly ? "Hidden regions" : "Render regions") + " — group "
+                + (groupEnabled ? "enabled:" : "disabled:"), Formatting.AQUA);
+        int width = names.stream().mapToInt(String::length).max().orElse(0);
+        for (String name : names) {
+            BlockRegion region = SelectiveRenderConfig.presetRegion(name);
+            boolean member = hiddenOnly || SelectiveRenderConfig.isPresetActive(name);
+            String paddedName = name + " ".repeat(width - name.length());
+            feedback(source, paddedName + "  " + (member ? "[active]  " : "[inactive]")
+                    + "  corner: " + region.minX() + ", " + region.minY() + ", " + region.minZ(),
+                    member ? Formatting.GREEN : Formatting.GRAY);
+        }
         return Command.SINGLE_SUCCESS;
     }
 
