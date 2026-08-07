@@ -76,7 +76,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.2.1.jar`.
+The installable file is generated at `build/libs/selective-render-1.2.2.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
