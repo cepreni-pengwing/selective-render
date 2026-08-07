@@ -66,12 +66,13 @@ it is inside at least one of them, so separate areas can be visible at the same
 time. Active hide regions are then subtracted from that result. When the normal
 render group is disabled, the hide group can remove regions from the full world.
 
-The default keybind for toggling the entire render group is the physical
-minus key, which is the `ß` key on German keyboard layouts. It can be reassigned
-under Minecraft's Controls settings in the Selective Render category.
+Default keybinds:
 
-The hide-group keybind is the physical equals key, which is the `´` key directly
-to the right of `ß` on German keyboard layouts. It can also be reassigned.
+- `ß`: toggle the render group
+- `´`: toggle the hide group
+
+Both keybinds can be reassigned in Minecraft's Controls settings under the
+Selective Render category.
 
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
