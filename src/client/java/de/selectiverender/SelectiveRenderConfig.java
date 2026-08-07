@@ -77,18 +77,29 @@ public final class SelectiveRenderConfig {
     public static boolean saveSelection(MinecraftClient client, String requestedName) {
         if (!SelectiveRenderState.saveSelection()) return false;
         String name = normalize(requestedName);
+        BlockRegion previous = PRESETS.get(name);
         PRESETS.put(name, SelectiveRenderState.selection());
         applyState();
         write(client);
-        SelectiveRenderState.refreshRenderer();
+        if ((ACTIVE_PRESETS.contains(name) && groupEnabled)
+                || (HIDDEN_PRESETS.contains(name) && hideGroupEnabled)) {
+            SelectiveRenderState.refreshRegions(previous == null
+                    ? List.of(SelectiveRenderState.selection())
+                    : List.of(previous, SelectiveRenderState.selection()));
+        }
         return true;
     }
 
     public static boolean toggleCurrent(MinecraftClient client) {
         if (ACTIVE_PRESETS.isEmpty()) return false;
+        boolean wasEnabled = groupEnabled;
         groupEnabled = !groupEnabled;
         applyState();
-        SelectiveRenderState.refreshRenderer();
+        if (wasEnabled) {
+            SelectiveRenderState.refreshRenderer();
+        } else {
+            SelectiveRenderState.refreshRegions(activeRegions());
+        }
         write(client);
         return true;
     }
@@ -98,7 +109,7 @@ public final class SelectiveRenderConfig {
         if (!PRESETS.containsKey(name)) return false;
         if (!ACTIVE_PRESETS.remove(name)) ACTIVE_PRESETS.add(name);
         applyState();
-        SelectiveRenderState.refreshRenderer();
+        if (groupEnabled) SelectiveRenderState.refreshRegions(List.of(PRESETS.get(name)));
         write(client);
         return true;
     }
@@ -108,7 +119,7 @@ public final class SelectiveRenderConfig {
         if (!PRESETS.containsKey(name)) return false;
         if (!HIDDEN_PRESETS.remove(name)) HIDDEN_PRESETS.add(name);
         applyState();
-        SelectiveRenderState.refreshRenderer();
+        if (hideGroupEnabled) SelectiveRenderState.refreshRegions(List.of(PRESETS.get(name)));
         write(client);
         return true;
     }
@@ -117,21 +128,40 @@ public final class SelectiveRenderConfig {
         if (HIDDEN_PRESETS.isEmpty()) return false;
         hideGroupEnabled = !hideGroupEnabled;
         applyState();
-        SelectiveRenderState.refreshRenderer();
+        SelectiveRenderState.refreshRegions(hiddenRegions());
         write(client);
         return true;
     }
 
     public static boolean deletePreset(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        if (PRESETS.remove(name) == null) return false;
-        boolean changed = ACTIVE_PRESETS.remove(name) | HIDDEN_PRESETS.remove(name);
-        if (changed) {
-            applyState();
-            SelectiveRenderState.refreshRenderer();
-        }
+        BlockRegion removed = PRESETS.remove(name);
+        if (removed == null) return false;
+        boolean visibleChange = (ACTIVE_PRESETS.contains(name) && groupEnabled)
+                || (HIDDEN_PRESETS.contains(name) && hideGroupEnabled);
+        ACTIVE_PRESETS.remove(name);
+        HIDDEN_PRESETS.remove(name);
+        applyState();
+        if (visibleChange) SelectiveRenderState.refreshRegions(List.of(removed));
         write(client);
         return true;
+    }
+
+    public static RenameResult renamePreset(MinecraftClient client, String requestedOldName,
+                                             String requestedNewName) {
+        String oldName = normalize(requestedOldName);
+        String newName = normalize(requestedNewName);
+        if (!PRESETS.containsKey(oldName)) return RenameResult.MISSING_SOURCE;
+        if (oldName.equals(newName)) return RenameResult.SUCCESS;
+        if (PRESETS.containsKey(newName)) return RenameResult.TARGET_EXISTS;
+
+        BlockRegion region = PRESETS.remove(oldName);
+        PRESETS.put(newName, region);
+        replaceMembership(ACTIVE_PRESETS, oldName, newName);
+        replaceMembership(HIDDEN_PRESETS, oldName, newName);
+        applyState();
+        write(client);
+        return RenameResult.SUCCESS;
     }
 
     public static boolean isPresetActive(String name) {
@@ -200,6 +230,25 @@ public final class SelectiveRenderConfig {
         SelectiveRenderState.setSavedState(
                 ACTIVE_PRESETS.stream().map(PRESETS::get).toList(), groupEnabled,
                 HIDDEN_PRESETS.stream().map(PRESETS::get).toList(), hideGroupEnabled);
+    }
+
+    private static List<BlockRegion> activeRegions() {
+        return ACTIVE_PRESETS.stream().map(PRESETS::get).toList();
+    }
+
+    private static List<BlockRegion> hiddenRegions() {
+        return HIDDEN_PRESETS.stream().map(PRESETS::get).toList();
+    }
+
+    private static void replaceMembership(LinkedHashSet<String> group, String oldName, String newName) {
+        if (!group.remove(oldName)) return;
+        group.add(newName);
+    }
+
+    public enum RenameResult {
+        SUCCESS,
+        MISSING_SOURCE,
+        TARGET_EXISTS
     }
 
     private static Path pathFor(MinecraftClient client) {

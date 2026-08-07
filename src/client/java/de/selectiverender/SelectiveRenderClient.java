@@ -67,6 +67,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(hideCommand("h"))
                 .then(deleteCommand("delete"))
                 .then(deleteCommand("d"))
+                .then(renameCommand("rename"))
+                .then(renameCommand("r"))
                 .then(listCommand("list"))
                 .then(listCommand("l"));
     }
@@ -105,6 +107,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .executes(context -> delete(context.getSource(), StringArgumentType.getString(context, "name"))));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> renameCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("oldName", StringArgumentType.word())
+                        .then(ClientCommandManager.argument("newName", StringArgumentType.word())
+                                .executes(context -> rename(context.getSource(),
+                                        StringArgumentType.getString(context, "oldName"),
+                                        StringArgumentType.getString(context, "newName")))));
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
@@ -180,6 +191,22 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                             + (hidden ? "added to" : "removed from") + " the hide group." + suffix,
                     hidden ? Formatting.GREEN : Formatting.YELLOW);
         }
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int rename(FabricClientCommandSource source, String oldName, String newName) {
+        SelectiveRenderConfig.RenameResult result = SelectiveRenderConfig.renamePreset(
+                MinecraftClient.getInstance(), oldName, newName);
+        if (result == SelectiveRenderConfig.RenameResult.MISSING_SOURCE) {
+            feedback(source, "Preset '" + oldName + "' does not exist.", Formatting.RED);
+            return 0;
+        }
+        if (result == SelectiveRenderConfig.RenameResult.TARGET_EXISTS) {
+            feedback(source, "Preset '" + newName + "' already exists.", Formatting.RED);
+            return 0;
+        }
+        feedback(source, "Preset '" + oldName.toLowerCase(Locale.ROOT) + "' renamed to '"
+                + newName.toLowerCase(Locale.ROOT) + "'.", Formatting.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

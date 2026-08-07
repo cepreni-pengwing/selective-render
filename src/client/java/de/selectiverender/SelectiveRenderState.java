@@ -7,7 +7,9 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public final class SelectiveRenderState {
     private static BlockPos first;
@@ -102,4 +104,56 @@ public final class SelectiveRenderState {
             client.worldRenderer.reload();
         }
     }
+
+    public static void refreshRegions(Collection<BlockRegion> regions) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.worldRenderer == null || client.world == null || regions.isEmpty()) return;
+
+        BlockPos camera = client.gameRenderer.getCamera().getBlockPos();
+        int viewDistance = client.options.getViewDistance().getValue() + 1;
+        int minSectionX = Math.floorDiv(camera.getX(), 16) - viewDistance;
+        int maxSectionX = Math.floorDiv(camera.getX(), 16) + viewDistance;
+        int minSectionZ = Math.floorDiv(camera.getZ(), 16) - viewDistance;
+        int maxSectionZ = Math.floorDiv(camera.getZ(), 16) + viewDistance;
+        int minSectionY = Math.floorDiv(client.world.getBottomY(), 16);
+        int maxSectionY = Math.floorDiv(client.world.getTopY() - 1, 16);
+        Set<SectionCoordinate> affected = new HashSet<>();
+
+        for (BlockRegion region : regions) {
+            int fromX = Math.max(minSectionX, Math.floorDiv(expandMin(region.minX()), 16));
+            int toX = Math.min(maxSectionX, Math.floorDiv(expandMax(region.maxX()), 16));
+            int fromY = Math.max(minSectionY, Math.floorDiv(expandMin(region.minY()), 16));
+            int toY = Math.min(maxSectionY, Math.floorDiv(expandMax(region.maxY()), 16));
+            int fromZ = Math.max(minSectionZ, Math.floorDiv(expandMin(region.minZ()), 16));
+            int toZ = Math.min(maxSectionZ, Math.floorDiv(expandMax(region.maxZ()), 16));
+            for (int sectionX = fromX; sectionX <= toX; sectionX++) {
+                for (int sectionY = fromY; sectionY <= toY; sectionY++) {
+                    for (int sectionZ = fromZ; sectionZ <= toZ; sectionZ++) {
+                        affected.add(new SectionCoordinate(sectionX, sectionY, sectionZ));
+                    }
+                }
+            }
+        }
+
+        int loadedEstimate = (viewDistance * 2 + 1) * (viewDistance * 2 + 1)
+                * (maxSectionY - minSectionY + 1);
+        if (affected.size() > 1024 || affected.size() > loadedEstimate * 0.35) {
+            refreshRenderer();
+            return;
+        }
+
+        affected.forEach(section -> client.worldRenderer.scheduleBlockRender(
+                section.x(), section.y(), section.z()));
+        client.worldRenderer.scheduleTerrainUpdate();
+    }
+
+    private static int expandMin(int value) {
+        return value == Integer.MIN_VALUE ? value : value - 1;
+    }
+
+    private static int expandMax(int value) {
+        return value == Integer.MAX_VALUE ? value : value + 1;
+    }
+
+    private record SectionCoordinate(int x, int y, int z) { }
 }

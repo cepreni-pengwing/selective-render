@@ -44,6 +44,7 @@ Available short commands:
 /sr h NAME
 /sr h
 /sr d NAME
+/sr r OLDNAME NEWNAME
 /sr list
 /sr list h
 /sr l h
@@ -55,11 +56,13 @@ Available short commands:
 - `/sr h NAME` adds a preset to the hide group or removes it again.
 - `/sr h` enables or disables the entire hide group while preserving its members.
 - `/sr d NAME` permanently deletes a preset.
+- `/sr r OLDNAME NEWNAME` renames a preset while preserving its group memberships.
 - `/sr list` displays regular presets on separate lines with status and a corner coordinate.
 - `/sr list h`, `/sr list hidden`, `/sr l h`, or `/sr l hidden` exclusively displays hide-group regions in the same format.
 
-The long `save`, `toggle`, `hide`, and `delete` subcommands remain available as
-`/sr save NAME`, `/sr toggle NAME`, `/sr hide NAME`, and `/sr delete NAME`.
+The long `save`, `toggle`, `hide`, `delete`, and `rename` subcommands remain available as
+`/sr save NAME`, `/sr toggle NAME`, `/sr hide NAME`, `/sr delete NAME`, and
+`/sr rename OLDNAME NEWNAME`.
 
 All regions in the enabled render group are combined. A block is rendered when
 it is inside at least one of them, so separate areas can be visible at the same
@@ -102,6 +105,8 @@ hidden outside the combined active regions.
 - Entities, block entities, and particle geometry use separate render filters.
   Player lightmap sampling also ignores filtered overhead blocks, preventing
   invisible roofs or platforms from darkening players below them.
+- Region changes rebuild only intersecting 16×16×16 render sections plus boundary
+  neighbors. Large updates automatically fall back to a full renderer reload.
 
 The mod does not change render distance, server packets, chunk loading, game
 logic, or collision. Sodium support is optional and its mixins are skipped when
@@ -125,7 +130,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.3.2.jar`.
+The installable file is generated at `build/libs/selective-render-1.4.0.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
