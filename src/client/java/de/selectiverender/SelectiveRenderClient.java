@@ -67,11 +67,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(hideCommand("h"))
                 .then(deleteCommand("delete"))
                 .then(deleteCommand("d"))
-                .then(listCommand());
+                .then(listCommand("list"))
+                .then(listCommand("l"));
     }
 
-    private static LiteralArgumentBuilder<FabricClientCommandSource> listCommand() {
-        return ClientCommandManager.literal("list")
+    private static LiteralArgumentBuilder<FabricClientCommandSource> listCommand(String name) {
+        return ClientCommandManager.literal(name)
                 .executes(context -> list(context.getSource(), false))
                 .then(ClientCommandManager.literal("hidden")
                         .executes(context -> list(context.getSource(), true)))
@@ -201,7 +202,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             boolean member = hiddenOnly || SelectiveRenderConfig.isPresetActive(name);
             String paddedName = name + " ".repeat(width - name.length());
             feedback(source, paddedName + "  " + (member ? "[active]  " : "[inactive]")
-                    + "  corner: " + region.minX() + ", " + region.minY() + ", " + region.minZ(),
+                    + "  " + region.minX() + ", " + region.minY() + ", " + region.minZ(),
                     member ? Formatting.GREEN : Formatting.GRAY);
         }
         return Command.SINGLE_SUCCESS;

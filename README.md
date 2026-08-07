@@ -46,6 +46,7 @@ Available short commands:
 /sr d NAME
 /sr list
 /sr list h
+/sr l h
 ```
 
 - `/sr s NAME` saves the current selection. A name is always required.
@@ -55,7 +56,7 @@ Available short commands:
 - `/sr h` enables or disables the entire hide group while preserving its members.
 - `/sr d NAME` permanently deletes a preset.
 - `/sr list` displays regular presets on separate lines with status and a corner coordinate.
-- `/sr list h` or `/sr list hidden` exclusively displays hide-group regions in the same format.
+- `/sr list h`, `/sr list hidden`, `/sr l h`, or `/sr l hidden` exclusively displays hide-group regions in the same format.
 
 The long `save`, `toggle`, `hide`, and `delete` subcommands remain available as
 `/sr save NAME`, `/sr toggle NAME`, `/sr hide NAME`, and `/sr delete NAME`.
