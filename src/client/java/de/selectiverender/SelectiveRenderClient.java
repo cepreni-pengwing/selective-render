@@ -7,22 +7,35 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.option.KeyBinding;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.ChunkPos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 import java.util.Locale;
 
 public final class SelectiveRenderClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("selectiverender");
+    private static final KeyBinding TOGGLE_KEY = new KeyBinding(
+            "key.selectiverender.toggle",
+            GLFW.GLFW_KEY_MINUS,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
+        KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
+        ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
+        });
+
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
             dispatcher.register(command("selectiverender"));
             dispatcher.register(command("sr"));
@@ -124,8 +137,24 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return Command.SINGLE_SUCCESS;
     }
 
+    private static void toggleFromKey(MinecraftClient client) {
+        if (client.player == null) return;
+        if (!SelectiveRenderConfig.toggleCurrent(client)) {
+            client.player.sendMessage(message("No preset has been saved.", Formatting.RED), false);
+            return;
+        }
+        client.player.sendMessage(message(
+                "Preset '" + SelectiveRenderConfig.activePreset() + "' "
+                        + (SelectiveRenderState.enabled() ? "enabled." : "disabled."),
+                SelectiveRenderState.enabled() ? Formatting.GREEN : Formatting.YELLOW), false);
+    }
+
     private static void feedback(FabricClientCommandSource source, String message, Formatting color) {
-        source.sendFeedback(Text.literal("[SelectiveRender] ").formatted(Formatting.GRAY)
-                .append(Text.literal(message).formatted(color)));
+        source.sendFeedback(message(message, color));
+    }
+
+    private static Text message(String message, Formatting color) {
+        return Text.literal("[SelectiveRender] ").formatted(Formatting.GRAY)
+                .append(Text.literal(message).formatted(color));
     }
 }

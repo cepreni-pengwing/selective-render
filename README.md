@@ -27,6 +27,10 @@ The shorter `/sr` alias supports the same subcommands. `save`, `toggle`, and
 `/sr save` and `/sr s` without one do not modify the configuration.
 `/sr list` displays all saved presets and the currently selected preset.
 
+The default keybind for toggling the currently selected preset is the physical
+minus key, which is the `ß` key on German keyboard layouts. It can be reassigned
+under Minecraft's Controls settings in the Selective Render category.
+
 Presets and their enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining the world. The hashed file name prevents server
@@ -67,7 +71,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.1.0.jar`.
+The installable file is generated at `build/libs/selective-render-1.1.1.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
