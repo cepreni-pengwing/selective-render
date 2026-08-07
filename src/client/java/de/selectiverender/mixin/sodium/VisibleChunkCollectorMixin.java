@@ -13,6 +13,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class VisibleChunkCollectorMixin {
     @Inject(method = "visit", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterSection(RenderSection section, boolean visible, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRenderChunk(section.getChunkX(), section.getChunkZ())) ci.cancel();
+        if (!SelectiveRenderState.shouldRenderSection(
+                section.getChunkX(), section.getChunkY(), section.getChunkZ())) ci.cancel();
     }
 }

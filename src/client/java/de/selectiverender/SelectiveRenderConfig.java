@@ -122,7 +122,7 @@ public final class SelectiveRenderConfig {
         try {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
-            stored.formatVersion = 2;
+            stored.formatVersion = 3;
             stored.activePreset = activePreset;
             stored.enabled = SelectiveRenderState.enabled();
             stored.presets = new LinkedHashMap<>();
@@ -176,6 +176,8 @@ public final class SelectiveRenderConfig {
     private static final class StoredRegion {
         int minX;
         int maxX;
+        Integer minY;
+        Integer maxY;
         int minZ;
         int maxZ;
 
@@ -183,19 +185,26 @@ public final class SelectiveRenderConfig {
             StoredRegion stored = new StoredRegion();
             stored.minX = region.minX();
             stored.maxX = region.maxX();
+            stored.minY = region.minY();
+            stored.maxY = region.maxY();
             stored.minZ = region.minZ();
             stored.maxZ = region.maxZ();
             return stored;
         }
 
         BlockRegion toRegion(int formatVersion) {
+            if (formatVersion >= 3 && minY != null && maxY != null) {
+                return new BlockRegion(minX, maxX, minY, maxY, minZ, maxZ);
+            }
             return formatVersion >= 2
-                    ? new BlockRegion(minX, maxX, minZ, maxZ)
+                    ? new BlockRegion(minX, maxX, Integer.MIN_VALUE, Integer.MAX_VALUE, minZ, maxZ)
                     : fromLegacyChunks(minX, maxX, minZ, maxZ);
         }
 
         static BlockRegion fromLegacyChunks(int minX, int maxX, int minZ, int maxZ) {
-            return new BlockRegion(minX << 4, (maxX << 4) + 15, minZ << 4, (maxZ << 4) + 15);
+            return new BlockRegion(minX << 4, (maxX << 4) + 15,
+                    Integer.MIN_VALUE, Integer.MAX_VALUE,
+                    minZ << 4, (maxZ << 4) + 15);
         }
     }
 }

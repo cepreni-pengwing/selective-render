@@ -39,9 +39,9 @@ public final class SelectiveRenderState {
         return true;
     }
 
-    public static boolean shouldRenderChunk(int chunkX, int chunkZ) {
+    public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
         BlockRegion current = region;
-        return !enabled || current == null || current.intersectsChunk(chunkX, chunkZ);
+        return !enabled || current == null || current.intersectsSection(sectionX, sectionY, sectionZ);
     }
 
     public static boolean shouldRender(BlockPos position) {
@@ -49,13 +49,13 @@ public final class SelectiveRenderState {
         return !enabled || current == null || current.contains(position);
     }
 
-    public static boolean shouldRender(double x, double z) {
+    public static boolean shouldRender(double x, double y, double z) {
         BlockRegion current = region;
-        return !enabled || current == null || current.contains(MathHelper.floor(x), MathHelper.floor(z));
+        return !enabled || current == null || current.contains(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
     }
 
     public static boolean shouldRender(Entity entity) {
-        return entity instanceof PlayerEntity || shouldRender(entity.getX(), entity.getZ());
+        return entity instanceof PlayerEntity || shouldRender(entity.getX(), entity.getY(), entity.getZ());
     }
 
     public static void resetForDisconnect() {

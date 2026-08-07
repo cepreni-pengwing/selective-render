@@ -16,6 +16,7 @@ abstract class ParticleManagerMixin {
             at = @At(value = "INVOKE", target = "Lnet/minecraft/client/particle/Particle;buildGeometry(Lnet/minecraft/client/render/VertexConsumer;Lnet/minecraft/client/render/Camera;F)V"))
     private boolean selectiverender$filterParticle(Particle particle, VertexConsumer consumer, Camera camera, float tickDelta) {
         ParticlePositionView position = (ParticlePositionView) particle;
-        return SelectiveRenderState.shouldRender(position.selectiverender$getX(), position.selectiverender$getZ());
+        return SelectiveRenderState.shouldRender(
+                position.selectiverender$getX(), position.selectiverender$getY(), position.selectiverender$getZ());
     }
 }

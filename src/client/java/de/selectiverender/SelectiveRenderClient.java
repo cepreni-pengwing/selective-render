@@ -85,7 +85,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         BlockPos position = source.getPlayer().getBlockPos();
         if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
         feedback(source, (isFirst ? "Pos1" : "Pos2") + " = block "
-                + position.getX() + ", " + position.getZ(), Formatting.AQUA);
+                + position.getX() + ", " + position.getY() + ", " + position.getZ(), Formatting.AQUA);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -96,7 +96,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         }
         BlockRegion region = SelectiveRenderState.region();
         feedback(source, "Preset '" + SelectiveRenderConfig.activePreset() + "' saved with "
-                + region.blockCount() + " columns.", Formatting.GREEN);
+                + region.blockCount() + " blocks.", Formatting.GREEN);
         return Command.SINGLE_SUCCESS;
     }
 

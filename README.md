@@ -2,13 +2,13 @@
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
-everything outside a saved rectangular block region from the render lists.
+everything outside a saved three-dimensional block region from the render lists.
 
 ## Usage
 
 1. Stand on the first corner block and run `/selectiverender pos1`.
-2. Stand on the opposite corner block and run `/selectiverender pos2`.
-3. Run `/selectiverender save NAME` to save the inclusive rectangular region as
+2. Stand on the diagonally opposite corner block and run `/selectiverender pos2`.
+3. Run `/selectiverender save NAME` to save the inclusive X/Y/Z cuboid as
    a named preset.
 4. Run `/selectiverender toggle NAME` to enable that preset. Running the same
    command again disables it.
@@ -43,12 +43,13 @@ hidden outside the selected region.
 
 - Vanilla sections are filtered in `WorldRenderer.addBuiltChunk` before terrain
   render lists and chunk rebuild work are created. Boundary chunks are retained,
-  then individual block models and fluids are filtered by block position.
+  then individual block models and fluids are filtered by X/Y/Z block position.
 - Sodium 0.5.x sections are filtered through `VisibleChunkCollector` before
   render lists, draw commands, and rebuild queues are created. While the filter
   is active, graph traversal remains independent of occlusion data from
   unrendered outer sections, allowing the region to remain visible from outside.
-  Sodium block models and fluids in boundary chunks are filtered separately.
+  Sodium's render-only world slice exposes blocks outside the cuboid as air, so
+  standard and custom-rendered terrain is clipped at the exact block boundaries.
 - Iris normal and shadow passes use the already filtered Vanilla or Sodium
   terrain lists, so geometry outside the region never enters a shadow pass.
 - Entities, block entities, and particle geometry use separate render filters.
@@ -58,8 +59,8 @@ logic, or collision. Sodium support is optional and its mixins are skipped when
 Sodium is not installed. The implementation does not use reflection.
 
 The selected region must still be within the normal Minecraft render distance.
-Horizontal region boundaries use inclusive whole-block coordinates. Existing
-chunk-based presets are migrated to the complete block area of their old chunks.
+All region boundaries use inclusive whole-block coordinates. Existing horizontal
+presets are migrated without a vertical limit so their previous behavior is kept.
 
 ## Building
 
@@ -75,7 +76,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.1.1.jar`.
+The installable file is generated at `build/libs/selective-render-1.2.1.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
