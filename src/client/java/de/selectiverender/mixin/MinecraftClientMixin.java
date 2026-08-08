@@ -12,11 +12,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class MinecraftClientMixin {
     @Inject(method = "setWorld", at = @At("TAIL"))
     private void selectiverender$loadDimensionConfig(ClientWorld world, CallbackInfo ci) {
-        MinecraftClient client = (MinecraftClient) (Object) this;
-        if (world == null) {
-            SelectiveRenderConfig.reset();
-        } else {
-            SelectiveRenderConfig.load(client);
+        if (world != null) {
+            SelectiveRenderConfig.load((MinecraftClient) (Object) this, world);
         }
     }
 }

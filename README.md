@@ -95,6 +95,7 @@ Presets, render-group membership, and the group's enabled state are stored per s
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining or changing dimensions. The hashed file name prevents server
 addresses from being exposed as file names.
+Writes are atomic and preserve the previous file as a `.json.bak` backup.
 
 Players are always rendered. Every other entity, block entity, and particle is
 hidden outside the combined active regions.
@@ -144,7 +145,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.5.0.jar`.
+The installable file is generated at `build/libs/selective-render-1.5.1.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions

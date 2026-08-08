@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.world.ClientWorld;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -11,6 +12,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
@@ -29,12 +32,19 @@ public final class SelectiveRenderConfig {
     private static final LinkedHashSet<String> ACTIVE_HIDDEN_PRESETS = new LinkedHashSet<>();
     private static boolean groupEnabled;
     private static boolean hideGroupEnabled = true;
+    private static String sessionOwner;
 
     private SelectiveRenderConfig() { }
 
-    public static void load(MinecraftClient client) {
+    public static void beginSession(MinecraftClient client) {
+        sessionOwner = ownerFor(client);
+        if (client.world != null) load(client, client.world);
+    }
+
+    public static void load(MinecraftClient client, ClientWorld world) {
         reset();
-        Path path = pathFor(client);
+        if (sessionOwner == null) sessionOwner = ownerFor(client);
+        Path path = pathFor(world);
         if (path == null || !Files.isRegularFile(path)) return;
 
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
@@ -272,8 +282,13 @@ public final class SelectiveRenderConfig {
         SelectiveRenderState.setSavedState(List.of(), false, List.of(), false);
     }
 
+    public static void endSession() {
+        sessionOwner = null;
+        reset();
+    }
+
     private static void write(MinecraftClient client) {
-        Path path = pathFor(client);
+        Path path = client.world == null ? null : pathFor(client.world);
         if (path == null) return;
         try {
             Files.createDirectories(DIRECTORY);
@@ -286,8 +301,18 @@ public final class SelectiveRenderConfig {
             stored.hideEnabled = hideGroupEnabled;
             stored.presets = new LinkedHashMap<>();
             PRESETS.forEach((name, region) -> stored.presets.put(name, StoredRegion.from(region)));
-            try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
+            if (Files.isRegularFile(path)) {
+                Files.copy(path, path.resolveSibling(path.getFileName() + ".bak"),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+            try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                 GSON.toJson(stored, writer);
+            }
+            try {
+                Files.move(temporary, path, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not save selective render config {}", path, exception);
@@ -320,18 +345,19 @@ public final class SelectiveRenderConfig {
         RESERVED_NAME
     }
 
-    private static Path pathFor(MinecraftClient client) {
-        if (client.world == null) return null;
-        String owner;
+    private static String ownerFor(MinecraftClient client) {
         if (client.getCurrentServerEntry() != null) {
-            owner = "server:" + client.getCurrentServerEntry().address.toLowerCase(Locale.ROOT);
+            return "server:" + client.getCurrentServerEntry().address.toLowerCase(Locale.ROOT);
         } else if (client.getServer() != null) {
-            owner = "singleplayer:" + client.getServer().getSaveProperties().getLevelName();
+            return "singleplayer:" + client.getServer().getSaveProperties().getLevelName();
         } else {
-            owner = "local:unknown";
+            return "local:unknown";
         }
-        String dimension = client.world.getRegistryKey().getValue().toString();
-        return DIRECTORY.resolve(sha256(owner + "|" + dimension) + ".json");
+    }
+
+    private static Path pathFor(ClientWorld world) {
+        String dimension = world.getRegistryKey().getValue().toString();
+        return DIRECTORY.resolve(sha256(sessionOwner + "|" + dimension) + ".json");
     }
 
     private static String normalize(String name) {

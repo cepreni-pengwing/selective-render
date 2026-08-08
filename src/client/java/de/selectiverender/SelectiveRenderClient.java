@@ -49,8 +49,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             dispatcher.register(command("sr"));
         });
 
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
+                client.execute(() -> SelectiveRenderConfig.beginSession(client)));
+
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            SelectiveRenderConfig.reset();
+            SelectiveRenderConfig.endSession();
             SelectiveRenderState.resetForDisconnect();
         });
     }
