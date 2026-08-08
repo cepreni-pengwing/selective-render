@@ -53,6 +53,7 @@ Available short commands:
 - `/sr s NAME` saves the current selection. A name is always required.
 - `/sr t NAME` adds a preset to the render group or removes it again.
 - `/sr t` enables or disables the entire render group while preserving its members.
+- Global render toggles and the render keybind do not post success messages in chat.
 - `/sr h NAME` adds a preset to the hide group or removes it again.
 - `/sr h` enables or disables the entire hide group while preserving its members.
   Global hide toggles and the hide keybind do not post success messages in chat.
@@ -77,6 +78,10 @@ Default keybinds:
 
 Both keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.
+
+Preset arguments support tab completion for toggle, hide, delete, and rename
+commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
+under a single header without repeating the prefix on every line.
 
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
@@ -131,7 +136,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.4.1.jar`.
+The installable file is generated at `build/libs/selective-render-1.4.2.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions

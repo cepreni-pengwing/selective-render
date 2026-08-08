@@ -12,6 +12,8 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.command.CommandSource;
+import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
@@ -86,6 +88,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommandManager.literal(name)
                 .executes(context -> toggleHide(context.getSource(), null))
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                SelectiveRenderConfig.presetNames(), builder))
                         .executes(context -> toggleHide(context.getSource(),
                                 StringArgumentType.getString(context, "name"))));
     }
@@ -100,18 +104,24 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommandManager.literal(name)
                 .executes(context -> toggle(context.getSource(), null))
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                SelectiveRenderConfig.presetNames(), builder))
                         .executes(context -> toggle(context.getSource(), StringArgumentType.getString(context, "name"))));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> deleteCommand(String name) {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                SelectiveRenderConfig.presetNames(), builder))
                         .executes(context -> delete(context.getSource(), StringArgumentType.getString(context, "name"))));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> renameCommand(String name) {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.argument("oldName", StringArgumentType.word())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                SelectiveRenderConfig.presetNames(), builder))
                         .then(ClientCommandManager.argument("newName", StringArgumentType.word())
                                 .executes(context -> rename(context.getSource(),
                                         StringArgumentType.getString(context, "oldName"),
@@ -121,19 +131,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
         BlockPos position = source.getPlayer().getBlockPos();
         if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
-        feedback(source, (isFirst ? "Pos1" : "Pos2") + " = block "
-                + position.getX() + ", " + position.getY() + ", " + position.getZ(), Formatting.AQUA);
+        feedback(source, message(aqua(isFirst ? "Pos1" : "Pos2"), white(" = "
+                + position.getX() + ", " + position.getY() + ", " + position.getZ())));
         return Command.SINGLE_SUCCESS;
     }
 
     private static int save(FabricClientCommandSource source, String name) {
         if (!SelectiveRenderConfig.saveSelection(MinecraftClient.getInstance(), name)) {
-            feedback(source, "Set pos1 and pos2 first.", Formatting.RED);
+            feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
             return 0;
         }
         BlockRegion region = SelectiveRenderState.selection();
-        feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' saved with "
-                + region.blockCount() + " blocks.", Formatting.GREEN);
+        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+                green(" saved"), white(" · " + region.blockCount() + " blocks")));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -142,31 +152,31 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 ? SelectiveRenderConfig.toggleCurrent(MinecraftClient.getInstance())
                 : SelectiveRenderConfig.togglePreset(MinecraftClient.getInstance(), name);
         if (!toggled) {
-            feedback(source, name == null ? "No preset has been saved." : "Preset '" + name + "' does not exist.",
-                    Formatting.RED);
+            feedback(source, name == null
+                    ? message(red("No presets in the render group."))
+                    : missingPreset(name));
             return 0;
         }
         if (name == null) {
-            int count = SelectiveRenderConfig.activePresetNames().size();
-            feedback(source, "Render group " + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled")
-                            + " (" + count + (count == 1 ? " region)." : " regions)."),
-                    SelectiveRenderConfig.groupEnabled() ? Formatting.GREEN : Formatting.YELLOW);
+            return Command.SINGLE_SUCCESS;
         } else {
             boolean active = SelectiveRenderConfig.isPresetActive(name);
-            String suffix = SelectiveRenderConfig.groupEnabled() ? "" : " The render group is currently disabled.";
-            feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' "
-                            + (active ? "added to" : "removed from") + " the render group." + suffix,
-                    active ? Formatting.GREEN : Formatting.YELLOW);
+            MutableText content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+                    white(" · "), active ? green("added") : red("removed"), white(" from render group"));
+            if (!SelectiveRenderConfig.groupEnabled()) {
+                content.append(white(" · group ")).append(red("disabled"));
+            }
+            feedback(source, content);
         }
         return Command.SINGLE_SUCCESS;
     }
 
     private static int delete(FabricClientCommandSource source, String name) {
         if (!SelectiveRenderConfig.deletePreset(MinecraftClient.getInstance(), name)) {
-            feedback(source, "Preset '" + name + "' does not exist.", Formatting.RED);
+            feedback(source, missingPreset(name));
             return 0;
         }
-        feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' deleted.", Formatting.YELLOW);
+        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" deleted")));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -175,18 +185,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 ? SelectiveRenderConfig.toggleHiddenGroup(MinecraftClient.getInstance())
                 : SelectiveRenderConfig.toggleHiddenPreset(MinecraftClient.getInstance(), name);
         if (!toggled) {
-            feedback(source, name == null ? "No presets are in the hide group."
-                    : "Preset '" + name + "' does not exist.", Formatting.RED);
+            feedback(source, name == null ? message(red("No presets in the hide group.")) : missingPreset(name));
             return 0;
         }
         if (name == null) {
             return Command.SINGLE_SUCCESS;
         } else {
             boolean hidden = SelectiveRenderConfig.isPresetHidden(name);
-            String suffix = SelectiveRenderConfig.hideGroupEnabled() ? "" : " The hide group is currently disabled.";
-            feedback(source, "Preset '" + name.toLowerCase(Locale.ROOT) + "' "
-                            + (hidden ? "added to" : "removed from") + " the hide group." + suffix,
-                    hidden ? Formatting.GREEN : Formatting.YELLOW);
+            MutableText content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+                    white(" · "), hidden ? green("added") : red("removed"), white(" from hide group"));
+            if (!SelectiveRenderConfig.hideGroupEnabled()) {
+                content.append(white(" · group ")).append(red("disabled"));
+            }
+            feedback(source, content);
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -195,15 +206,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         SelectiveRenderConfig.RenameResult result = SelectiveRenderConfig.renamePreset(
                 MinecraftClient.getInstance(), oldName, newName);
         if (result == SelectiveRenderConfig.RenameResult.MISSING_SOURCE) {
-            feedback(source, "Preset '" + oldName + "' does not exist.", Formatting.RED);
+            feedback(source, missingPreset(oldName));
             return 0;
         }
         if (result == SelectiveRenderConfig.RenameResult.TARGET_EXISTS) {
-            feedback(source, "Preset '" + newName + "' already exists.", Formatting.RED);
+            feedback(source, message(white("Preset "), aqua(newName), red(" already exists")));
             return 0;
         }
-        feedback(source, "Preset '" + oldName.toLowerCase(Locale.ROOT) + "' renamed to '"
-                + newName.toLowerCase(Locale.ROOT) + "'.", Formatting.GREEN);
+        feedback(source, message(aqua(oldName.toLowerCase(Locale.ROOT)), white(" → "),
+                aqua(newName.toLowerCase(Locale.ROOT)), green(" renamed")));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -212,22 +223,22 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .filter(name -> SelectiveRenderConfig.isPresetHidden(name) == hiddenOnly)
                 .toList();
         if (names.isEmpty()) {
-            feedback(source, hiddenOnly ? "No presets are in the hide group."
-                    : "No regular presets have been saved.", Formatting.YELLOW);
+            feedback(source, message(red(hiddenOnly ? "No presets in the hide group."
+                    : "No regular presets saved.")));
             return Command.SINGLE_SUCCESS;
         }
         boolean groupEnabled = hiddenOnly
                 ? SelectiveRenderConfig.hideGroupEnabled() : SelectiveRenderConfig.groupEnabled();
-        feedback(source, (hiddenOnly ? "Hidden regions" : "Render regions") + " — group "
-                + (groupEnabled ? "enabled:" : "disabled:"), Formatting.AQUA);
+        feedback(source, message(aqua(hiddenOnly ? "Hidden regions" : "Render regions"),
+                white(" · group "), groupEnabled ? green("enabled") : red("disabled")));
         int width = names.stream().mapToInt(String::length).max().orElse(0);
         for (String name : names) {
             BlockRegion region = SelectiveRenderConfig.presetRegion(name);
             boolean member = hiddenOnly || SelectiveRenderConfig.isPresetActive(name);
             String paddedName = name + " ".repeat(width - name.length());
-            feedback(source, paddedName + "  " + (member ? "[active]  " : "[inactive]")
-                    + "  " + region.minX() + ", " + region.minY() + ", " + region.minZ(),
-                    member ? Formatting.GREEN : Formatting.GRAY);
+            listLine(source, gray("  "), white(paddedName + "  "),
+                    member ? green("active  ") : red("inactive"),
+                    gray("  " + region.minX() + ", " + region.minY() + ", " + region.minZ()));
         }
         return Command.SINGLE_SUCCESS;
     }
@@ -235,30 +246,56 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static void toggleFromKey(MinecraftClient client) {
         if (client.player == null) return;
         if (!SelectiveRenderConfig.toggleCurrent(client)) {
-            client.player.sendMessage(message("No preset has been saved.", Formatting.RED), false);
+            client.player.sendMessage(message(red("No presets in the render group.")), false);
             return;
         }
-        int count = SelectiveRenderConfig.activePresetNames().size();
-        client.player.sendMessage(message("Render group "
-                        + (SelectiveRenderConfig.groupEnabled() ? "enabled" : "disabled") + " (" + count
-                        + (count == 1 ? " region)." : " regions)."),
-                SelectiveRenderConfig.groupEnabled() ? Formatting.GREEN : Formatting.YELLOW), false);
     }
 
     private static void toggleHideFromKey(MinecraftClient client) {
         if (client.player == null) return;
         if (!SelectiveRenderConfig.toggleHiddenGroup(client)) {
-            client.player.sendMessage(message("No presets are in the hide group.", Formatting.RED), false);
+            client.player.sendMessage(message(red("No presets in the hide group.")), false);
             return;
         }
     }
 
-    private static void feedback(FabricClientCommandSource source, String message, Formatting color) {
-        source.sendFeedback(message(message, color));
+    private static void feedback(FabricClientCommandSource source, Text message) {
+        source.sendFeedback(message);
     }
 
-    private static Text message(String message, Formatting color) {
-        return Text.literal("[SelectiveRender] ").formatted(Formatting.GRAY)
-                .append(Text.literal(message).formatted(color));
+    private static void listLine(FabricClientCommandSource source, Text... parts) {
+        MutableText line = Text.empty();
+        for (Text part : parts) line.append(part);
+        source.sendFeedback(line);
+    }
+
+    private static MutableText message(Text... parts) {
+        MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
+        for (Text part : parts) message.append(part);
+        return message;
+    }
+
+    private static MutableText missingPreset(String name) {
+        return message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" does not exist"));
+    }
+
+    private static MutableText white(String text) {
+        return Text.literal(text).formatted(Formatting.WHITE);
+    }
+
+    private static MutableText gray(String text) {
+        return Text.literal(text).formatted(Formatting.GRAY);
+    }
+
+    private static MutableText aqua(String text) {
+        return Text.literal(text).formatted(Formatting.AQUA);
+    }
+
+    private static MutableText green(String text) {
+        return Text.literal(text).formatted(Formatting.GREEN);
+    }
+
+    private static MutableText red(String text) {
+        return Text.literal(text).formatted(Formatting.RED);
     }
 }
