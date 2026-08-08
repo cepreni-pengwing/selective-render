@@ -98,6 +98,13 @@ public final class SelectiveRenderConfig {
         String name = normalize(requestedName);
         BlockRegion previous = PRESETS.get(name);
         PRESETS.put(name, SelectiveRenderState.selection());
+        if (HIDDEN_PRESETS.contains(name)) {
+            ACTIVE_HIDDEN_PRESETS.add(name);
+            hideGroupEnabled = true;
+        } else {
+            ACTIVE_PRESETS.add(name);
+            groupEnabled = true;
+        }
         applyState();
         write(client);
         if ((ACTIVE_PRESETS.contains(name) && groupEnabled)

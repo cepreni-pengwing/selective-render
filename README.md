@@ -52,7 +52,8 @@ Available short commands:
 /sr l h
 ```
 
-- `/sr s NAME` saves the current selection. A name is always required.
+- `/sr s NAME` saves the current selection and immediately activates it. A name
+  is always required. Overwritten hide presets remain in the hide context.
 - `/sr t NAME` toggles a preset in the render context. Using it on a hide preset
   moves that preset back to the regular render context.
 - `/sr t` enables or disables the entire render group while preserving its members.
@@ -124,8 +125,7 @@ hidden outside the combined active regions.
   neighbors. Large updates automatically fall back to a full renderer reload.
 
 The mod does not change render distance, server packets, chunk loading, game
-logic, or collision. Sodium support is optional and its mixins are skipped when
-Sodium is not installed. The implementation does not use reflection.
+logic, or collision. The implementation does not use reflection.
 
 The selected regions must still be within the normal Minecraft render distance.
 All region boundaries use inclusive whole-block coordinates. Existing horizontal
@@ -146,13 +146,13 @@ On Windows:
 ```
 
 The installable file is generated at `build/libs/selective-render-1.5.1.jar`.
-Fabric Loader and Fabric API are required. Sodium and Iris are optional.
+Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 ## Target versions
 
 - Minecraft 1.20.1
-- Fabric API 0.92.2+1.20.1
-- Sodium 0.5.x
+- Fabric API 0.92.2+1.20.1 or newer for Minecraft 1.20.1
+- Sodium 0.5.x (tested with 0.5.13)
 - Iris for Minecraft 1.20.1
 
 ## License
