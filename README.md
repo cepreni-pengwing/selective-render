@@ -85,7 +85,7 @@ under a single header without repeating the prefix on every line.
 
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
-automatically when joining the world. The hashed file name prevents server
+automatically when joining or changing dimensions. The hashed file name prevents server
 addresses from being exposed as file names.
 
 Players are always rendered. Every other entity, block entity, and particle is
@@ -136,7 +136,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.4.2.jar`.
+The installable file is generated at `build/libs/selective-render-1.4.3.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
