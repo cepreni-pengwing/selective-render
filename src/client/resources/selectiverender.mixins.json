@@ -5,6 +5,7 @@
   "client": [
     "WorldRendererMixin",
     "MinecraftClientMixin",
+    "ClientPlayerInteractionManagerMixin",
     "EntityRendererMixin",
     "BlockMixin",
     "BlockRenderManagerMixin",

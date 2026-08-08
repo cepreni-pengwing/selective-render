@@ -84,6 +84,16 @@ public final class SelectiveRenderState {
         return hiddenRegions.stream().anyMatch(region -> region.contains(position));
     }
 
+    public static boolean isActivelyHidden(BlockPos position) {
+        return hideEnabled() && containsHidden(position);
+    }
+
+    public static boolean isActivelyHidden(Entity entity) {
+        return !(entity instanceof PlayerEntity) && hideEnabled()
+                && hiddenRegions.stream().anyMatch(region -> region.contains(
+                MathHelper.floor(entity.getX()), MathHelper.floor(entity.getY()), MathHelper.floor(entity.getZ())));
+    }
+
     public static boolean shouldRender(Entity entity) {
         return entity instanceof PlayerEntity || shouldRender(entity.getX(), entity.getY(), entity.getZ());
     }

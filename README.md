@@ -97,6 +97,11 @@ Writes are atomic and preserve the previous file as a `.json.bak` backup.
 Players are always rendered. Every other entity, block entity, and particle is
 hidden outside the combined active regions.
 
+Active hide regions also reject client interactions before they reach the
+server, including block breaking, block use, block or fluid placement, entity
+attacks and use, and pick block. Player interaction remains available and
+collision is unchanged.
+
 ## Implementation
 
 - Vanilla sections are filtered in `WorldRenderer.addBuiltChunk` before terrain
@@ -141,7 +146,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.5.1.jar`.
+The installable file is generated at `build/libs/selective-render-1.6.0.jar`.
 Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 ## Target versions
