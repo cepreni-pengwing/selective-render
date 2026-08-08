@@ -85,6 +85,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> hideCommand(String name) {
         return ClientCommandManager.literal(name)
                 .executes(context -> toggleHide(context.getSource(), null))
+                .then(ClientCommandManager.literal("all")
+                        .executes(context -> toggleAll(context.getSource(), true)))
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> CommandSource.suggestMatching(
                                 SelectiveRenderConfig.presetNames(), builder))
@@ -101,6 +103,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(String name) {
         return ClientCommandManager.literal(name)
                 .executes(context -> toggle(context.getSource(), null))
+                .then(ClientCommandManager.literal("all")
+                        .executes(context -> toggleAll(context.getSource(), false)))
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> CommandSource.suggestMatching(
                                 SelectiveRenderConfig.presetNames(), builder))
@@ -135,6 +139,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int save(FabricClientCommandSource source, String name) {
+        if (SelectiveRenderConfig.isReservedName(name)) {
+            feedback(source, message(aqua(name), red(" is reserved")));
+            return 0;
+        }
         if (!SelectiveRenderConfig.saveSelection(MinecraftClient.getInstance(), name)) {
             feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
             return 0;
@@ -189,7 +197,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         if (name == null) {
             return Command.SINGLE_SUCCESS;
         } else {
-            boolean hidden = SelectiveRenderConfig.isPresetHidden(name);
+            boolean hidden = SelectiveRenderConfig.isHiddenPresetActive(name);
             MutableText content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
                     white(" · "), hidden ? green("added") : red("removed"), white(" from hide group"));
             if (!SelectiveRenderConfig.hideGroupEnabled()) {
@@ -211,8 +219,28 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, message(white("Preset "), aqua(newName), red(" already exists")));
             return 0;
         }
+        if (result == SelectiveRenderConfig.RenameResult.RESERVED_NAME) {
+            feedback(source, message(aqua(newName), red(" is reserved")));
+            return 0;
+        }
         feedback(source, message(aqua(oldName.toLowerCase(Locale.ROOT)), white(" → "),
                 aqua(newName.toLowerCase(Locale.ROOT)), green(" renamed")));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int toggleAll(FabricClientCommandSource source, boolean hidden) {
+        boolean toggled = hidden
+                ? SelectiveRenderConfig.toggleAllHiddenPresets(MinecraftClient.getInstance())
+                : SelectiveRenderConfig.toggleAllPresets(MinecraftClient.getInstance());
+        if (!toggled) {
+            feedback(source, message(red(hidden ? "No hidden regions saved." : "No render regions saved.")));
+            return 0;
+        }
+        boolean anyActive = hidden
+                ? !SelectiveRenderConfig.hiddenPresetNames().isEmpty()
+                : !SelectiveRenderConfig.activePresetNames().isEmpty();
+        feedback(source, message(aqua(hidden ? "Hidden regions" : "Render regions"), white(" · all "),
+                anyActive ? green("enabled") : red("disabled")));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -232,7 +260,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         int width = names.stream().mapToInt(String::length).max().orElse(0);
         for (String name : names) {
             BlockRegion region = SelectiveRenderConfig.presetRegion(name);
-            boolean member = hiddenOnly || SelectiveRenderConfig.isPresetActive(name);
+            boolean member = hiddenOnly
+                    ? SelectiveRenderConfig.isHiddenPresetActive(name)
+                    : SelectiveRenderConfig.isPresetActive(name);
             String paddedName = name + " ".repeat(width - name.length());
             listLine(source, gray("  "), white(paddedName + "  "),
                     member ? green("active  ") : red("inactive"),

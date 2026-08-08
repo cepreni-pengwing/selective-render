@@ -41,8 +41,10 @@ Available short commands:
 /sr pos2
 /sr s NAME
 /sr t NAME
+/sr t all
 /sr h NAME
 /sr h
+/sr h all
 /sr d NAME
 /sr r OLDNAME NEWNAME
 /sr list
@@ -51,11 +53,16 @@ Available short commands:
 ```
 
 - `/sr s NAME` saves the current selection. A name is always required.
-- `/sr t NAME` adds a preset to the render group or removes it again.
+- `/sr t NAME` toggles a preset in the render context. Using it on a hide preset
+  moves that preset back to the regular render context.
 - `/sr t` enables or disables the entire render group while preserving its members.
+- `/sr t all` deselects every regular preset when any are selected; when none are
+  selected, it selects all regular presets.
 - Global render toggles and the render keybind do not post success messages in chat.
-- `/sr h NAME` adds a preset to the hide group or removes it again.
+- `/sr h NAME` registers a preset in the hide context and toggles its selected state.
 - `/sr h` enables or disables the entire hide group while preserving its members.
+- `/sr h all` deselects every hide preset when any are selected; when none are
+  selected, it selects all registered hide presets.
   Global hide toggles and the hide keybind do not post success messages in chat.
 - `/sr d NAME` permanently deletes a preset.
 - `/sr r OLDNAME NEWNAME` renames a preset while preserving its group memberships.
@@ -82,6 +89,7 @@ Selective Render category.
 Preset arguments support tab completion for toggle, hide, delete, and rename
 commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
 under a single header without repeating the prefix on every line.
+The preset name `all` is reserved for group commands.
 
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
@@ -136,7 +144,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.4.3.jar`.
+The installable file is generated at `build/libs/selective-render-1.5.0.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
