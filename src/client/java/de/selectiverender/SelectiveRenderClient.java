@@ -180,10 +180,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             return 0;
         }
         if (name == null) {
-            int count = SelectiveRenderConfig.hiddenPresetNames().size();
-            feedback(source, "Hide group " + (SelectiveRenderConfig.hideGroupEnabled() ? "enabled" : "disabled")
-                            + " (" + count + (count == 1 ? " region)." : " regions)."),
-                    SelectiveRenderConfig.hideGroupEnabled() ? Formatting.GREEN : Formatting.YELLOW);
+            return Command.SINGLE_SUCCESS;
         } else {
             boolean hidden = SelectiveRenderConfig.isPresetHidden(name);
             String suffix = SelectiveRenderConfig.hideGroupEnabled() ? "" : " The hide group is currently disabled.";
@@ -254,11 +251,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             client.player.sendMessage(message("No presets are in the hide group.", Formatting.RED), false);
             return;
         }
-        int count = SelectiveRenderConfig.hiddenPresetNames().size();
-        client.player.sendMessage(message("Hide group "
-                        + (SelectiveRenderConfig.hideGroupEnabled() ? "enabled" : "disabled") + " (" + count
-                        + (count == 1 ? " region)." : " regions)."),
-                SelectiveRenderConfig.hideGroupEnabled() ? Formatting.GREEN : Formatting.YELLOW), false);
     }
 
     private static void feedback(FabricClientCommandSource source, String message, Formatting color) {

@@ -55,6 +55,7 @@ Available short commands:
 - `/sr t` enables or disables the entire render group while preserving its members.
 - `/sr h NAME` adds a preset to the hide group or removes it again.
 - `/sr h` enables or disables the entire hide group while preserving its members.
+  Global hide toggles and the hide keybind do not post success messages in chat.
 - `/sr d NAME` permanently deletes a preset.
 - `/sr r OLDNAME NEWNAME` renames a preset while preserving its group memberships.
 - `/sr list` displays regular presets on separate lines with status and a corner coordinate.
@@ -130,7 +131,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.4.0.jar`.
+The installable file is generated at `build/libs/selective-render-1.4.1.jar`.
 Fabric Loader and Fabric API are required. Sodium and Iris are optional.
 
 ## Target versions
