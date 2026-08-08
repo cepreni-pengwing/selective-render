@@ -13,10 +13,6 @@ or shader shadows outside the selected area. Players remain visible everywhere;
 all other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
-Version 1.3 adds a separate hide group for temporarily removing named areas such
-as floating block palettes. Hide regions take priority over the normal render
-group and can be controlled individually or all at once.
-
 ## Usage
 
 `/sr` is the short alias for `/selectiverender`; both command names provide the
