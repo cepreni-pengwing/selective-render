@@ -6,7 +6,6 @@
     "WorldRendererMixin",
     "MinecraftClientMixin",
     "ClientPlayerInteractionManagerMixin",
-    "EntityRendererMixin",
     "BlockMixin",
     "BlockRenderManagerMixin",
     "BlockEntityRenderDispatcherMixin",
