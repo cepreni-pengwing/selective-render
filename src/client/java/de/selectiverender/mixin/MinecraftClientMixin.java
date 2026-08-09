@@ -26,11 +26,11 @@ abstract class MinecraftClientMixin {
     private void selectiverender$blockHiddenItemPick(CallbackInfo ci) {
         HitResult target = ((MinecraftClient) (Object) this).crosshairTarget;
         if (target instanceof BlockHitResult blockHit
-                && SelectiveRenderState.isActivelyHidden(blockHit.getBlockPos())) {
+                && !SelectiveRenderState.shouldRender(blockHit.getBlockPos())) {
             ci.cancel();
         } else if (target instanceof EntityHitResult entityHit
                 && !(entityHit.getEntity() instanceof PlayerEntity)
-                && SelectiveRenderState.isActivelyHidden(entityHit.getEntity())) {
+                && !SelectiveRenderState.shouldRender(entityHit.getEntity())) {
             ci.cancel();
         }
     }
