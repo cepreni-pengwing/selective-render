@@ -22,7 +22,7 @@ abstract class WorldRendererMixin {
                 position.getX() >> 4,
                 position.getY() >> 4,
                 position.getZ() >> 4)) {
-            cir.setReturnValue(true);
+            cir.setReturnValue(((WorldRenderer) (Object) this).isTerrainRenderComplete());
         }
     }
 
