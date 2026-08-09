@@ -6,13 +6,26 @@ import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.render.chunk.ChunkBuilder;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(WorldRenderer.class)
 abstract class WorldRendererMixin {
+    @Inject(method = "isRenderingReady", at = @At("HEAD"), cancellable = true)
+    private void selectiverender$skipFilteredTerrainReadiness(BlockPos position,
+                                                              CallbackInfoReturnable<Boolean> cir) {
+        if (!SelectiveRenderState.shouldRenderSection(
+                position.getX() >> 4,
+                position.getY() >> 4,
+                position.getZ() >> 4)) {
+            cir.setReturnValue(true);
+        }
+    }
+
     @Inject(method = "addBuiltChunk", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterTerrain(ChunkBuilder.BuiltChunk chunk, CallbackInfo ci) {
         if (!SelectiveRenderState.shouldRenderSection(
