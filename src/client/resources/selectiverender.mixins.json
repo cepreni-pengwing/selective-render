@@ -15,6 +15,7 @@
     "sodium.BlockRendererMixin",
     "sodium.BlockOcclusionCacheMixin",
     "sodium.FluidRendererMixin",
+    "sodium.OcclusionCullerMixin",
     "sodium.RenderSectionMixin",
     "sodium.VisibleChunkCollectorMixin",
     "sodium.WorldSliceMixin"
