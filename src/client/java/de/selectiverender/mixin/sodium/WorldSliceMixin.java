@@ -33,7 +33,7 @@ abstract class WorldSliceMixin {
 
     @Inject(method = "getBlockState(III)Lnet/minecraft/block/BlockState;", at = @At("HEAD"), cancellable = true, remap = true)
     private void selectiverender$filterBlockState(int x, int y, int z, CallbackInfoReturnable<BlockState> cir) {
-        if (!SelectiveRenderState.shouldRender(new BlockPos(x, y, z))) {
+        if (!SelectiveRenderState.shouldRender(x, y, z)) {
             cir.setReturnValue(Blocks.AIR.getDefaultState());
         }
     }
@@ -65,8 +65,13 @@ abstract class WorldSliceMixin {
         long column = ChunkPos.toLong(pos.getX(), pos.getZ());
         int highestOccluder = selectiverender$highestOccluders.computeIfAbsent(column, ignored -> {
             BlockPos.Mutable cursor = new BlockPos.Mutable(pos.getX(), 0, pos.getZ());
-            int top = world.getTopY() - 1;
-            int bottom = world.getBottomY();
+            int top = SelectiveRenderState.visibleColumnTop(
+                    pos.getX(), pos.getZ(), world.getTopY() - 1);
+            int bottom = SelectiveRenderState.visibleColumnBottom(
+                    pos.getX(), pos.getZ(), world.getBottomY());
+            if (top == Integer.MIN_VALUE || bottom == Integer.MAX_VALUE || bottom > top) {
+                return Integer.MIN_VALUE;
+            }
             for (int y = top; y >= bottom; y--) {
                 cursor.setY(y);
                 if (!SelectiveRenderState.shouldRender(cursor)) continue;

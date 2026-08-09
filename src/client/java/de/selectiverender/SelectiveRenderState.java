@@ -62,26 +62,68 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(BlockPos position) {
-        return (!enabled() || containsActive(position)) && (!hideEnabled() || !containsHidden(position));
+        return shouldRender(position.getX(), position.getY(), position.getZ());
     }
 
     public static boolean shouldRender(double x, double y, double z) {
-        int blockX = MathHelper.floor(x);
-        int blockY = MathHelper.floor(y);
-        int blockZ = MathHelper.floor(z);
-        boolean included = !enabled() || activeRegions.stream()
-                .anyMatch(region -> region.contains(blockX, blockY, blockZ));
-        boolean hidden = hideEnabled() && hiddenRegions.stream()
-                .anyMatch(region -> region.contains(blockX, blockY, blockZ));
-        return included && !hidden;
+        return shouldRender(MathHelper.floor(x), MathHelper.floor(y), MathHelper.floor(z));
+    }
+
+    public static boolean shouldRender(int blockX, int blockY, int blockZ) {
+        boolean included = !enabled();
+        if (!included) {
+            for (BlockRegion region : activeRegions) {
+                if (region.contains(blockX, blockY, blockZ)) {
+                    included = true;
+                    break;
+                }
+            }
+        }
+        if (!included) return false;
+        if (hideEnabled()) {
+            for (BlockRegion region : hiddenRegions) {
+                if (region.contains(blockX, blockY, blockZ)) return false;
+            }
+        }
+        return true;
+    }
+
+    public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
+        if (!enabled()) return worldTop;
+        int top = Integer.MIN_VALUE;
+        for (BlockRegion region : activeRegions) {
+            if (blockX >= region.minX() && blockX <= region.maxX()
+                    && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
+                top = Math.max(top, region.maxY());
+            }
+        }
+        return Math.min(top, worldTop);
+    }
+
+    public static int visibleColumnBottom(int blockX, int blockZ, int worldBottom) {
+        if (!enabled()) return worldBottom;
+        int bottom = Integer.MAX_VALUE;
+        for (BlockRegion region : activeRegions) {
+            if (blockX >= region.minX() && blockX <= region.maxX()
+                    && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
+                bottom = Math.min(bottom, region.minY());
+            }
+        }
+        return Math.max(bottom, worldBottom);
     }
 
     public static boolean containsActive(BlockPos position) {
-        return activeRegions.stream().anyMatch(region -> region.contains(position));
+        for (BlockRegion region : activeRegions) {
+            if (region.contains(position)) return true;
+        }
+        return false;
     }
 
     public static boolean containsHidden(BlockPos position) {
-        return hiddenRegions.stream().anyMatch(region -> region.contains(position));
+        for (BlockRegion region : hiddenRegions) {
+            if (region.contains(position)) return true;
+        }
+        return false;
     }
 
     public static boolean isActivelyHidden(BlockPos position) {

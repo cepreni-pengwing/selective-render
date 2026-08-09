@@ -25,7 +25,10 @@ abstract class EntityRendererMixin<T extends Entity> {
 
         World world = entity.getWorld();
         BlockPos.Mutable cursor = new BlockPos.Mutable(pos.getX(), pos.getY(), pos.getZ());
-        for (int y = Math.max(pos.getY() + 1, world.getBottomY()); y < world.getTopY(); y++) {
+        int top = SelectiveRenderState.visibleColumnTop(pos.getX(), pos.getZ(), world.getTopY() - 1);
+        for (int y = Math.max(pos.getY() + 1,
+                SelectiveRenderState.visibleColumnBottom(pos.getX(), pos.getZ(), world.getBottomY()));
+             y <= top; y++) {
             cursor.setY(y);
             if (!SelectiveRenderState.shouldRender(cursor)) continue;
             BlockState state = world.getBlockState(cursor);
