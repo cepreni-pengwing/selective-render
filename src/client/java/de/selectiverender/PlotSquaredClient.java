@@ -53,7 +53,7 @@ public final class PlotSquaredClient {
             if (buffer.isReadable()) throw new IllegalArgumentException("Trailing response data");
             client.execute(() -> applyResponse(responseStatus, responsePlotId, List.copyOf(regions)));
         } catch (RuntimeException exception) {
-            client.execute(() -> send(red("Invalid response from PlotSquared bridge")));
+            client.execute(() -> send(red("Invalid response from Selective Render Plots")));
         }
     }
 
@@ -100,7 +100,7 @@ public final class PlotSquaredClient {
                     active ? (SelectiveRenderState.plotRenderingEnabled() ? green("enabled") : red("disabled"))
                             : red("inactive"));
         } else if (status != STATUS_OK || regions.isEmpty()) {
-            send(red("Invalid response from PlotSquared bridge"));
+            send(red("Invalid response from Selective Render Plots"));
         } else {
             SelectiveRenderState.activatePlotMode(regions);
             send(white("Plot "), aqua(responsePlotId), green(" isolated"),
