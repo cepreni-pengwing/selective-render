@@ -17,6 +17,7 @@ public final class SelectiveRenderState {
     private static BlockRegion selection;
     private static List<BlockRegion> activeRegions = List.of();
     private static List<BlockRegion> hiddenRegions = List.of();
+    private static List<BlockRegion> visibleOverrides = List.of();
     private static boolean enabled;
     private static boolean hideEnabled;
     private static List<BlockRegion> plotRegions = List.of();
@@ -32,6 +33,7 @@ public final class SelectiveRenderState {
     public static BlockRegion selection() { return selection; }
     public static List<BlockRegion> activeRegions() { return plotModeActive ? plotRegions : activeRegions; }
     public static List<BlockRegion> hiddenRegions() { return hiddenRegions; }
+    public static List<BlockRegion> visibleOverrides() { return visibleOverrides; }
     public static boolean enabled() {
         return plotModeActive
                 ? plotRenderingEnabled && !plotRegions.isEmpty()
@@ -43,9 +45,11 @@ public final class SelectiveRenderState {
     public static List<BlockRegion> plotRegions() { return plotRegions; }
 
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
-                                     Collection<BlockRegion> hidden, boolean newHideEnabled) {
+                                     Collection<BlockRegion> hidden, boolean newHideEnabled,
+                                     Collection<BlockRegion> overrides) {
         activeRegions = List.copyOf(regions);
         hiddenRegions = List.copyOf(hidden);
+        visibleOverrides = List.copyOf(overrides);
         enabled = newEnabled;
         hideEnabled = newHideEnabled;
     }
@@ -97,11 +101,9 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
-        boolean included = !enabled() || activeRegions().stream()
-                .anyMatch(region -> region.intersectsSection(sectionX, sectionY, sectionZ));
-        boolean fullyHidden = hideEnabled() && hiddenRegions.stream()
-                .anyMatch(region -> region.containsSection(sectionX, sectionY, sectionZ));
-        return included && !fullyHidden;
+        return RegionVisibility.section(enabled(), activeRegions(),
+                hideEnabled() ? hiddenRegions : List.of(), visibleOverrides,
+                sectionX, sectionY, sectionZ);
     }
 
     public static boolean shouldRender(BlockPos position) {
@@ -113,28 +115,15 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(int blockX, int blockY, int blockZ) {
-        boolean included = !enabled();
-        if (!included) {
-            for (BlockRegion region : activeRegions()) {
-                if (region.contains(blockX, blockY, blockZ)) {
-                    included = true;
-                    break;
-                }
-            }
-        }
-        if (!included) return false;
-        if (hideEnabled()) {
-            for (BlockRegion region : hiddenRegions) {
-                if (region.contains(blockX, blockY, blockZ)) return false;
-            }
-        }
-        return true;
+        return RegionVisibility.block(enabled(), activeRegions(),
+                hideEnabled() ? hiddenRegions : List.of(), visibleOverrides,
+                blockX, blockY, blockZ);
     }
 
     public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
         if (!enabled()) return worldTop;
         int top = Integer.MIN_VALUE;
-        for (BlockRegion region : activeRegions()) {
+        for (BlockRegion region : visibleRegions()) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 top = Math.max(top, region.maxY());
@@ -146,7 +135,7 @@ public final class SelectiveRenderState {
     public static int visibleColumnBottom(int blockX, int blockZ, int worldBottom) {
         if (!enabled()) return worldBottom;
         int bottom = Integer.MAX_VALUE;
-        for (BlockRegion region : activeRegions()) {
+        for (BlockRegion region : visibleRegions()) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 bottom = Math.min(bottom, region.minY());
@@ -189,6 +178,7 @@ public final class SelectiveRenderState {
         selection = null;
         activeRegions = List.of();
         hiddenRegions = List.of();
+        visibleOverrides = List.of();
         enabled = false;
         hideEnabled = false;
         resetPlotMode();
@@ -249,6 +239,13 @@ public final class SelectiveRenderState {
 
     private static int expandMax(int value) {
         return value == Integer.MAX_VALUE ? value : value + 1;
+    }
+
+    private static List<BlockRegion> visibleRegions() {
+        if (visibleOverrides.isEmpty()) return activeRegions();
+        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(activeRegions());
+        regions.addAll(visibleOverrides);
+        return regions;
     }
 
     private record SectionCoordinate(int x, int y, int z) { }

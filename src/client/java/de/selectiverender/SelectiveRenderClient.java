@@ -35,16 +35,28 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.toggle_hide",
             GLFW.GLFW_KEY_EQUAL,
             "category.selectiverender");
+    private static final KeyBinding POS1_KEY = new KeyBinding(
+            "key.selectiverender.pos1",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
+    private static final KeyBinding POS2_KEY = new KeyBinding(
+            "key.selectiverender.pos2",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
         PlotSquaredClient.initialize();
         KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
+        KeyBindingHelper.registerKeyBinding(POS1_KEY);
+        KeyBindingHelper.registerKeyBinding(POS2_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);
+            while (POS1_KEY.wasPressed()) setPositionFromKey(client, true);
+            while (POS2_KEY.wasPressed()) setPositionFromKey(client, false);
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
@@ -66,6 +78,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.literal("pos1").executes(context -> setPosition(context.getSource(), true)))
                 .then(ClientCommandManager.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
+                .then(ClientCommandManager.literal("1").executes(context -> setPosition(context.getSource(), true)))
+                .then(ClientCommandManager.literal("2").executes(context -> setPosition(context.getSource(), false)))
                 .then(saveCommand("save"))
                 .then(saveCommand("s"))
                 .then(toggleCommand("toggle"))
@@ -159,10 +173,25 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
         BlockPos position = source.getPlayer().getBlockPos();
-        if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
-        feedback(source, message(aqua(isFirst ? "Pos1" : "Pos2"), white(" = "
-                + position.getX() + ", " + position.getY() + ", " + position.getZ())));
+        applyPosition(position, isFirst);
+        feedback(source, positionMessage(position, isFirst));
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static void setPositionFromKey(MinecraftClient client, boolean isFirst) {
+        if (client.player == null) return;
+        BlockPos position = client.player.getBlockPos();
+        applyPosition(position, isFirst);
+        client.player.sendMessage(positionMessage(position, isFirst), false);
+    }
+
+    private static void applyPosition(BlockPos position, boolean isFirst) {
+        if (isFirst) SelectiveRenderState.setFirst(position); else SelectiveRenderState.setSecond(position);
+    }
+
+    private static MutableText positionMessage(BlockPos position, boolean isFirst) {
+        return message(aqua(isFirst ? "Pos1" : "Pos2"), white(" = "
+                + position.getX() + ", " + position.getY() + ", " + position.getZ()));
     }
 
     private static int save(FabricClientCommandSource source, String name) {

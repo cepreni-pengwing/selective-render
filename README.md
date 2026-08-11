@@ -33,8 +33,8 @@ are included.
 Available short commands:
 
 ```text
-/sr pos1
-/sr pos2
+/sr pos1  # alias: /sr 1
+/sr pos2  # alias: /sr 2
 /sr s NAME
 /sr t NAME
 /sr t all
@@ -80,8 +80,8 @@ Default keybinds:
 - `ß`: toggle the render group
 - `´`: toggle the hide group
 
-Both keybinds can be reassigned in Minecraft's Controls settings under the
-Selective Render category.
+All keybinds can be reassigned in Minecraft's Controls settings under the
+Selective Render category. Position 1 and position 2 are unassigned by default.
 
 Preset arguments support tab completion for toggle, hide, delete, and rename
 commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
@@ -194,4 +194,4 @@ Release history is maintained in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT. See `LICENSE`.
+GNU General Public License v3.0 only. See `LICENSE`.

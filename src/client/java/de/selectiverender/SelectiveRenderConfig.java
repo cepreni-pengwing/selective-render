@@ -304,7 +304,7 @@ public final class SelectiveRenderConfig {
         ACTIVE_HIDDEN_PRESETS.clear();
         groupEnabled = false;
         hideGroupEnabled = true;
-        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false);
+        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of());
     }
 
     public static void endSession() {
@@ -346,9 +346,12 @@ public final class SelectiveRenderConfig {
     }
 
     private static void applyState() {
+        LinkedHashSet<String> visibleOverrides = new LinkedHashSet<>(HIDDEN_PRESETS);
+        if (hideGroupEnabled) visibleOverrides.removeAll(ACTIVE_HIDDEN_PRESETS);
         SelectiveRenderState.setSavedState(
                 regionsFor(ACTIVE_PRESETS), groupEnabled,
-                regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled);
+                regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled,
+                regionsFor(visibleOverrides));
     }
 
     private static List<BlockRegion> activeRegions() {
