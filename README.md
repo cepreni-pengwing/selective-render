@@ -13,6 +13,8 @@ or shader shadows outside the selected area. Players remain visible everywhere;
 all other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
+For requests regarding support for other Minecraft versions, contact `cepreni` on Discord.
+
 ## Usage
 
 `/sr` is the short alias for `/selectiverender`; both command names provide the
