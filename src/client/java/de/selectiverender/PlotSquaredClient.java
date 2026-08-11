@@ -69,6 +69,11 @@ public final class PlotSquaredClient {
                 send(white("Plot "), aqua(responsePlotId), green(" isolated"));
             }
         } else if (status == STATUS_SAVE) {
+            if (SelectiveRenderConfig.presetExists(responsePlotId)) {
+                send(white("Preset "), aqua(responsePlotId), red(" already exists"),
+                        white(" · delete or rename it first"));
+                return;
+            }
             if (regions.isEmpty() || SelectiveRenderConfig.isReservedName(responsePlotId)) {
                 send(red("The plot preset could not be saved"));
                 return;

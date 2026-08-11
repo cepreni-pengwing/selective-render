@@ -148,6 +148,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, message(aqua(name), red(" is reserved")));
             return 0;
         }
+        if (SelectiveRenderConfig.presetExists(name)) {
+            feedback(source, presetExists(name));
+            return 0;
+        }
         if (!SelectiveRenderConfig.saveSelection(MinecraftClient.getInstance(), name)) {
             feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
             return 0;
@@ -315,6 +319,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static MutableText missingPreset(String name) {
         return message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" does not exist"));
+    }
+
+    private static MutableText presetExists(String name) {
+        return message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" already exists"),
+                white(" · delete or rename it first"));
     }
 
     private static MutableText white(String text) {
