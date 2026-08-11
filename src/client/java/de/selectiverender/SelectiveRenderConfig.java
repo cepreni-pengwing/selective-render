@@ -26,7 +26,7 @@ import java.util.Map;
 public final class SelectiveRenderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
-    private static final Map<String, BlockRegion> PRESETS = new LinkedHashMap<>();
+    private static final Map<String, List<BlockRegion>> PRESETS = new LinkedHashMap<>();
     private static final LinkedHashSet<String> ACTIVE_PRESETS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> HIDDEN_PRESETS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> ACTIVE_HIDDEN_PRESETS = new LinkedHashSet<>();
@@ -51,16 +51,23 @@ public final class SelectiveRenderConfig {
             StoredConfig stored = GSON.fromJson(reader, StoredConfig.class);
             if (stored == null) return;
 
-            if (stored.presets != null) {
+            if (stored.formatVersion >= 7 && stored.regionGroups != null) {
+                stored.regionGroups.forEach((name, regions) -> {
+                    if (name != null && regions != null && !regions.isEmpty()) {
+                        PRESETS.put(normalize(name), regions.stream()
+                                .map(region -> region.toRegion(stored.formatVersion)).toList());
+                    }
+                });
+            } else if (stored.presets != null) {
                 stored.presets.forEach((name, region) -> {
                     if (name != null && region != null) {
-                        PRESETS.put(normalize(name), region.toRegion(stored.formatVersion));
+                        PRESETS.put(normalize(name), List.of(region.toRegion(stored.formatVersion)));
                     }
                 });
             } else if (stored.minX != null && stored.maxX != null
                     && stored.minZ != null && stored.maxZ != null) {
-                PRESETS.put("default", StoredRegion.fromLegacyChunks(
-                        stored.minX, stored.maxX, stored.minZ, stored.maxZ));
+                PRESETS.put("default", List.of(StoredRegion.fromLegacyChunks(
+                        stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
             }
 
             if (stored.formatVersion >= 4 && stored.activePresets != null) {
@@ -96,8 +103,9 @@ public final class SelectiveRenderConfig {
         if (isReservedName(requestedName)) return false;
         if (!SelectiveRenderState.saveSelection()) return false;
         String name = normalize(requestedName);
-        BlockRegion previous = PRESETS.get(name);
-        PRESETS.put(name, SelectiveRenderState.selection());
+        List<BlockRegion> previous = PRESETS.get(name);
+        List<BlockRegion> regions = List.of(SelectiveRenderState.selection());
+        PRESETS.put(name, regions);
         if (HIDDEN_PRESETS.contains(name)) {
             ACTIVE_HIDDEN_PRESETS.add(name);
             hideGroupEnabled = true;
@@ -110,9 +118,24 @@ public final class SelectiveRenderConfig {
         if ((ACTIVE_PRESETS.contains(name) && groupEnabled)
                 || (ACTIVE_HIDDEN_PRESETS.contains(name) && hideGroupEnabled)) {
             SelectiveRenderState.refreshRegions(previous == null
-                    ? List.of(SelectiveRenderState.selection())
-                    : List.of(previous, SelectiveRenderState.selection()));
+                    ? regions : concat(previous, regions));
         }
+        return true;
+    }
+
+    public static boolean saveRegions(MinecraftClient client, String requestedName,
+                                      List<BlockRegion> regions) {
+        if (isReservedName(requestedName) || regions == null || regions.isEmpty()) return false;
+        String name = normalize(requestedName);
+        List<BlockRegion> next = List.copyOf(regions);
+        List<BlockRegion> previous = PRESETS.put(name, next);
+        HIDDEN_PRESETS.remove(name);
+        ACTIVE_HIDDEN_PRESETS.remove(name);
+        ACTIVE_PRESETS.add(name);
+        groupEnabled = true;
+        applyState();
+        write(client);
+        SelectiveRenderState.refreshRegions(previous == null ? next : concat(previous, next));
         return true;
     }
 
@@ -141,7 +164,7 @@ public final class SelectiveRenderConfig {
             ACTIVE_PRESETS.add(name);
         }
         applyState();
-        if (groupEnabled || wasHiddenVisible) SelectiveRenderState.refreshRegions(List.of(PRESETS.get(name)));
+        if (groupEnabled || wasHiddenVisible) SelectiveRenderState.refreshRegions(PRESETS.get(name));
         write(client);
         return true;
     }
@@ -157,7 +180,7 @@ public final class SelectiveRenderConfig {
             ACTIVE_HIDDEN_PRESETS.add(name);
         }
         applyState();
-        if (hideGroupEnabled || wasRenderVisible) SelectiveRenderState.refreshRegions(List.of(PRESETS.get(name)));
+        if (hideGroupEnabled || wasRenderVisible) SelectiveRenderState.refreshRegions(PRESETS.get(name));
         write(client);
         return true;
     }
@@ -175,7 +198,7 @@ public final class SelectiveRenderConfig {
         List<String> normalNames = PRESETS.keySet().stream()
                 .filter(name -> !HIDDEN_PRESETS.contains(name)).toList();
         if (normalNames.isEmpty()) return false;
-        List<BlockRegion> changed = normalNames.stream().map(PRESETS::get).toList();
+        List<BlockRegion> changed = regionsFor(normalNames);
         boolean disabling = !ACTIVE_PRESETS.isEmpty();
         if (disabling) {
             ACTIVE_PRESETS.clear();
@@ -192,7 +215,7 @@ public final class SelectiveRenderConfig {
 
     public static boolean toggleAllHiddenPresets(MinecraftClient client) {
         if (HIDDEN_PRESETS.isEmpty()) return false;
-        List<BlockRegion> changed = HIDDEN_PRESETS.stream().map(PRESETS::get).toList();
+        List<BlockRegion> changed = regionsFor(HIDDEN_PRESETS);
         if (ACTIVE_HIDDEN_PRESETS.isEmpty()) {
             ACTIVE_HIDDEN_PRESETS.addAll(HIDDEN_PRESETS);
         } else {
@@ -207,7 +230,7 @@ public final class SelectiveRenderConfig {
 
     public static boolean deletePreset(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        BlockRegion removed = PRESETS.remove(name);
+        List<BlockRegion> removed = PRESETS.remove(name);
         if (removed == null) return false;
         boolean visibleChange = (ACTIVE_PRESETS.contains(name) && groupEnabled)
                 || (ACTIVE_HIDDEN_PRESETS.contains(name) && hideGroupEnabled);
@@ -215,7 +238,7 @@ public final class SelectiveRenderConfig {
         HIDDEN_PRESETS.remove(name);
         ACTIVE_HIDDEN_PRESETS.remove(name);
         applyState();
-        if (visibleChange) SelectiveRenderState.refreshRegions(List.of(removed));
+        if (visibleChange) SelectiveRenderState.refreshRegions(removed);
         write(client);
         return true;
     }
@@ -229,8 +252,8 @@ public final class SelectiveRenderConfig {
         if (isReservedName(newName)) return RenameResult.RESERVED_NAME;
         if (PRESETS.containsKey(newName)) return RenameResult.TARGET_EXISTS;
 
-        BlockRegion region = PRESETS.remove(oldName);
-        PRESETS.put(newName, region);
+        List<BlockRegion> regions = PRESETS.remove(oldName);
+        PRESETS.put(newName, regions);
         replaceMembership(ACTIVE_PRESETS, oldName, newName);
         replaceMembership(HIDDEN_PRESETS, oldName, newName);
         replaceMembership(ACTIVE_HIDDEN_PRESETS, oldName, newName);
@@ -272,7 +295,8 @@ public final class SelectiveRenderConfig {
     }
 
     public static BlockRegion presetRegion(String name) {
-        return PRESETS.get(normalize(name));
+        List<BlockRegion> regions = PRESETS.get(normalize(name));
+        return regions == null || regions.isEmpty() ? null : regions.get(0);
     }
 
     public static boolean isReservedName(String name) {
@@ -300,14 +324,15 @@ public final class SelectiveRenderConfig {
         try {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
-            stored.formatVersion = 6;
+            stored.formatVersion = 7;
             stored.activePresets = List.copyOf(ACTIVE_PRESETS);
             stored.hiddenPresets = List.copyOf(HIDDEN_PRESETS);
             stored.activeHiddenPresets = List.copyOf(ACTIVE_HIDDEN_PRESETS);
             stored.enabled = groupEnabled;
             stored.hideEnabled = hideGroupEnabled;
-            stored.presets = new LinkedHashMap<>();
-            PRESETS.forEach((name, region) -> stored.presets.put(name, StoredRegion.from(region)));
+            stored.regionGroups = new LinkedHashMap<>();
+            PRESETS.forEach((name, regions) -> stored.regionGroups.put(name,
+                    regions.stream().map(StoredRegion::from).toList()));
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
             if (Files.isRegularFile(path)) {
                 Files.copy(path, path.resolveSibling(path.getFileName() + ".bak"),
@@ -328,16 +353,29 @@ public final class SelectiveRenderConfig {
 
     private static void applyState() {
         SelectiveRenderState.setSavedState(
-                ACTIVE_PRESETS.stream().map(PRESETS::get).toList(), groupEnabled,
-                ACTIVE_HIDDEN_PRESETS.stream().map(PRESETS::get).toList(), hideGroupEnabled);
+                regionsFor(ACTIVE_PRESETS), groupEnabled,
+                regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled);
     }
 
     private static List<BlockRegion> activeRegions() {
-        return ACTIVE_PRESETS.stream().map(PRESETS::get).toList();
+        return regionsFor(ACTIVE_PRESETS);
     }
 
     private static List<BlockRegion> hiddenRegions() {
-        return ACTIVE_HIDDEN_PRESETS.stream().map(PRESETS::get).toList();
+        return regionsFor(ACTIVE_HIDDEN_PRESETS);
+    }
+
+    private static List<BlockRegion> regionsFor(Iterable<String> names) {
+        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>();
+        for (String name : names) regions.addAll(PRESETS.getOrDefault(name, List.of()));
+        return List.copyOf(regions);
+    }
+
+    private static List<BlockRegion> concat(List<BlockRegion> first, List<BlockRegion> second) {
+        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(first.size() + second.size());
+        regions.addAll(first);
+        regions.addAll(second);
+        return regions;
     }
 
     private static void replaceMembership(LinkedHashSet<String> group, String oldName, String newName) {
@@ -382,6 +420,7 @@ public final class SelectiveRenderConfig {
 
     private static final class StoredConfig {
         Map<String, StoredRegion> presets;
+        Map<String, List<StoredRegion>> regionGroups;
         int formatVersion;
         String activePreset;
         List<String> activePresets;

@@ -94,13 +94,13 @@ Servers running the optional [Selective Render PlotSquared Addon](https://github
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
 The `/srp` command is registered by the Paper server plugin:
 
-- `/srp solo` or `/srp s` isolates the plot under the player.
-- `/srp refresh` or `/srp r` refreshes its regions.
-- `/srp off` or `/srp o` leaves plot mode.
-- `/srp status` displays the current plot-mode state.
+- `/srp` toggles temporary isolation of the plot under the player.
+- `/srp s NAME minY maxY` permanently saves the exact plot shape as one normal
+  preset and immediately activates it. The Y boundaries are inclusive.
 
 Plot mode is temporary. It does not alter saved presets, and active hide regions
-continue to be subtracted from the plot regions.
+continue to be subtracted from the plot regions. A saved merged or irregular plot
+appears as one entry in `/sr list`, even though it contains multiple internal cuboids.
 
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded

@@ -23,8 +23,8 @@ public final class PlotSquaredClient {
     private static final int STATUS_ERROR = 3;
     private static final int STATUS_OFF = 4;
     private static final int STATUS_INFO = 5;
-
-    private static String plotId;
+    private static final int STATUS_TOGGLE = 6;
+    private static final int STATUS_SAVE = 7;
 
     private PlotSquaredClient() { }
 
@@ -34,7 +34,6 @@ public final class PlotSquaredClient {
     }
 
     public static void reset() {
-        plotId = null;
         SelectiveRenderState.resetPlotMode();
     }
 
@@ -59,14 +58,35 @@ public final class PlotSquaredClient {
     }
 
     private static void applyResponse(int status, String responsePlotId, List<BlockRegion> regions) {
-        if (status == STATUS_NO_PLOT) {
+        if (status == STATUS_TOGGLE) {
+            if (SelectiveRenderState.plotModeActive()) {
+                SelectiveRenderState.disablePlotMode();
+                send(white("Plot mode "), red("disabled"));
+            } else if (regions.isEmpty()) {
+                send(red("You are not standing on a plot"));
+            } else {
+                SelectiveRenderState.activatePlotMode(regions);
+                send(white("Plot "), aqua(responsePlotId), green(" isolated"));
+            }
+        } else if (status == STATUS_SAVE) {
+            if (regions.isEmpty() || SelectiveRenderConfig.isReservedName(responsePlotId)) {
+                send(red("The plot preset could not be saved"));
+                return;
+            }
+            SelectiveRenderState.resetPlotMode();
+            if (SelectiveRenderConfig.saveRegions(MinecraftClient.getInstance(), responsePlotId, regions)) {
+                send(white("Preset "), aqua(responsePlotId), green(" saved"),
+                        gray(" · " + regions.size() + " part(s)"));
+            } else {
+                send(red("The plot preset could not be saved"));
+            }
+        } else if (status == STATUS_NO_PLOT) {
             send(red("You are not standing on a plot"));
         } else if (status == STATUS_NO_PERMISSION) {
             send(red("The server denied plot access"));
         } else if (status == STATUS_ERROR) {
             send(red("The server could not resolve this plot"));
         } else if (status == STATUS_OFF) {
-            plotId = null;
             if (SelectiveRenderState.disablePlotMode()) send(white("Plot mode "), red("disabled"));
         } else if (status == STATUS_INFO) {
             boolean active = SelectiveRenderState.plotModeActive();
@@ -77,7 +97,6 @@ public final class PlotSquaredClient {
         } else if (status != STATUS_OK || regions.isEmpty()) {
             send(red("Invalid response from PlotSquared bridge"));
         } else {
-            plotId = responsePlotId;
             SelectiveRenderState.activatePlotMode(regions);
             send(white("Plot "), aqua(responsePlotId), green(" isolated"),
                     gray(" · " + regions.size() + " region(s)"));
