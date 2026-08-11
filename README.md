@@ -33,8 +33,8 @@ are included.
 Available short commands:
 
 ```text
-/sr pos1
-/sr pos2
+/sr pos1  # alias: /sr 1
+/sr pos2  # alias: /sr 2
 /sr s NAME
 /sr t NAME
 /sr t all
@@ -80,8 +80,8 @@ Default keybinds:
 - `ß`: toggle the render group
 - `´`: toggle the hide group
 
-Both keybinds can be reassigned in Minecraft's Controls settings under the
-Selective Render category.
+All keybinds can be reassigned in Minecraft's Controls settings under the
+Selective Render category. Position 1 and position 2 are unassigned by default.
 
 Preset arguments support tab completion for toggle, hide, delete, and rename
 commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
@@ -170,9 +170,28 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 - Minecraft 1.20.1
 - Fabric API 0.92.2+1.20.1 or newer for Minecraft 1.20.1
-- Sodium 0.5.x (tested with 0.5.13)
+- Sodium 0.5.13: build-compatible and tested in game
+- Sodium 0.5.8 and 0.5.11: compile-checked by CI, but not claimed as fully tested in game
 - Iris for Minecraft 1.20.1
+
+## Known limitations
+
+- Selective Render does not change render distance, chunk loading, or server network traffic.
+- Selected regions must already be inside the normal client render distance.
+- Players remain visible everywhere; this is currently not configurable.
+- Selective filtering deliberately changes which sections participate in occlusion culling.
+- Region membership uses linear scans. This is appropriate for normal preset counts; a spatial
+  section cache may be introduced if practical use grows to hundreds of simultaneous regions.
+- Distant Horizons LOD geometry is not filtered outside selected regions.
+
+## Support and contributing
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Use the GitHub issue forms for
+crashes, rendering bugs, and compatibility reports, and include the requested logs and versions.
+Version support requests can also be sent to `cepreni` on Discord.
+
+Release history is maintained in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-MIT. See `LICENSE`.
+GNU General Public License v3.0 only. See `LICENSE`.

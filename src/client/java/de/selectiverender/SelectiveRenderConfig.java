@@ -198,12 +198,7 @@ public final class SelectiveRenderConfig {
                 .filter(name -> !HIDDEN_PRESETS.contains(name)).toList();
         if (normalNames.isEmpty()) return false;
         List<BlockRegion> changed = regionsFor(normalNames);
-        boolean disabling = !ACTIVE_PRESETS.isEmpty();
-        if (disabling) {
-            ACTIVE_PRESETS.clear();
-        } else {
-            ACTIVE_PRESETS.addAll(normalNames);
-        }
+        boolean disabling = PresetGroupLogic.toggleAll(ACTIVE_PRESETS, normalNames);
         groupEnabled = true;
         applyState();
         if (disabling) SelectiveRenderState.refreshRenderer();
@@ -215,11 +210,7 @@ public final class SelectiveRenderConfig {
     public static boolean toggleAllHiddenPresets(MinecraftClient client) {
         if (HIDDEN_PRESETS.isEmpty()) return false;
         List<BlockRegion> changed = regionsFor(HIDDEN_PRESETS);
-        if (ACTIVE_HIDDEN_PRESETS.isEmpty()) {
-            ACTIVE_HIDDEN_PRESETS.addAll(HIDDEN_PRESETS);
-        } else {
-            ACTIVE_HIDDEN_PRESETS.clear();
-        }
+        PresetGroupLogic.toggleAll(ACTIVE_HIDDEN_PRESETS, HIDDEN_PRESETS);
         hideGroupEnabled = true;
         applyState();
         SelectiveRenderState.refreshRegions(changed);
@@ -253,9 +244,9 @@ public final class SelectiveRenderConfig {
 
         List<BlockRegion> regions = PRESETS.remove(oldName);
         PRESETS.put(newName, regions);
-        replaceMembership(ACTIVE_PRESETS, oldName, newName);
-        replaceMembership(HIDDEN_PRESETS, oldName, newName);
-        replaceMembership(ACTIVE_HIDDEN_PRESETS, oldName, newName);
+        PresetGroupLogic.replaceMembership(ACTIVE_PRESETS, oldName, newName);
+        PresetGroupLogic.replaceMembership(HIDDEN_PRESETS, oldName, newName);
+        PresetGroupLogic.replaceMembership(ACTIVE_HIDDEN_PRESETS, oldName, newName);
         applyState();
         write(client);
         return RenameResult.SUCCESS;
@@ -313,7 +304,7 @@ public final class SelectiveRenderConfig {
         ACTIVE_HIDDEN_PRESETS.clear();
         groupEnabled = false;
         hideGroupEnabled = true;
-        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false);
+        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of());
     }
 
     public static void endSession() {
@@ -355,9 +346,12 @@ public final class SelectiveRenderConfig {
     }
 
     private static void applyState() {
+        LinkedHashSet<String> visibleOverrides = new LinkedHashSet<>(HIDDEN_PRESETS);
+        if (hideGroupEnabled) visibleOverrides.removeAll(ACTIVE_HIDDEN_PRESETS);
         SelectiveRenderState.setSavedState(
                 regionsFor(ACTIVE_PRESETS), groupEnabled,
-                regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled);
+                regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled,
+                regionsFor(visibleOverrides));
     }
 
     private static List<BlockRegion> activeRegions() {
@@ -372,11 +366,6 @@ public final class SelectiveRenderConfig {
         java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>();
         for (String name : names) regions.addAll(PRESETS.getOrDefault(name, List.of()));
         return List.copyOf(regions);
-    }
-
-    private static void replaceMembership(LinkedHashSet<String> group, String oldName, String newName) {
-        if (!group.remove(oldName)) return;
-        group.add(newName);
     }
 
     public enum RenameResult {
@@ -453,15 +442,11 @@ public final class SelectiveRenderConfig {
             if (formatVersion >= 3 && minY != null && maxY != null) {
                 return new BlockRegion(minX, maxX, minY, maxY, minZ, maxZ);
             }
-            return formatVersion >= 2
-                    ? new BlockRegion(minX, maxX, Integer.MIN_VALUE, Integer.MAX_VALUE, minZ, maxZ)
-                    : fromLegacyChunks(minX, maxX, minZ, maxZ);
+            return ConfigMigration.region(minX, maxX, minY, maxY, minZ, maxZ, formatVersion);
         }
 
         static BlockRegion fromLegacyChunks(int minX, int maxX, int minZ, int maxZ) {
-            return new BlockRegion(minX << 4, (maxX << 4) + 15,
-                    Integer.MIN_VALUE, Integer.MAX_VALUE,
-                    minZ << 4, (maxZ << 4) + 15);
+            return ConfigMigration.legacyChunks(minX, maxX, minZ, maxZ);
         }
     }
 }

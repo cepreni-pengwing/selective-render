@@ -4,8 +4,9 @@
   "version": "${version}",
   "name": "Selective Render",
   "description": "Client-side block-precise render whitelist for selected world regions.",
-  "authors": ["Codex"],
-  "license": "MIT",
+  "authors": ["cepreni-pengwing"],
+  "contributors": ["Codex"],
+  "license": "GPL-3.0-only",
   "environment": "client",
   "entrypoints": {
     "client": ["de.selectiverender.SelectiveRenderClient"]
@@ -15,10 +16,10 @@
   ],
   "depends": {
     "fabricloader": ">=0.14.21",
-    "minecraft": "~1.20.1",
+    "minecraft": "1.20.1",
     "java": ">=17",
     "fabric-api": ">=0.92.2",
-    "sodium": ">=0.5.0",
+    "sodium": ">=0.5.8",
     "mixinextras": ">=0.3.5"
   },
   "suggests": {

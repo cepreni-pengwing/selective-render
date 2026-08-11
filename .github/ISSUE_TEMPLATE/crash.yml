@@ -1,0 +1,21 @@
+name: Crash report
+description: Report a crash caused by Selective Render.
+title: "[Crash] "
+labels: [bug, crash]
+body:
+  - type: input
+    id: version
+    attributes: {label: Selective Render version}
+    validations: {required: true}
+  - type: input
+    id: environment
+    attributes: {label: Minecraft, Fabric Loader, Fabric API, Sodium, and Iris versions}
+    validations: {required: true}
+  - type: textarea
+    id: steps
+    attributes: {label: Reproduction steps}
+    validations: {required: true}
+  - type: textarea
+    id: log
+    attributes: {label: Crash report or latest.log link}
+    validations: {required: true}
