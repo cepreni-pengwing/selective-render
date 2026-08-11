@@ -1,0 +1,17 @@
+name: Compatibility problem
+description: Report a conflict with another mod or request another Minecraft version.
+title: "[Compatibility] "
+labels: [compatibility]
+body:
+  - type: input
+    id: target
+    attributes: {label: Minecraft version or conflicting mod}
+    validations: {required: true}
+  - type: textarea
+    id: versions
+    attributes: {label: Full relevant version list}
+    validations: {required: true}
+  - type: textarea
+    id: details
+    attributes: {label: What happens and what you expected}
+    validations: {required: true}
