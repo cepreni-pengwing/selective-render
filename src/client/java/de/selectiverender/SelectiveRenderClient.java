@@ -37,6 +37,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        PlotSquaredClient.initialize();
         KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -53,6 +54,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 client.execute(() -> SelectiveRenderConfig.beginSession(client)));
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+            PlotSquaredClient.reset();
             SelectiveRenderConfig.endSession();
             SelectiveRenderState.resetForDisconnect();
         });
@@ -158,7 +160,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static int toggle(FabricClientCommandSource source, String name) {
         boolean toggled = name == null
-                ? SelectiveRenderConfig.toggleCurrent(MinecraftClient.getInstance())
+                ? (SelectiveRenderState.plotModeActive()
+                    ? SelectiveRenderState.togglePlotRendering()
+                    : SelectiveRenderConfig.toggleCurrent(MinecraftClient.getInstance()))
                 : SelectiveRenderConfig.togglePreset(MinecraftClient.getInstance(), name);
         if (!toggled) {
             feedback(source, name == null
@@ -276,7 +280,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static void toggleFromKey(MinecraftClient client) {
         if (client.player == null) return;
-        if (!SelectiveRenderConfig.toggleCurrent(client)) {
+        boolean toggled = SelectiveRenderState.plotModeActive()
+                ? SelectiveRenderState.togglePlotRendering()
+                : SelectiveRenderConfig.toggleCurrent(client);
+        if (!toggled) {
             client.player.sendMessage(message(red("No presets in the render group.")), false);
             return;
         }

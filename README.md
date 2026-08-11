@@ -88,6 +88,20 @@ commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
 under a single header without repeating the prefix on every line.
 The preset name `all` is reserved for group commands.
 
+## PlotSquared integration
+
+Servers running the optional [Selective Render PlotSquared Addon](https://github.com/cepreni-pengwing/selective-render-plotsquared-addon)
+can provide their exact PlotSquared regions, including merged and non-rectangular plots.
+The `/srp` command is registered by the Paper server plugin:
+
+- `/srp solo` or `/srp s` isolates the plot under the player.
+- `/srp refresh` or `/srp r` refreshes its regions.
+- `/srp off` or `/srp o` leaves plot mode.
+- `/srp status` displays the current plot-mode state.
+
+Plot mode is temporary. It does not alter saved presets, and active hide regions
+continue to be subtracted from the plot regions.
+
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining or changing dimensions. The hashed file name prevents server
@@ -146,7 +160,7 @@ On Windows:
 .\gradlew.bat build
 ```
 
-The installable file is generated at `build/libs/selective-render-1.6.0.jar`.
+The installable file is generated in `build/libs`.
 Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 ## Target versions

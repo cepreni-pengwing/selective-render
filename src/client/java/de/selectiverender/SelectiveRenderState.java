@@ -19,6 +19,9 @@ public final class SelectiveRenderState {
     private static List<BlockRegion> hiddenRegions = List.of();
     private static boolean enabled;
     private static boolean hideEnabled;
+    private static List<BlockRegion> plotRegions = List.of();
+    private static boolean plotModeActive;
+    private static boolean plotRenderingEnabled;
 
     private SelectiveRenderState() { }
 
@@ -27,10 +30,17 @@ public final class SelectiveRenderState {
     public static BlockPos first() { return first; }
     public static BlockPos second() { return second; }
     public static BlockRegion selection() { return selection; }
-    public static List<BlockRegion> activeRegions() { return activeRegions; }
+    public static List<BlockRegion> activeRegions() { return plotModeActive ? plotRegions : activeRegions; }
     public static List<BlockRegion> hiddenRegions() { return hiddenRegions; }
-    public static boolean enabled() { return enabled && !activeRegions.isEmpty(); }
+    public static boolean enabled() {
+        return plotModeActive
+                ? plotRenderingEnabled && !plotRegions.isEmpty()
+                : enabled && !activeRegions.isEmpty();
+    }
     public static boolean hideEnabled() { return hideEnabled && !hiddenRegions.isEmpty(); }
+    public static boolean plotModeActive() { return plotModeActive; }
+    public static boolean plotRenderingEnabled() { return plotModeActive && plotRenderingEnabled; }
+    public static List<BlockRegion> plotRegions() { return plotRegions; }
 
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
                                      Collection<BlockRegion> hidden, boolean newHideEnabled) {
@@ -47,14 +57,47 @@ public final class SelectiveRenderState {
     }
 
     public static boolean toggle() {
+        if (plotModeActive) return togglePlotRendering();
         if (activeRegions.isEmpty()) return false;
         enabled = !enabled;
         refreshRenderer();
         return true;
     }
 
+    public static void activatePlotMode(Collection<BlockRegion> regions) {
+        List<BlockRegion> next = List.copyOf(regions);
+        if (next.isEmpty()) throw new IllegalArgumentException("Plot regions cannot be empty");
+        plotRegions = next;
+        plotModeActive = true;
+        plotRenderingEnabled = true;
+        refreshRenderer();
+    }
+
+    public static boolean togglePlotRendering() {
+        if (!plotModeActive || plotRegions.isEmpty()) return false;
+        boolean wasEnabled = plotRenderingEnabled;
+        plotRenderingEnabled = !plotRenderingEnabled;
+        if (wasEnabled) refreshRenderer(); else refreshRegions(plotRegions);
+        return true;
+    }
+
+    public static boolean disablePlotMode() {
+        if (!plotModeActive) return false;
+        plotModeActive = false;
+        plotRenderingEnabled = false;
+        plotRegions = List.of();
+        refreshRenderer();
+        return true;
+    }
+
+    public static void resetPlotMode() {
+        plotModeActive = false;
+        plotRenderingEnabled = false;
+        plotRegions = List.of();
+    }
+
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
-        boolean included = !enabled() || activeRegions.stream()
+        boolean included = !enabled() || activeRegions().stream()
                 .anyMatch(region -> region.intersectsSection(sectionX, sectionY, sectionZ));
         boolean fullyHidden = hideEnabled() && hiddenRegions.stream()
                 .anyMatch(region -> region.containsSection(sectionX, sectionY, sectionZ));
@@ -72,7 +115,7 @@ public final class SelectiveRenderState {
     public static boolean shouldRender(int blockX, int blockY, int blockZ) {
         boolean included = !enabled();
         if (!included) {
-            for (BlockRegion region : activeRegions) {
+            for (BlockRegion region : activeRegions()) {
                 if (region.contains(blockX, blockY, blockZ)) {
                     included = true;
                     break;
@@ -91,7 +134,7 @@ public final class SelectiveRenderState {
     public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
         if (!enabled()) return worldTop;
         int top = Integer.MIN_VALUE;
-        for (BlockRegion region : activeRegions) {
+        for (BlockRegion region : activeRegions()) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 top = Math.max(top, region.maxY());
@@ -103,7 +146,7 @@ public final class SelectiveRenderState {
     public static int visibleColumnBottom(int blockX, int blockZ, int worldBottom) {
         if (!enabled()) return worldBottom;
         int bottom = Integer.MAX_VALUE;
-        for (BlockRegion region : activeRegions) {
+        for (BlockRegion region : activeRegions()) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 bottom = Math.min(bottom, region.minY());
@@ -113,7 +156,7 @@ public final class SelectiveRenderState {
     }
 
     public static boolean containsActive(BlockPos position) {
-        for (BlockRegion region : activeRegions) {
+        for (BlockRegion region : activeRegions()) {
             if (region.contains(position)) return true;
         }
         return false;
@@ -148,6 +191,7 @@ public final class SelectiveRenderState {
         hiddenRegions = List.of();
         enabled = false;
         hideEnabled = false;
+        resetPlotMode();
     }
 
     public static void refreshRenderer() {

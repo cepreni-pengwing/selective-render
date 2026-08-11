@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderConfig;
+import de.selectiverender.PlotSquaredClient;
 import de.selectiverender.SelectiveRenderState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -18,6 +19,7 @@ abstract class MinecraftClientMixin {
     @Inject(method = "setWorld", at = @At("TAIL"))
     private void selectiverender$loadDimensionConfig(ClientWorld world, CallbackInfo ci) {
         if (world != null) {
+            PlotSquaredClient.reset();
             SelectiveRenderConfig.load((MinecraftClient) (Object) this, world);
         }
     }
