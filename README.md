@@ -90,7 +90,7 @@ The preset name `all` is reserved for group commands.
 
 ## PlotSquared integration
 
-Servers running the optional [Selective Render PlotSquared Addon](https://github.com/cepreni-pengwing/selective-render-plotsquared-addon)
+Servers running the optional [Selective Render PlotSquared Addon](https://github.com/cepreni-pengwing/selective-render-plot)
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
 The `/selectiverenderplot` command is registered by the Paper server plugin.
 `/srp` is its short alias:
