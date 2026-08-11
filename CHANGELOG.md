@@ -2,6 +2,12 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.2-test.1
+
+### Fixed
+
+- Replaced the cardinal virtual-skylight approximation with bounded three-dimensional light-path search around visible overhangs.
+
 ## 1.7.1
 
 ### Added

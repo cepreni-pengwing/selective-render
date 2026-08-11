@@ -1,6 +1,7 @@
 package de.selectiverender.mixin.sodium;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.VirtualSkySearch;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientWorld;
@@ -80,27 +81,10 @@ abstract class WorldSliceMixin {
 
     @Unique
     private int selectiverender$calculateVirtualSkyLight(BlockPos pos) {
-        if (selectiverender$getHighestVisibleOccluder(pos.getX(), pos.getZ()) <= pos.getY()) return 15;
-
-        boolean positiveX = true;
-        boolean negativeX = true;
-        boolean positiveZ = true;
-        boolean negativeZ = true;
         BlockPos.Mutable cursor = new BlockPos.Mutable();
-        for (int distance = 1; distance < 15; distance++) {
-            positiveX = positiveX && selectiverender$isOpenStep(cursor, pos.getX() + distance, pos.getY(), pos.getZ());
-            negativeX = negativeX && selectiverender$isOpenStep(cursor, pos.getX() - distance, pos.getY(), pos.getZ());
-            positiveZ = positiveZ && selectiverender$isOpenStep(cursor, pos.getX(), pos.getY(), pos.getZ() + distance);
-            negativeZ = negativeZ && selectiverender$isOpenStep(cursor, pos.getX(), pos.getY(), pos.getZ() - distance);
-            if ((positiveX && selectiverender$getHighestVisibleOccluder(pos.getX() + distance, pos.getZ()) <= pos.getY())
-                    || (negativeX && selectiverender$getHighestVisibleOccluder(pos.getX() - distance, pos.getZ()) <= pos.getY())
-                    || (positiveZ && selectiverender$getHighestVisibleOccluder(pos.getX(), pos.getZ() + distance) <= pos.getY())
-                    || (negativeZ && selectiverender$getHighestVisibleOccluder(pos.getX(), pos.getZ() - distance) <= pos.getY())) {
-                return 15 - distance;
-            }
-            if (!positiveX && !negativeX && !positiveZ && !negativeZ) break;
-        }
-        return 0;
+        return VirtualSkySearch.find(pos.getX(), pos.getY(), pos.getZ(), 14,
+                (x, y, z) -> selectiverender$getHighestVisibleOccluder(x, z) <= y,
+                (x, y, z) -> selectiverender$isOpenStep(cursor, x, y, z));
     }
 
     @Unique
