@@ -92,14 +92,14 @@ The preset name `all` is reserved for group commands.
 
 Servers running the optional [Selective Render Plots](https://github.com/cepreni-pengwing/selective-render-plots)
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
-The `/selectiverenderplot` command is registered by the Paper server plugin.
-`/srp` is its short alias:
+Plot integration is part of the normal Selective Render command tree:
 
-- `/selectiverenderplot` or `/srp` toggles temporary isolation of the plot under the player.
-- `/selectiverenderplot save NAME minY maxY` permanently saves the exact plot shape as one normal
+- `/selectiverender plot` or `/sr plot` toggles temporary isolation of the plot under the player.
+- `/selectiverender plot save NAME minY maxY` permanently saves the exact plot shape as one normal
   preset and immediately activates it. The Y boundaries are inclusive.
 
-`s` is the short alias for `save`, so `/srp s NAME minY maxY` is equivalent.
+`p` is the short alias for `plot`, and `s` is the short alias for `save`, so
+`/sr p s NAME minY maxY` is equivalent.
 
 Plot mode is temporary. It does not alter saved presets, and active hide regions
 continue to be subtracted from the plot regions. A saved merged or irregular plot

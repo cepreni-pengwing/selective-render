@@ -1,6 +1,7 @@
 package de.selectiverender;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import net.fabricmc.api.ClientModInitializer;
@@ -41,6 +42,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);
         });
@@ -74,8 +76,28 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(deleteCommand("d"))
                 .then(renameCommand("rename"))
                 .then(renameCommand("r"))
+                .then(plotCommand("plot"))
+                .then(plotCommand("p"))
                 .then(listCommand("list"))
                 .then(listCommand("l"));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> plotCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .executes(context -> PlotSquaredClient.toggle())
+                .then(plotSaveCommand("save"))
+                .then(plotSaveCommand("s"));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> plotSaveCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
+                                .then(ClientCommandManager.argument("maxY", IntegerArgumentType.integer())
+                                        .executes(context -> PlotSquaredClient.save(
+                                                StringArgumentType.getString(context, "name"),
+                                                IntegerArgumentType.getInteger(context, "minY"),
+                                                IntegerArgumentType.getInteger(context, "maxY"))))));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> listCommand(String name) {

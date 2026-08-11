@@ -1,30 +1,39 @@
 package de.selectiverender;
 
+import com.mojang.brigadier.Command;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public final class PlotSquaredClient {
+    private static final Identifier REQUEST_CHANNEL = new Identifier("selectiverender", "plot_request");
     private static final Identifier RESPONSE_CHANNEL = new Identifier("selectiverender", "plot_response");
     private static final int MAGIC = 0x53525031;
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
     private static final int MAX_REGIONS = 256;
-    private static final int STATUS_OK = 0;
+    private static final int ACTION_TOGGLE = 0;
+    private static final int ACTION_SAVE = 1;
     private static final int STATUS_NO_PLOT = 1;
     private static final int STATUS_NO_PERMISSION = 2;
     private static final int STATUS_ERROR = 3;
-    private static final int STATUS_OFF = 4;
-    private static final int STATUS_INFO = 5;
     private static final int STATUS_TOGGLE = 6;
     private static final int STATUS_SAVE = 7;
+
+    private static long pendingRequest;
+    private static long pendingSince;
+    private static ClientWorld pendingWorld;
 
     private PlotSquaredClient() { }
 
@@ -34,14 +43,85 @@ public final class PlotSquaredClient {
     }
 
     public static void reset() {
+        clearPending();
         SelectiveRenderState.resetPlotMode();
+    }
+
+    public static int toggle() {
+        if (SelectiveRenderState.plotModeActive()) {
+            if (SelectiveRenderState.plotRenderingEnabled()) {
+                SelectiveRenderState.disablePlotMode();
+                send(white("Plot mode "), red("disabled"));
+            } else {
+                SelectiveRenderState.activatePlotMode(SelectiveRenderState.plotRegions());
+                send(white("Plot mode "), green("enabled"));
+            }
+            return Command.SINGLE_SUCCESS;
+        }
+        return request(ACTION_TOGGLE, "", 0, 0);
+    }
+
+    public static int save(String name, int minY, int maxY) {
+        if (SelectiveRenderConfig.isReservedName(name)) {
+            send(aqua(name), red(" is reserved"));
+            return 0;
+        }
+        if (SelectiveRenderConfig.presetExists(name)) {
+            send(white("Preset "), aqua(name), red(" already exists"),
+                    white(" · delete or rename it first"));
+            return 0;
+        }
+        if (minY > maxY) {
+            send(red("minY must not be greater than maxY"));
+            return 0;
+        }
+        return request(ACTION_SAVE, name, minY, maxY);
+    }
+
+    public static void tick() {
+        if (pendingRequest == 0L || Util.getMeasuringTimeMs() - pendingSince < 5000L) return;
+        clearPending();
+        send(red("Selective Render Plots did not respond"));
+    }
+
+    private static int request(int action, String name, int minY, int maxY) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null || client.player == null || client.getNetworkHandler() == null) return 0;
+        if (!ClientPlayNetworking.canSend(REQUEST_CHANNEL)) {
+            send(red("Selective Render Plots is unavailable on this server"));
+            return 0;
+        }
+        byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+        if (nameBytes.length > 256) {
+            send(red("Preset name is too long"));
+            return 0;
+        }
+
+        long requestId = ThreadLocalRandom.current().nextLong();
+        if (requestId == 0L) requestId = 1L;
+        pendingRequest = requestId;
+        pendingSince = Util.getMeasuringTimeMs();
+        pendingWorld = client.world;
+
+        PacketByteBuf buffer = PacketByteBufs.create();
+        buffer.writeInt(MAGIC);
+        buffer.writeInt(VERSION);
+        buffer.writeLong(requestId);
+        buffer.writeByte(action);
+        buffer.writeInt(nameBytes.length);
+        buffer.writeBytes(nameBytes);
+        buffer.writeInt(minY);
+        buffer.writeInt(maxY);
+        ClientPlayNetworking.send(REQUEST_CHANNEL, buffer);
+        return Command.SINGLE_SUCCESS;
     }
 
     private static void receive(MinecraftClient client, PacketByteBuf buffer) {
         try {
             if (buffer.readInt() != MAGIC || buffer.readInt() != VERSION) return;
+            long requestId = buffer.readLong();
             int responseStatus = buffer.readUnsignedByte();
-            String responsePlotId = readString(buffer);
+            String responseName = readString(buffer);
             int count = buffer.readInt();
             if (count < 0 || count > MAX_REGIONS) throw new IllegalArgumentException("Invalid region count");
 
@@ -51,36 +131,33 @@ public final class PlotSquaredClient {
                         buffer.readInt(), buffer.readInt(), buffer.readInt()));
             }
             if (buffer.isReadable()) throw new IllegalArgumentException("Trailing response data");
-            client.execute(() -> applyResponse(responseStatus, responsePlotId, List.copyOf(regions)));
+            ClientWorld responseWorld = pendingWorld;
+            client.execute(() -> applyResponse(client, responseWorld, requestId,
+                    responseStatus, responseName, List.copyOf(regions)));
         } catch (RuntimeException exception) {
-            client.execute(() -> send(red("Invalid response from Selective Render Plots")));
+            client.execute(() -> {
+                clearPending();
+                send(red("Invalid response from Selective Render Plots"));
+            });
         }
     }
 
-    private static void applyResponse(int status, String responsePlotId, List<BlockRegion> regions) {
-        if (status == STATUS_TOGGLE) {
-            if (SelectiveRenderState.plotModeActive()) {
-                SelectiveRenderState.disablePlotMode();
-                send(white("Plot mode "), red("disabled"));
-            } else if (regions.isEmpty()) {
-                send(red("You are not standing on a plot"));
-            } else {
-                SelectiveRenderState.activatePlotMode(regions);
-                send(white("Plot "), aqua(responsePlotId), green(" isolated"));
-            }
-        } else if (status == STATUS_SAVE) {
-            if (SelectiveRenderConfig.presetExists(responsePlotId)) {
-                send(white("Preset "), aqua(responsePlotId), red(" already exists"),
+    private static void applyResponse(MinecraftClient client, ClientWorld responseWorld, long requestId,
+                                      int status, String responseName, List<BlockRegion> regions) {
+        if (requestId != pendingRequest || responseWorld == null || client.world != responseWorld) return;
+        clearPending();
+        if (status == STATUS_TOGGLE && !regions.isEmpty()) {
+            SelectiveRenderState.activatePlotMode(regions);
+            send(white("Plot "), aqua(responseName), green(" isolated"));
+        } else if (status == STATUS_SAVE && !regions.isEmpty()) {
+            if (SelectiveRenderConfig.presetExists(responseName)) {
+                send(white("Preset "), aqua(responseName), red(" already exists"),
                         white(" · delete or rename it first"));
                 return;
             }
-            if (regions.isEmpty() || SelectiveRenderConfig.isReservedName(responsePlotId)) {
-                send(red("The plot preset could not be saved"));
-                return;
-            }
             SelectiveRenderState.resetPlotMode();
-            if (SelectiveRenderConfig.saveRegions(MinecraftClient.getInstance(), responsePlotId, regions)) {
-                send(white("Preset "), aqua(responsePlotId), green(" saved"),
+            if (SelectiveRenderConfig.saveRegions(client, responseName, regions)) {
+                send(white("Preset "), aqua(responseName), green(" saved"),
                         gray(" · " + regions.size() + " part(s)"));
             } else {
                 send(red("The plot preset could not be saved"));
@@ -91,21 +168,15 @@ public final class PlotSquaredClient {
             send(red("The server denied plot access"));
         } else if (status == STATUS_ERROR) {
             send(red("The server could not resolve this plot"));
-        } else if (status == STATUS_OFF) {
-            if (SelectiveRenderState.disablePlotMode()) send(white("Plot mode "), red("disabled"));
-        } else if (status == STATUS_INFO) {
-            boolean active = SelectiveRenderState.plotModeActive();
-            send(white("Plot "), aqua(responsePlotId.isEmpty() ? "unknown" : responsePlotId),
-                    white(" · " + regions.size() + " region(s) · mode "),
-                    active ? (SelectiveRenderState.plotRenderingEnabled() ? green("enabled") : red("disabled"))
-                            : red("inactive"));
-        } else if (status != STATUS_OK || regions.isEmpty()) {
-            send(red("Invalid response from Selective Render Plots"));
         } else {
-            SelectiveRenderState.activatePlotMode(regions);
-            send(white("Plot "), aqua(responsePlotId), green(" isolated"),
-                    gray(" · " + regions.size() + " region(s)"));
+            send(red("Invalid response from Selective Render Plots"));
         }
+    }
+
+    private static void clearPending() {
+        pendingRequest = 0L;
+        pendingSince = 0L;
+        pendingWorld = null;
     }
 
     private static String readString(PacketByteBuf buffer) {
@@ -121,7 +192,7 @@ public final class PlotSquaredClient {
     private static void send(Text... parts) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
-        MutableText message = Text.literal("SRP: ").formatted(Formatting.GRAY);
+        MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
         for (Text part : parts) message.append(part);
         client.player.sendMessage(message, false);
     }
