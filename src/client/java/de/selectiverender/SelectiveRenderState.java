@@ -30,6 +30,11 @@ public final class SelectiveRenderState {
     private static List<BlockRegion> traversalRegions = List.of();
     private static List<BlockRegion> visibleRegions = List.of();
     private static final VisibleOccluderCache visibleOccluderCache = new VisibleOccluderCache(16384);
+    private static final ThreadLocal<SectionClassificationCache> sectionClassificationCache =
+            ThreadLocal.withInitial(SectionClassificationCache::new);
+    private static final ThreadLocal<LightInfluenceCache> lightInfluenceCache =
+            ThreadLocal.withInitial(LightInfluenceCache::new);
+    private static volatile int visibilityGeneration = 1;
 
     private SelectiveRenderState() { }
 
@@ -121,10 +126,17 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
-        if (!enabled() && !hideEnabled()) return true;
-        return RegionVisibility.section(enabled(), activeRegions(),
-                hideEnabled() ? hiddenRegions : List.of(), enabled() ? visibleOverrides : List.of(),
-                sectionX, sectionY, sectionZ);
+        return sectionVisibility(sectionX, sectionY, sectionZ) != SectionVisibility.HIDDEN;
+    }
+
+    public static SectionVisibility sectionVisibility(int sectionX, int sectionY, int sectionZ) {
+        boolean whitelistEnabled = enabled();
+        boolean hiddenEnabled = hideEnabled();
+        if (!whitelistEnabled && !hiddenEnabled) return SectionVisibility.UNCHANGED;
+        return sectionClassificationCache.get().get(visibilityGeneration,
+                sectionX, sectionY, sectionZ, whitelistEnabled, activeRegions(),
+                hiddenEnabled ? hiddenRegions : List.of(),
+                whitelistEnabled ? visibleOverrides : List.of());
     }
 
     public static boolean shouldRender(BlockPos position) {
@@ -136,10 +148,20 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(int blockX, int blockY, int blockZ) {
-        if (!enabled() && !hideEnabled()) return true;
+        SectionVisibility section = sectionVisibility(
+                blockX >> 4, blockY >> 4, blockZ >> 4);
+        if (section == SectionVisibility.UNCHANGED) return true;
+        if (section == SectionVisibility.HIDDEN) return false;
         return RegionVisibility.block(enabled(), activeRegions(),
                 hideEnabled() ? hiddenRegions : List.of(), enabled() ? visibleOverrides : List.of(),
                 blockX, blockY, blockZ);
+    }
+
+    public static boolean mayNeedVirtualSkyLight(int blockX, int blockZ, int radius) {
+        return lightInfluenceCache.get().get(visibilityGeneration,
+                blockX >> 4, blockZ >> 4, radius,
+                enabled() ? visibleRegions : List.of(),
+                hideEnabled() ? hiddenRegions : List.of());
     }
 
     public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
@@ -293,6 +315,7 @@ public final class SelectiveRenderState {
         if (visibleOverrides.isEmpty()) {
             traversalRegions = base;
             visibleRegions = base;
+            advanceVisibilityGeneration();
             return;
         }
         ArrayList<BlockRegion> combined = new ArrayList<>(base.size() + visibleOverrides.size());
@@ -301,6 +324,89 @@ public final class SelectiveRenderState {
         List<BlockRegion> snapshot = List.copyOf(combined);
         traversalRegions = snapshot;
         visibleRegions = enabled() ? snapshot : base;
+        advanceVisibilityGeneration();
+    }
+
+    private static void advanceVisibilityGeneration() {
+        visibilityGeneration = visibilityGeneration == Integer.MAX_VALUE ? 1 : visibilityGeneration + 1;
+    }
+
+    private static boolean intersectsExpandedChunk(BlockRegion region,
+                                                   int sectionX, int sectionZ, int radius) {
+        long minX = (long) sectionX << 4;
+        long minZ = (long) sectionZ << 4;
+        return (long) region.maxX() + radius >= minX
+                && (long) region.minX() - radius <= minX + 15
+                && (long) region.maxZ() + radius >= minZ
+                && (long) region.minZ() - radius <= minZ + 15;
+    }
+
+    private static final class SectionClassificationCache {
+        private static final int SIZE = 64;
+        private final int[] generations = new int[SIZE];
+        private final int[] sectionXs = new int[SIZE];
+        private final int[] sectionYs = new int[SIZE];
+        private final int[] sectionZs = new int[SIZE];
+        private final SectionVisibility[] values = new SectionVisibility[SIZE];
+
+        private SectionVisibility get(int generation, int sectionX, int sectionY, int sectionZ,
+                                      boolean whitelistEnabled, List<BlockRegion> includedRegions,
+                                      List<BlockRegion> hidden, List<BlockRegion> overrides) {
+            int index = mix(sectionX, sectionY, sectionZ) & (SIZE - 1);
+            if (generations[index] == generation
+                    && sectionXs[index] == sectionX
+                    && sectionYs[index] == sectionY
+                    && sectionZs[index] == sectionZ) return values[index];
+
+            SectionVisibility value = RegionVisibility.classifySection(whitelistEnabled,
+                    includedRegions, hidden, overrides, sectionX, sectionY, sectionZ);
+            sectionXs[index] = sectionX;
+            sectionYs[index] = sectionY;
+            sectionZs[index] = sectionZ;
+            values[index] = value;
+            generations[index] = generation;
+            return value;
+        }
+
+        private static int mix(int x, int y, int z) {
+            int hash = x * 0x8da6b343;
+            hash ^= y * 0xd8163841;
+            hash ^= z * 0xcb1ab31f;
+            return hash ^ (hash >>> 16);
+        }
+    }
+
+    private static final class LightInfluenceCache {
+        private static final int SIZE = 64;
+        private final int[] generations = new int[SIZE];
+        private final int[] sectionXs = new int[SIZE];
+        private final int[] sectionZs = new int[SIZE];
+        private final boolean[] values = new boolean[SIZE];
+
+        private boolean get(int generation, int sectionX, int sectionZ, int radius,
+                            List<BlockRegion> includedRegions, List<BlockRegion> hidden) {
+            int index = SectionClassificationCache.mix(sectionX, 0, sectionZ) & (SIZE - 1);
+            if (generations[index] == generation
+                    && sectionXs[index] == sectionX
+                    && sectionZs[index] == sectionZ) return values[index];
+
+            boolean value = intersectsExpandedChunk(includedRegions, sectionX, sectionZ, radius)
+                    || intersectsExpandedChunk(hidden, sectionX, sectionZ, radius);
+            sectionXs[index] = sectionX;
+            sectionZs[index] = sectionZ;
+            values[index] = value;
+            generations[index] = generation;
+            return value;
+        }
+
+        private static boolean intersectsExpandedChunk(List<BlockRegion> regions,
+                                                       int sectionX, int sectionZ, int radius) {
+            for (BlockRegion region : regions) {
+                if (SelectiveRenderState.intersectsExpandedChunk(
+                        region, sectionX, sectionZ, radius)) return true;
+            }
+            return false;
+        }
     }
 
     private record SectionCoordinate(int x, int y, int z) { }

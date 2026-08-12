@@ -2,6 +2,18 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.2-test.9
+
+### Changed
+
+- Classified 16-cubed sections as unchanged, partial, or hidden so only boundary sections perform block-level region checks.
+- Limited virtual-skylight work to cached chunk columns near an active render or hidden region.
+- Preserved Sodium's native occlusion traversal while the camera is inside a rendered section.
+
+### Fixed
+
+- Removed most Selective Render chunk-build overhead from ordinary sections in hidden-only mode.
+
 ## 1.7.2-test.8
 
 ### Changed

@@ -51,6 +51,40 @@ abstract class OcclusionCullerMixin {
 
         int radius = MathHelper.ceil(searchDistance / 16.0F) + 1;
         int cameraSectionX = camera.intX >> 4;
+        int cameraSectionY = camera.intY >> 4;
+        int cameraSectionZ = camera.intZ >> 4;
+        if (SelectiveRenderState.shouldRenderSection(
+                cameraSectionX, cameraSectionY, cameraSectionZ)) return;
+        selectiverender$collectDirectly(visitor, viewport, searchDistance, frame, false);
+        ci.cancel();
+    }
+
+    @Inject(method = "findVisible", at = @At("RETURN"))
+    private void selectiverender$appendDisconnectedRegions(OcclusionCuller.Visitor visitor,
+                                                            Viewport viewport,
+                                                            float searchDistance,
+                                                            boolean useOcclusionCulling,
+                                                            int frame,
+                                                            CallbackInfo ci) {
+        if (!SelectiveRenderState.enabled()) return;
+        CameraTransform camera = viewport.getTransform();
+        if (!SelectiveRenderState.shouldRenderSection(
+                camera.intX >> 4, camera.intY >> 4, camera.intZ >> 4)) return;
+        selectiverender$collectDirectly(visitor, viewport, searchDistance, frame, true);
+    }
+
+    @Unique
+    private void selectiverender$collectDirectly(OcclusionCuller.Visitor visitor,
+                                                  Viewport viewport,
+                                                  float searchDistance,
+                                                  int frame,
+                                                  boolean skipCameraRegion) {
+        CameraTransform camera = viewport.getTransform();
+        ClientWorld world = MinecraftClient.getInstance().world;
+        if (world == null) return;
+
+        int radius = MathHelper.ceil(searchDistance / 16.0F) + 1;
+        int cameraSectionX = camera.intX >> 4;
         int cameraSectionZ = camera.intZ >> 4;
         int minLoadedY = world.getBottomY() >> 4;
         int maxLoadedY = (world.getTopY() - 1) >> 4;
@@ -64,6 +98,7 @@ abstract class OcclusionCullerMixin {
         }
 
         for (BlockRegion region : traversalRegions) {
+            if (skipCameraRegion && region.contains(camera.intX, camera.intY, camera.intZ)) continue;
             int minX = Math.max(Math.floorDiv(region.minX(), 16), cameraSectionX - radius);
             int maxX = Math.min(Math.floorDiv(region.maxX(), 16), cameraSectionX + radius);
             int minY = Math.max(Math.floorDiv(region.minY(), 16), minLoadedY);
@@ -80,6 +115,7 @@ abstract class OcclusionCullerMixin {
 
                         RenderSection section = sections.get(key);
                         if (section == null || !isWithinRenderDistance(camera, section, searchDistance)) continue;
+                        if (section.getLastVisibleFrame() == frame) continue;
 
                         if (!OcclusionCuller.isWithinFrustum(viewport, section)) continue;
                         section.setLastVisibleFrame(frame);
@@ -89,6 +125,5 @@ abstract class OcclusionCullerMixin {
                 }
             }
         }
-        ci.cancel();
     }
 }

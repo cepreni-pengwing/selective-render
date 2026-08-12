@@ -17,16 +17,48 @@ final class RegionVisibility {
     static boolean section(boolean whitelistEnabled, List<BlockRegion> includedRegions,
                            List<BlockRegion> hiddenRegions, List<BlockRegion> visibleOverrides,
                            int sectionX, int sectionY, int sectionZ) {
-        boolean included = visibleOverrides.stream().anyMatch(region ->
-                region.intersectsSection(sectionX, sectionY, sectionZ))
-                || !whitelistEnabled || includedRegions.stream().anyMatch(region ->
-                region.intersectsSection(sectionX, sectionY, sectionZ));
-        boolean fullyHidden = hiddenRegions.stream().anyMatch(region ->
-                region.containsSection(sectionX, sectionY, sectionZ));
-        return included && !fullyHidden;
+        return classifySection(whitelistEnabled, includedRegions, hiddenRegions, visibleOverrides,
+                sectionX, sectionY, sectionZ) != SectionVisibility.HIDDEN;
+    }
+
+    static SectionVisibility classifySection(boolean whitelistEnabled, List<BlockRegion> includedRegions,
+                                               List<BlockRegion> hiddenRegions,
+                                               List<BlockRegion> visibleOverrides,
+                                               int sectionX, int sectionY, int sectionZ) {
+        boolean overrideIntersects = intersects(visibleOverrides, sectionX, sectionY, sectionZ);
+        boolean includedIntersects = intersects(includedRegions, sectionX, sectionY, sectionZ);
+        if (whitelistEnabled && !overrideIntersects && !includedIntersects) {
+            return SectionVisibility.HIDDEN;
+        }
+        if (containsSection(hiddenRegions, sectionX, sectionY, sectionZ)) {
+            return SectionVisibility.HIDDEN;
+        }
+
+        boolean baseFullyVisible = !whitelistEnabled
+                || containsSection(visibleOverrides, sectionX, sectionY, sectionZ)
+                || containsSection(includedRegions, sectionX, sectionY, sectionZ);
+        boolean hiddenIntersects = intersects(hiddenRegions, sectionX, sectionY, sectionZ);
+        return baseFullyVisible && !hiddenIntersects
+                ? SectionVisibility.UNCHANGED
+                : SectionVisibility.PARTIAL;
     }
 
     private static boolean contains(List<BlockRegion> regions, int x, int y, int z) {
         return regions.stream().anyMatch(region -> region.contains(x, y, z));
+    }
+
+    private static boolean intersects(List<BlockRegion> regions, int sectionX, int sectionY, int sectionZ) {
+        for (BlockRegion region : regions) {
+            if (region.intersectsSection(sectionX, sectionY, sectionZ)) return true;
+        }
+        return false;
+    }
+
+    private static boolean containsSection(List<BlockRegion> regions,
+                                           int sectionX, int sectionY, int sectionZ) {
+        for (BlockRegion region : regions) {
+            if (region.containsSection(sectionX, sectionY, sectionZ)) return true;
+        }
+        return false;
     }
 }

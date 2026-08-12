@@ -82,10 +82,12 @@ abstract class WorldSliceMixin {
 
     @Unique
     private int selectiverender$getVirtualSkyLight(BlockPos pos) {
-        if ((!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())
-                || !SelectiveRenderState.shouldRender(pos)) {
+        if (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled()) {
             return -1;
         }
+        if (!SelectiveRenderState.mayNeedVirtualSkyLight(
+                pos.getX(), pos.getZ(), selectiverender$lightRadius)) return -1;
+        if (!SelectiveRenderState.shouldRender(pos)) return -1;
 
         int highest = SelectiveRenderState.highestVisibleOccluder(world, pos.getX(), pos.getZ());
         if (pos.getY() > highest) return 15;
