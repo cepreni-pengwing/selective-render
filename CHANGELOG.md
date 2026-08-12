@@ -2,6 +2,16 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.6
+
+### Added
+
+- Added `a` as the short alias for `all` in regular and hidden group commands.
+
+### Documentation
+
+- Added direct Modrinth project links to the GitHub README.
+
 ## 1.7.5
 
 ### Fixed

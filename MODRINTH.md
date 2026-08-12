@@ -32,7 +32,7 @@ game; 0.5.8 and 0.5.11 are compile-checked by CI.
 
 The two positions are exact block corners on all three axes. Saving creates a
 named cuboid and immediately enables it. Multiple render regions can be enabled
-at once. `/sr t` toggles the current render group and `/sr t all` changes every
+at once. `/sr t` toggles the current render group and `/sr t all` (or `/sr t a`) changes every
 normal preset in the current server, world, and dimension context.
 
 ```text
@@ -49,7 +49,7 @@ The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
 ```text
 /sr h NAME
 /sr l h
-/sr h all
+/sr h all  # alias: /sr h a
 ```
 
 Hide presets remove selected cuboids while leaving the rest of the world visible.

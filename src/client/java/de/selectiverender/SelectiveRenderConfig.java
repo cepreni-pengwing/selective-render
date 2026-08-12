@@ -283,7 +283,8 @@ public final class SelectiveRenderConfig {
     }
 
     public static boolean isReservedName(String name) {
-        return "all".equals(normalize(name));
+        String normalized = normalize(name);
+        return "all".equals(normalized) || "a".equals(normalized);
     }
 
     public static void reset() {

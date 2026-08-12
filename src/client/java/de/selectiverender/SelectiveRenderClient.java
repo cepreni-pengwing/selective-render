@@ -150,6 +150,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .executes(context -> toggleHide(context.getSource(), null))
                 .then(ClientCommandManager.literal("all")
                         .executes(context -> toggleAll(context.getSource(), true)))
+                .then(ClientCommandManager.literal("a")
+                        .executes(context -> toggleAll(context.getSource(), true)))
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> CommandSource.suggestMatching(
                                 SelectiveRenderConfig.presetNames(), builder))
@@ -167,6 +169,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommandManager.literal(name)
                 .executes(context -> toggle(context.getSource(), null))
                 .then(ClientCommandManager.literal("all")
+                        .executes(context -> toggleAll(context.getSource(), false)))
+                .then(ClientCommandManager.literal("a")
                         .executes(context -> toggleAll(context.getSource(), false)))
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> CommandSource.suggestMatching(

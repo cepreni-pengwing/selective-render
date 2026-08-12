@@ -1,5 +1,7 @@
 # Selective Render
 
+[Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
+
 <p align="center">
   <img src="docs/images/selective-render-on.png" width="49%" alt="Selective Render ON">
   <img src="docs/images/selective-render-off.png" width="49%" alt="Selective Render OFF">
@@ -39,10 +41,10 @@ Available short commands:
 /sr pos2  # alias: /sr 2
 /sr s NAME
 /sr t NAME
-/sr t all
+/sr t all  # alias: /sr t a
 /sr h NAME
 /sr h
-/sr h all
+/sr h all  # alias: /sr h a
 /sr d NAME
 /sr r OLDNAME NEWNAME
 /sr list
@@ -55,12 +57,12 @@ Available short commands:
 - `/sr t NAME` toggles a preset in the render context. Using it on a hide preset
   moves that preset back to the regular render context.
 - `/sr t` enables or disables the entire render group while preserving its members.
-- `/sr t all` deselects every regular preset when any are selected; when none are
+- `/sr t all` or `/sr t a` deselects every regular preset when any are selected; when none are
   selected, it selects all regular presets.
 - Global render toggles and the render keybind do not post success messages in chat.
 - `/sr h NAME` registers a preset in the hide context and toggles its selected state.
 - `/sr h` enables or disables the entire hide group while preserving its members.
-- `/sr h all` deselects every hide preset when any are selected; when none are
+- `/sr h all` or `/sr h a` deselects every hide preset when any are selected; when none are
   selected, it selects all registered hide presets.
   Global hide toggles and the hide keybind do not post success messages in chat.
 - `/sr d NAME` permanently deletes a preset.
@@ -89,11 +91,11 @@ Selective Render category.
 Preset arguments support tab completion for toggle, hide, delete, and rename
 commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
 under a single header without repeating the prefix on every line.
-The preset name `all` is reserved for group commands.
+The preset names `all` and `a` are reserved for group commands.
 
 ## PlotSquared integration
 
-Servers running the optional [Selective Render Plots](https://github.com/cepreni-pengwing/selective-render-plots)
+Servers running the optional [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots)
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
 Plot integration is part of the normal Selective Render command tree:
 
