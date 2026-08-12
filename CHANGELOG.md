@@ -2,11 +2,11 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.2-test.4
+## 1.7.2-test.5
 
 ### Fixed
 
-- Corrected the `WorldRenderer.updateBlock` mixin descriptor that prevented `test.3` from starting.
+- Corrected the exact `WorldRenderer.updateBlock(BlockView, ...)` mixin descriptor that prevented `test.3` and `test.4` from starting.
 - Added a shared, invalidated visible-occluder column cache so vertically distant hidden roofs can seed local Sodium skylight without per-sample searches.
 - Replaced per-sample virtual-skylight searches with one cached propagation pass per Sodium build volume.
 - Visible hide-group overrides are now included in Sodium section traversal outside the normal whitelist.
