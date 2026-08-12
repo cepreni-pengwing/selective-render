@@ -97,13 +97,13 @@ abstract class WorldSliceMixin {
         BlockPos.Mutable cursor = new BlockPos.Mutable();
 
         for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    if (SelectiveRenderState.shouldRender(x, y, z)) continue;
-                    long key = BlockPos.asLong(x, y, z);
-                    selectiverender$virtualSkyLight.put(key, 15);
-                    queue.addLast(new LightNode(x, y, z, 15));
-                }
+            for (int z = minZ; z <= maxZ; z++) {
+                int highest = SelectiveRenderState.highestVisibleOccluder(world, x, z);
+                int sourceY = highest == Integer.MIN_VALUE ? minY : Math.max(minY, highest + 1);
+                if (sourceY > maxY) continue;
+                long key = BlockPos.asLong(x, sourceY, z);
+                selectiverender$virtualSkyLight.put(key, 15);
+                queue.addLast(new LightNode(x, sourceY, z, 15));
             }
         }
 

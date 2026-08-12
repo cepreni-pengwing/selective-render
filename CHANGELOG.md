@@ -2,10 +2,11 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.2-test.2
+## 1.7.2-test.3
 
 ### Fixed
 
+- Added a shared, invalidated visible-occluder column cache so vertically distant hidden roofs can seed local Sodium skylight without per-sample searches.
 - Replaced per-sample virtual-skylight searches with one cached propagation pass per Sodium build volume.
 - Visible hide-group overrides are now included in Sodium section traversal outside the normal whitelist.
 

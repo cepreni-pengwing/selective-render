@@ -1,6 +1,9 @@
 package de.selectiverender;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.block.BlockState;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.world.Heightmap;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
@@ -10,6 +13,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class SelectiveRenderState {
     private static BlockPos first;
@@ -23,6 +27,7 @@ public final class SelectiveRenderState {
     private static List<BlockRegion> plotRegions = List.of();
     private static boolean plotModeActive;
     private static boolean plotRenderingEnabled;
+    private static final ConcurrentHashMap<Long, Integer> visibleOccluderCache = new ConcurrentHashMap<>();
 
     private SelectiveRenderState() { }
 
@@ -58,6 +63,7 @@ public final class SelectiveRenderState {
         visibleOverrides = List.copyOf(overrides);
         enabled = newEnabled;
         hideEnabled = newHideEnabled;
+        visibleOccluderCache.clear();
     }
 
     public static boolean saveSelection() {
@@ -180,6 +186,31 @@ public final class SelectiveRenderState {
         return entity instanceof PlayerEntity || shouldRender(entity.getX(), entity.getY(), entity.getZ());
     }
 
+    public static int highestVisibleOccluder(ClientWorld world, int blockX, int blockZ) {
+        if (!enabled() && !hideEnabled()) return world.getTopY() - 1;
+        long key = net.minecraft.util.math.ChunkPos.toLong(blockX, blockZ);
+        return visibleOccluderCache.computeIfAbsent(key, ignored -> {
+            int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, blockX, blockZ) - 1;
+            int top = visibleColumnTop(blockX, blockZ, Math.min(world.getTopY() - 1, worldSurface));
+            int bottom = visibleColumnBottom(blockX, blockZ, world.getBottomY());
+            if (top == Integer.MIN_VALUE || bottom == Integer.MAX_VALUE || bottom > top) {
+                return Integer.MIN_VALUE;
+            }
+            BlockPos.Mutable cursor = new BlockPos.Mutable(blockX, top, blockZ);
+            for (int y = top; y >= bottom; y--) {
+                cursor.setY(y);
+                if (!shouldRender(cursor)) continue;
+                BlockState state = world.getBlockState(cursor);
+                if (state.getOpacity(world, cursor) > 0) return y;
+            }
+            return Integer.MIN_VALUE;
+        });
+    }
+
+    public static void invalidateVisibleOccluder(int blockX, int blockZ) {
+        visibleOccluderCache.remove(net.minecraft.util.math.ChunkPos.toLong(blockX, blockZ));
+    }
+
     public static void resetForDisconnect() {
         first = null;
         second = null;
@@ -187,6 +218,7 @@ public final class SelectiveRenderState {
         activeRegions = List.of();
         hiddenRegions = List.of();
         visibleOverrides = List.of();
+        visibleOccluderCache.clear();
         enabled = false;
         hideEnabled = false;
         resetPlotMode();
