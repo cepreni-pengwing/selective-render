@@ -2,6 +2,20 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.2-test.8
+
+### Changed
+
+- Avoided virtual-skylight propagation when vanilla lighting is already at its maximum.
+- Reused Sodium skylight buffers between section builds instead of allocating them for every build.
+- Skipped out-of-frustum sections before they reach Sodium's rebuild collector.
+- Cached derived traversal lists and reused overlap-deduplication storage.
+- Replaced the unbounded boxed per-column occluder map with a bounded, chunk-local cache.
+
+### Fixed
+
+- Invalidated virtual-light caches consistently across Plot mode state changes.
+
 ## 1.7.2-test.7
 
 ### Fixed

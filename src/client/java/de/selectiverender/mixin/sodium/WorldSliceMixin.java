@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.Arrays;
+
 @Pseudo
 @Mixin(targets = "me.jellysquid.mods.sodium.client.world.WorldSlice", remap = false)
 abstract class WorldSliceMixin {
@@ -24,6 +26,7 @@ abstract class WorldSliceMixin {
     @Shadow @Final private ClientWorld world;
     @Shadow private BlockBox volume;
     @Unique private byte[] selectiverender$virtualSkyLight;
+    @Unique private int[] selectiverender$lightQueue;
     @Unique private int selectiverender$lightMinX;
     @Unique private int selectiverender$lightMinY;
     @Unique private int selectiverender$lightMinZ;
@@ -38,7 +41,6 @@ abstract class WorldSliceMixin {
 
     @Inject(method = "copyData", at = @At("HEAD"))
     private void selectiverender$clearLightCache(CallbackInfo ci) {
-        selectiverender$virtualSkyLight = null;
         selectiverender$virtualSkyPrepared = false;
     }
 
@@ -70,6 +72,8 @@ abstract class WorldSliceMixin {
     @Inject(method = "getBaseLightLevel(Lnet/minecraft/util/math/BlockPos;I)I", at = @At("RETURN"), cancellable = true, remap = true)
     private void selectiverender$applyVirtualBaseLight(BlockPos pos, int ambientDarkness,
                                                         CallbackInfoReturnable<Integer> cir) {
+        int maximumSkyLight = Math.max(0, 15 - ambientDarkness);
+        if (cir.getReturnValueI() >= maximumSkyLight) return;
         int virtualLight = selectiverender$getVirtualSkyLight(pos);
         if (virtualLight >= 0) {
             cir.setReturnValue(Math.max(cir.getReturnValueI(), Math.max(0, virtualLight - ambientDarkness)));
@@ -82,6 +86,11 @@ abstract class WorldSliceMixin {
                 || !SelectiveRenderState.shouldRender(pos)) {
             return -1;
         }
+
+        int highest = SelectiveRenderState.highestVisibleOccluder(world, pos.getX(), pos.getZ());
+        if (pos.getY() > highest) return 15;
+        if (pos.getY() == highest
+                && !world.getBlockState(pos).isOpaqueFullCube(world, pos)) return 15;
 
         if (!selectiverender$virtualSkyPrepared) selectiverender$prepareVirtualSkyLight();
         int localX = pos.getX() - selectiverender$lightMinX;
@@ -110,8 +119,14 @@ abstract class WorldSliceMixin {
         selectiverender$lightSizeY = maxY - minY + 1;
         selectiverender$lightSizeZ = maxZ - minZ + 1;
         int cellCount = selectiverender$lightSizeX * selectiverender$lightSizeY * selectiverender$lightSizeZ;
-        selectiverender$virtualSkyLight = new byte[cellCount];
-        int[] queue = new int[cellCount];
+        if (selectiverender$virtualSkyLight == null || selectiverender$virtualSkyLight.length < cellCount) {
+            selectiverender$virtualSkyLight = new byte[cellCount];
+        } else {
+            Arrays.fill(selectiverender$virtualSkyLight, 0, cellCount, (byte) 0);
+        }
+        if (selectiverender$lightQueue == null || selectiverender$lightQueue.length < cellCount) {
+            selectiverender$lightQueue = new int[cellCount];
+        }
         int queueHead = 0;
         int queueTail = 0;
         BlockPos.Mutable cursor = new BlockPos.Mutable();
@@ -133,13 +148,13 @@ abstract class WorldSliceMixin {
                 for (int y = sourceY; y <= maxY; y++) {
                     int index = selectiverender$lightIndex(localX, y - minY, localZ);
                     selectiverender$virtualSkyLight[index] = 15;
-                    queue[queueTail++] = index;
+                    selectiverender$lightQueue[queueTail++] = index;
                 }
             }
         }
 
         while (queueHead < queueTail) {
-            int currentIndex = queue[queueHead++];
+            int currentIndex = selectiverender$lightQueue[queueHead++];
             int currentLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[currentIndex]);
             if (currentLight <= 1) continue;
             int nextLight = currentLight - 1;
@@ -159,7 +174,7 @@ abstract class WorldSliceMixin {
                         || !selectiverender$isOpenStep(cursor,
                         nextX + minX, nextY + minY, nextZ + minZ)) continue;
                 selectiverender$virtualSkyLight[nextIndex] = (byte) nextLight;
-                queue[queueTail++] = nextIndex;
+                selectiverender$lightQueue[queueTail++] = nextIndex;
             }
         }
     }

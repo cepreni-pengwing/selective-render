@@ -10,10 +10,10 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.Collection;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 public final class SelectiveRenderState {
     private static BlockPos first;
@@ -27,7 +27,9 @@ public final class SelectiveRenderState {
     private static List<BlockRegion> plotRegions = List.of();
     private static boolean plotModeActive;
     private static boolean plotRenderingEnabled;
-    private static final ConcurrentHashMap<Long, Integer> visibleOccluderCache = new ConcurrentHashMap<>();
+    private static List<BlockRegion> traversalRegions = List.of();
+    private static List<BlockRegion> visibleRegions = List.of();
+    private static final VisibleOccluderCache visibleOccluderCache = new VisibleOccluderCache(16384);
 
     private SelectiveRenderState() { }
 
@@ -39,12 +41,7 @@ public final class SelectiveRenderState {
     public static List<BlockRegion> activeRegions() { return plotModeActive ? plotRegions : activeRegions; }
     public static List<BlockRegion> hiddenRegions() { return hiddenRegions; }
     public static List<BlockRegion> visibleOverrides() { return visibleOverrides; }
-    public static List<BlockRegion> traversalRegions() {
-        if (visibleOverrides.isEmpty()) return activeRegions();
-        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(activeRegions());
-        regions.addAll(visibleOverrides);
-        return regions;
-    }
+    public static List<BlockRegion> traversalRegions() { return traversalRegions; }
     public static boolean enabled() {
         return plotModeActive
                 ? plotRenderingEnabled && !plotRegions.isEmpty()
@@ -64,6 +61,7 @@ public final class SelectiveRenderState {
         enabled = newEnabled;
         hideEnabled = newHideEnabled;
         visibleOccluderCache.clear();
+        rebuildDerivedRegions();
     }
 
     public static boolean saveSelection() {
@@ -76,6 +74,8 @@ public final class SelectiveRenderState {
         if (plotModeActive) return togglePlotRendering();
         if (activeRegions.isEmpty()) return false;
         enabled = !enabled;
+        visibleOccluderCache.clear();
+        rebuildDerivedRegions();
         refreshRenderer();
         return true;
     }
@@ -86,6 +86,8 @@ public final class SelectiveRenderState {
         plotRegions = next;
         plotModeActive = true;
         plotRenderingEnabled = true;
+        visibleOccluderCache.clear();
+        rebuildDerivedRegions();
         refreshRenderer();
     }
 
@@ -93,6 +95,8 @@ public final class SelectiveRenderState {
         if (!plotModeActive || plotRegions.isEmpty()) return false;
         boolean wasEnabled = plotRenderingEnabled;
         plotRenderingEnabled = !plotRenderingEnabled;
+        visibleOccluderCache.clear();
+        rebuildDerivedRegions();
         if (wasEnabled) refreshRenderer(); else refreshRegions(plotRegions);
         return true;
     }
@@ -102,6 +106,8 @@ public final class SelectiveRenderState {
         plotModeActive = false;
         plotRenderingEnabled = false;
         plotRegions = List.of();
+        visibleOccluderCache.clear();
+        rebuildDerivedRegions();
         refreshRenderer();
         return true;
     }
@@ -110,6 +116,8 @@ public final class SelectiveRenderState {
         plotModeActive = false;
         plotRenderingEnabled = false;
         plotRegions = List.of();
+        visibleOccluderCache.clear();
+        rebuildDerivedRegions();
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
@@ -137,7 +145,7 @@ public final class SelectiveRenderState {
     public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
         if (!enabled()) return worldTop;
         int top = Integer.MIN_VALUE;
-        for (BlockRegion region : visibleRegions()) {
+        for (BlockRegion region : visibleRegions) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 top = Math.max(top, region.maxY());
@@ -149,7 +157,7 @@ public final class SelectiveRenderState {
     public static int visibleColumnBottom(int blockX, int blockZ, int worldBottom) {
         if (!enabled()) return worldBottom;
         int bottom = Integer.MAX_VALUE;
-        for (BlockRegion region : visibleRegions()) {
+        for (BlockRegion region : visibleRegions) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 bottom = Math.min(bottom, region.minY());
@@ -188,15 +196,14 @@ public final class SelectiveRenderState {
 
     public static int highestVisibleOccluder(ClientWorld world, int blockX, int blockZ) {
         if (!enabled() && !hideEnabled()) return world.getTopY() - 1;
-        long key = net.minecraft.util.math.ChunkPos.toLong(blockX, blockZ);
-        return visibleOccluderCache.computeIfAbsent(key, ignored -> {
-            int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, blockX, blockZ) - 1;
-            int top = visibleColumnTop(blockX, blockZ, Math.min(world.getTopY() - 1, worldSurface));
-            int bottom = visibleColumnBottom(blockX, blockZ, world.getBottomY());
+        return visibleOccluderCache.get(blockX, blockZ, (x, z) -> {
+            int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
+            int top = visibleColumnTop(x, z, Math.min(world.getTopY() - 1, worldSurface));
+            int bottom = visibleColumnBottom(x, z, world.getBottomY());
             if (top == Integer.MIN_VALUE || bottom == Integer.MAX_VALUE || bottom > top) {
                 return Integer.MIN_VALUE;
             }
-            BlockPos.Mutable cursor = new BlockPos.Mutable(blockX, top, blockZ);
+            BlockPos.Mutable cursor = new BlockPos.Mutable(x, top, z);
             for (int y = top; y >= bottom; y--) {
                 cursor.setY(y);
                 if (!shouldRender(cursor)) continue;
@@ -208,7 +215,7 @@ public final class SelectiveRenderState {
     }
 
     public static void invalidateVisibleOccluder(int blockX, int blockZ) {
-        visibleOccluderCache.remove(net.minecraft.util.math.ChunkPos.toLong(blockX, blockZ));
+        visibleOccluderCache.invalidate(blockX, blockZ);
     }
 
     public static void resetForDisconnect() {
@@ -281,11 +288,19 @@ public final class SelectiveRenderState {
         return value == Integer.MAX_VALUE ? value : value + 1;
     }
 
-    private static List<BlockRegion> visibleRegions() {
-        if (!enabled() || visibleOverrides.isEmpty()) return activeRegions();
-        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(activeRegions());
-        regions.addAll(visibleOverrides);
-        return regions;
+    private static void rebuildDerivedRegions() {
+        List<BlockRegion> base = activeRegions();
+        if (visibleOverrides.isEmpty()) {
+            traversalRegions = base;
+            visibleRegions = base;
+            return;
+        }
+        ArrayList<BlockRegion> combined = new ArrayList<>(base.size() + visibleOverrides.size());
+        combined.addAll(base);
+        combined.addAll(visibleOverrides);
+        List<BlockRegion> snapshot = List.copyOf(combined);
+        traversalRegions = snapshot;
+        visibleRegions = enabled() ? snapshot : base;
     }
 
     private record SectionCoordinate(int x, int y, int z) { }

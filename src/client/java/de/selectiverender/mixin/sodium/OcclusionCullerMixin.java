@@ -16,6 +16,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -24,6 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "me.jellysquid.mods.sodium.client.render.chunk.occlusion.OcclusionCuller", remap = false)
 abstract class OcclusionCullerMixin {
     @Shadow @Final private Long2ReferenceMap<RenderSection> sections;
+    @Unique private LongOpenHashSet selectiverender$visitedSections;
 
     @Shadow
     private static boolean isWithinRenderDistance(CameraTransform camera, RenderSection section,
@@ -52,9 +54,16 @@ abstract class OcclusionCullerMixin {
         int cameraSectionZ = camera.intZ >> 4;
         int minLoadedY = world.getBottomY() >> 4;
         int maxLoadedY = (world.getTopY() - 1) >> 4;
-        LongOpenHashSet visited = new LongOpenHashSet();
+        java.util.List<BlockRegion> traversalRegions = SelectiveRenderState.traversalRegions();
+        boolean deduplicate = traversalRegions.size() > 1;
+        LongOpenHashSet visited = null;
+        if (deduplicate) {
+            if (selectiverender$visitedSections == null) selectiverender$visitedSections = new LongOpenHashSet();
+            visited = selectiverender$visitedSections;
+            visited.clear();
+        }
 
-        for (BlockRegion region : SelectiveRenderState.traversalRegions()) {
+        for (BlockRegion region : traversalRegions) {
             int minX = Math.max(Math.floorDiv(region.minX(), 16), cameraSectionX - radius);
             int maxX = Math.min(Math.floorDiv(region.maxX(), 16), cameraSectionX + radius);
             int minY = Math.max(Math.floorDiv(region.minY(), 16), minLoadedY);
@@ -66,15 +75,16 @@ abstract class OcclusionCullerMixin {
                 for (int sectionY = minY; sectionY <= maxY; sectionY++) {
                     for (int sectionZ = minZ; sectionZ <= maxZ; sectionZ++) {
                         long key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ);
-                        if (!visited.add(key)) continue;
+                        if (deduplicate && !visited.add(key)) continue;
                         if (!SelectiveRenderState.shouldRenderSection(sectionX, sectionY, sectionZ)) continue;
 
                         RenderSection section = sections.get(key);
                         if (section == null || !isWithinRenderDistance(camera, section, searchDistance)) continue;
 
+                        if (!OcclusionCuller.isWithinFrustum(viewport, section)) continue;
                         section.setLastVisibleFrame(frame);
                         section.setIncomingDirections(0);
-                        visitor.visit(section, OcclusionCuller.isWithinFrustum(viewport, section));
+                        visitor.visit(section, true);
                     }
                 }
             }
