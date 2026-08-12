@@ -8,10 +8,17 @@ final class RegionVisibility {
     static boolean block(boolean whitelistEnabled, List<BlockRegion> includedRegions,
                          List<BlockRegion> hiddenRegions, List<BlockRegion> visibleOverrides,
                          int blockX, int blockY, int blockZ) {
-        boolean includedByOverride = contains(visibleOverrides, blockX, blockY, blockZ);
+        return block(whitelistEnabled, RegionIndex.of(includedRegions), RegionIndex.of(hiddenRegions),
+                RegionIndex.of(visibleOverrides), blockX, blockY, blockZ);
+    }
+
+    static boolean block(boolean whitelistEnabled, RegionIndex includedRegions,
+                         RegionIndex hiddenRegions, RegionIndex visibleOverrides,
+                         int blockX, int blockY, int blockZ) {
+        boolean includedByOverride = visibleOverrides.contains(blockX, blockY, blockZ);
         if (!includedByOverride && whitelistEnabled
-                && !contains(includedRegions, blockX, blockY, blockZ)) return false;
-        return !contains(hiddenRegions, blockX, blockY, blockZ);
+                && !includedRegions.contains(blockX, blockY, blockZ)) return false;
+        return !hiddenRegions.contains(blockX, blockY, blockZ);
     }
 
     static boolean section(boolean whitelistEnabled, List<BlockRegion> includedRegions,
@@ -25,40 +32,31 @@ final class RegionVisibility {
                                                List<BlockRegion> hiddenRegions,
                                                List<BlockRegion> visibleOverrides,
                                                int sectionX, int sectionY, int sectionZ) {
-        boolean overrideIntersects = intersects(visibleOverrides, sectionX, sectionY, sectionZ);
-        boolean includedIntersects = intersects(includedRegions, sectionX, sectionY, sectionZ);
+        return classifySection(whitelistEnabled, RegionIndex.of(includedRegions),
+                RegionIndex.of(hiddenRegions), RegionIndex.of(visibleOverrides),
+                sectionX, sectionY, sectionZ);
+    }
+
+    static SectionVisibility classifySection(boolean whitelistEnabled, RegionIndex includedRegions,
+                                               RegionIndex hiddenRegions,
+                                               RegionIndex visibleOverrides,
+                                               int sectionX, int sectionY, int sectionZ) {
+        boolean overrideIntersects = visibleOverrides.intersectsSection(sectionX, sectionY, sectionZ);
+        boolean includedIntersects = includedRegions.intersectsSection(sectionX, sectionY, sectionZ);
         if (whitelistEnabled && !overrideIntersects && !includedIntersects) {
             return SectionVisibility.HIDDEN;
         }
-        if (containsSection(hiddenRegions, sectionX, sectionY, sectionZ)) {
+        if (hiddenRegions.containsSection(sectionX, sectionY, sectionZ)) {
             return SectionVisibility.HIDDEN;
         }
 
         boolean baseFullyVisible = !whitelistEnabled
-                || containsSection(visibleOverrides, sectionX, sectionY, sectionZ)
-                || containsSection(includedRegions, sectionX, sectionY, sectionZ);
-        boolean hiddenIntersects = intersects(hiddenRegions, sectionX, sectionY, sectionZ);
+                || visibleOverrides.containsSection(sectionX, sectionY, sectionZ)
+                || includedRegions.containsSection(sectionX, sectionY, sectionZ);
+        boolean hiddenIntersects = hiddenRegions.intersectsSection(sectionX, sectionY, sectionZ);
         return baseFullyVisible && !hiddenIntersects
                 ? SectionVisibility.UNCHANGED
                 : SectionVisibility.PARTIAL;
     }
 
-    private static boolean contains(List<BlockRegion> regions, int x, int y, int z) {
-        return regions.stream().anyMatch(region -> region.contains(x, y, z));
-    }
-
-    private static boolean intersects(List<BlockRegion> regions, int sectionX, int sectionY, int sectionZ) {
-        for (BlockRegion region : regions) {
-            if (region.intersectsSection(sectionX, sectionY, sectionZ)) return true;
-        }
-        return false;
-    }
-
-    private static boolean containsSection(List<BlockRegion> regions,
-                                           int sectionX, int sectionY, int sectionZ) {
-        for (BlockRegion region : regions) {
-            if (region.containsSection(sectionX, sectionY, sectionZ)) return true;
-        }
-        return false;
-    }
 }

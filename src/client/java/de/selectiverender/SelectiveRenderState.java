@@ -29,6 +29,9 @@ public final class SelectiveRenderState {
     private static boolean plotRenderingEnabled;
     private static List<BlockRegion> traversalRegions = List.of();
     private static List<BlockRegion> visibleRegions = List.of();
+    private static RegionIndex activeRegionIndex = RegionIndex.empty();
+    private static RegionIndex hiddenRegionIndex = RegionIndex.empty();
+    private static RegionIndex overrideRegionIndex = RegionIndex.empty();
     private static final VisibleOccluderCache visibleOccluderCache = new VisibleOccluderCache(16384);
     private static final ThreadLocal<SectionClassificationCache> sectionClassificationCache =
             ThreadLocal.withInitial(SectionClassificationCache::new);
@@ -134,9 +137,9 @@ public final class SelectiveRenderState {
         boolean hiddenEnabled = hideEnabled();
         if (!whitelistEnabled && !hiddenEnabled) return SectionVisibility.UNCHANGED;
         return sectionClassificationCache.get().get(visibilityGeneration,
-                sectionX, sectionY, sectionZ, whitelistEnabled, activeRegions(),
-                hiddenEnabled ? hiddenRegions : List.of(),
-                whitelistEnabled ? visibleOverrides : List.of());
+                sectionX, sectionY, sectionZ, whitelistEnabled, activeRegionIndex,
+                hiddenEnabled ? hiddenRegionIndex : RegionIndex.empty(),
+                whitelistEnabled ? overrideRegionIndex : RegionIndex.empty());
     }
 
     public static boolean shouldRender(BlockPos position) {
@@ -152,8 +155,9 @@ public final class SelectiveRenderState {
                 blockX >> 4, blockY >> 4, blockZ >> 4);
         if (section == SectionVisibility.UNCHANGED) return true;
         if (section == SectionVisibility.HIDDEN) return false;
-        return RegionVisibility.block(enabled(), activeRegions(),
-                hideEnabled() ? hiddenRegions : List.of(), enabled() ? visibleOverrides : List.of(),
+        return RegionVisibility.block(enabled(), activeRegionIndex,
+                hideEnabled() ? hiddenRegionIndex : RegionIndex.empty(),
+                enabled() ? overrideRegionIndex : RegionIndex.empty(),
                 blockX, blockY, blockZ);
     }
 
@@ -312,6 +316,9 @@ public final class SelectiveRenderState {
 
     private static void rebuildDerivedRegions() {
         List<BlockRegion> base = activeRegions();
+        activeRegionIndex = RegionIndex.of(base);
+        hiddenRegionIndex = RegionIndex.of(hiddenRegions);
+        overrideRegionIndex = RegionIndex.of(visibleOverrides);
         if (visibleOverrides.isEmpty()) {
             traversalRegions = base;
             visibleRegions = base;
@@ -350,8 +357,8 @@ public final class SelectiveRenderState {
         private final SectionVisibility[] values = new SectionVisibility[SIZE];
 
         private SectionVisibility get(int generation, int sectionX, int sectionY, int sectionZ,
-                                      boolean whitelistEnabled, List<BlockRegion> includedRegions,
-                                      List<BlockRegion> hidden, List<BlockRegion> overrides) {
+                                      boolean whitelistEnabled, RegionIndex includedRegions,
+                                      RegionIndex hidden, RegionIndex overrides) {
             int index = mix(sectionX, sectionY, sectionZ) & (SIZE - 1);
             if (generations[index] == generation
                     && sectionXs[index] == sectionX

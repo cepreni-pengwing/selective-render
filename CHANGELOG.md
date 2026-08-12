@@ -2,6 +2,20 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.3
+
+### Changed
+
+- Indexed region lookups spatially so large preset collections no longer require linear scans in render hotpaths.
+- Classified sections before block-level filtering and limited virtual skylight work to affected chunk columns.
+- Combined Sodium's native occlusion traversal with a near-to-far fallback for disconnected selected regions.
+
+### Fixed
+
+- Removed the measurable hidden-only chunk-build slowdown in unaffected world sections.
+- Prioritized fallback region loading by three-dimensional distance from the player instead of west to east.
+- Preserved virtual-skylight corrections while avoiding unnecessary propagation and allocation.
+
 ## 1.7.2-test.10
 
 ### Fixed
