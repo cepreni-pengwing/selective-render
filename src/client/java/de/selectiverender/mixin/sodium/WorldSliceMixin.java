@@ -219,11 +219,13 @@ abstract class WorldSliceMixin {
         int x = pos.getX();
         int y = pos.getY();
         int z = pos.getZ();
+        BlockState state = null;
         if (x >= volume.getMinX() && x <= volume.getMaxX()
                 && y >= volume.getMinY() && y <= volume.getMaxY()
                 && z >= volume.getMinZ() && z <= volume.getMaxZ()) {
-            return getBlockState(x, y, z);
+            state = getBlockState(x, y, z);
         }
-        return world.getBlockState(pos);
+        if (state == null) state = world.getBlockState(pos);
+        return state == null ? Blocks.AIR.getDefaultState() : state;
     }
 }

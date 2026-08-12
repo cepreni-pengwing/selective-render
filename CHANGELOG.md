@@ -2,6 +2,13 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.5
+
+### Fixed
+
+- Prevented a Sodium/Indium chunk-meshing crash when virtual skylight queried a block state that
+  was temporarily unavailable in the render-world slice.
+
 ## 1.7.4
 
 ### Changed
