@@ -22,9 +22,9 @@ same features.
 
 1. Stand at one corner of the desired cuboid and run `/sr pos1`.
 2. Stand at the diagonally opposite corner and run `/sr pos2`.
-3. Run `/sr s NAME` to save the inclusive cuboid as a named preset.
-4. Run `/sr t NAME` to add it to the render group. Add any other presets the same way.
-5. Run `/sr t` to enable or disable every region in the render group at once.
+3. Run `/sr s NAME` to save the inclusive cuboid and activate it immediately.
+4. Save additional regions or use `/sr t NAME` to add existing presets to the render group.
+5. Run `/sr t` to enable or disable the complete render group at once.
 
 Both positions use whole-block X, Y, and Z coordinates. Make sure the two corners
 cover the full width, height, and depth you want to render. For example, one
@@ -51,7 +51,7 @@ Available short commands:
 ```
 
 - `/sr s NAME` saves the current selection and immediately activates it. A name
-  is always required. Overwritten hide presets remain in the hide context.
+  is always required and must not already exist.
 - `/sr t NAME` toggles a preset in the render context. Using it on a hide preset
   moves that preset back to the regular render context.
 - `/sr t` enables or disables the entire render group while preserving its members.
@@ -84,7 +84,7 @@ Default keybinds:
 - Unassigned: set Pos1, set Pos2, and toggle the current PlotSquared region
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
-Selective Render category. Position 1 and position 2 are unassigned by default.
+Selective Render category.
 
 Preset arguments support tab completion for toggle, hide, delete, and rename
 commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
@@ -98,9 +98,9 @@ can provide their exact PlotSquared regions, including merged and non-rectangula
 Plot integration is part of the normal Selective Render command tree:
 
 - `/selectiverender plot` or `/sr plot` toggles temporary isolation of the plot under the player.
-- `/sr p minY maxY xzMargin` temporarily isolates the plot with inclusive vertical bounds and an
+- `/sr p minY maxY [xzMargin]` temporarily isolates the plot with inclusive vertical bounds and an
   outward horizontal margin. The margin must be zero or greater.
-- `/selectiverender plot save NAME minY maxY xzMargin` permanently saves the exact plot shape as one
+- `/selectiverender plot save NAME minY maxY [xzMargin]` permanently saves the exact plot shape as one
   normal preset and immediately activates it. The Y boundaries are inclusive, and the X/Z margin
   expands every internal PlotSquared cuboid.
 
@@ -116,14 +116,18 @@ Presets, render-group membership, and the group's enabled state are stored per s
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining or changing dimensions. The hashed file name prevents server
 addresses from being exposed as file names.
-Writes are atomic and preserve the previous file as a `.json.bak` backup.
+Writes are atomic and preserve the previous file as a `.json.bak` backup. If the
+primary file is damaged, Selective Render attempts to recover the latest valid
+backup automatically.
 
 Players are always rendered. Every other entity, block entity, and particle is
 hidden outside the combined active regions.
 
-Active hide regions also reject client interactions before they reach the
-server, including block breaking, block use, block or fluid placement, entity
-attacks and use, and pick block. Player interaction remains available and
+World content filtered by either the render group or active hide regions also
+rejects client interactions before they reach the server, including block
+breaking, block use, block or fluid placement, entity attacks and use, and pick
+block. Client raycasts pass through filtered blocks and fluids so visible content
+behind them can still be targeted. Player interaction remains available and
 collision is unchanged.
 
 ## Implementation
@@ -146,8 +150,9 @@ collision is unchanged.
 - Entities, block entities, and particle geometry use separate render filters.
   Player lightmap sampling also ignores filtered overhead blocks, preventing
   invisible roofs or platforms from darkening players below them.
-- Region changes rebuild only intersecting 16×16×16 render sections plus boundary
-  neighbors. Large updates automatically fall back to a full renderer reload.
+- Region changes rebuild only intersecting 16 x 16 x 16 render sections plus the
+  virtual-light influence area. Large updates automatically fall back to a full
+  renderer reload.
 
 The mod does not change render distance, server packets, chunk loading, game
 logic, or collision. The implementation does not use reflection.
@@ -187,8 +192,8 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 - Selected regions must already be inside the normal client render distance.
 - Players remain visible everywhere; this is currently not configurable.
 - Selective filtering deliberately changes which sections participate in occlusion culling.
-- Region membership uses linear scans. This is appropriate for normal preset counts; a spatial
-  section cache may be introduced if practical use grows to hundreds of simultaneous regions.
+- Very large or numerous simultaneous region changes can still increase section
+  rebuild and virtual-light work while the new visibility state is applied.
 - Distant Horizons LOD geometry is not filtered outside selected regions.
 
 ## Support and contributing
