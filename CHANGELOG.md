@@ -2,6 +2,12 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.2-test.10
+
+### Fixed
+
+- Prioritized directly traversed region sections by three-dimensional distance from the player instead of loading them west to east.
+
 ## 1.7.2-test.9
 
 ### Changed

@@ -4,6 +4,7 @@ import de.selectiverender.BlockRegion;
 import de.selectiverender.SelectiveRenderState;
 import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import me.jellysquid.mods.sodium.client.render.chunk.RenderSection;
 import me.jellysquid.mods.sodium.client.render.chunk.occlusion.OcclusionCuller;
 import me.jellysquid.mods.sodium.client.render.viewport.CameraTransform;
@@ -21,11 +22,19 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Comparator;
+
 @Pseudo
 @Mixin(targets = "me.jellysquid.mods.sodium.client.render.chunk.occlusion.OcclusionCuller", remap = false)
 abstract class OcclusionCullerMixin {
     @Shadow @Final private Long2ReferenceMap<RenderSection> sections;
     @Unique private LongOpenHashSet selectiverender$visitedSections;
+    @Unique private ObjectArrayList<RenderSection> selectiverender$orderedSections;
+    @Unique private double selectiverender$cameraX;
+    @Unique private double selectiverender$cameraY;
+    @Unique private double selectiverender$cameraZ;
+    @Unique private final Comparator<RenderSection> selectiverender$distanceComparator =
+            Comparator.comparingDouble(this::selectiverender$distanceSquared);
 
     @Shadow
     private static boolean isWithinRenderDistance(CameraTransform camera, RenderSection section,
@@ -49,7 +58,6 @@ abstract class OcclusionCullerMixin {
             return;
         }
 
-        int radius = MathHelper.ceil(searchDistance / 16.0F) + 1;
         int cameraSectionX = camera.intX >> 4;
         int cameraSectionY = camera.intY >> 4;
         int cameraSectionZ = camera.intZ >> 4;
@@ -88,6 +96,14 @@ abstract class OcclusionCullerMixin {
         int cameraSectionZ = camera.intZ >> 4;
         int minLoadedY = world.getBottomY() >> 4;
         int maxLoadedY = (world.getTopY() - 1) >> 4;
+        if (selectiverender$orderedSections == null) {
+            selectiverender$orderedSections = new ObjectArrayList<>();
+        } else {
+            selectiverender$orderedSections.clear();
+        }
+        selectiverender$cameraX = camera.x;
+        selectiverender$cameraY = camera.y;
+        selectiverender$cameraZ = camera.z;
         java.util.List<BlockRegion> traversalRegions = SelectiveRenderState.traversalRegions();
         boolean deduplicate = traversalRegions.size() > 1;
         LongOpenHashSet visited = null;
@@ -118,12 +134,25 @@ abstract class OcclusionCullerMixin {
                         if (section.getLastVisibleFrame() == frame) continue;
 
                         if (!OcclusionCuller.isWithinFrustum(viewport, section)) continue;
-                        section.setLastVisibleFrame(frame);
-                        section.setIncomingDirections(0);
-                        visitor.visit(section, true);
+                        selectiverender$orderedSections.add(section);
                     }
                 }
             }
         }
+
+        selectiverender$orderedSections.unstableSort(selectiverender$distanceComparator);
+        for (RenderSection section : selectiverender$orderedSections) {
+            section.setLastVisibleFrame(frame);
+            section.setIncomingDirections(0);
+            visitor.visit(section, true);
+        }
+    }
+
+    @Unique
+    private double selectiverender$distanceSquared(RenderSection section) {
+        double x = section.getCenterX() - selectiverender$cameraX;
+        double y = section.getCenterY() - selectiverender$cameraY;
+        double z = section.getCenterZ() - selectiverender$cameraZ;
+        return x * x + y * y + z * z;
     }
 }
