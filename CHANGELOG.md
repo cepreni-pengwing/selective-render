@@ -2,7 +2,7 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.4-test.2
+## 1.7.4
 
 ### Changed
 
