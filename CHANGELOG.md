@@ -2,10 +2,12 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.2-test.5
+## 1.7.2-test.6
 
 ### Fixed
 
+- Removed 16-block lighting seams by preserving full skylight through unobstructed vertical columns and propagating it through a 14-block halo around each Sodium build volume.
+- Replaced boxed light maps and queue nodes with fixed primitive arrays to bound allocation and chunk-build overhead.
 - Corrected the exact `WorldRenderer.updateBlock(BlockView, ...)` mixin descriptor that prevented `test.3` and `test.4` from starting.
 - Added a shared, invalidated visible-occluder column cache so vertically distant hidden roofs can seed local Sodium skylight without per-sample searches.
 - Replaced per-sample virtual-skylight searches with one cached propagation pass per Sodium build volume.
