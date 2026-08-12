@@ -105,6 +105,23 @@ abstract class OcclusionCullerMixin {
         selectiverender$cameraY = camera.y;
         selectiverender$cameraZ = camera.z;
         java.util.List<BlockRegion> traversalRegions = SelectiveRenderState.traversalRegions();
+        de.selectiverender.TraversalSectionIndex traversalIndex =
+                SelectiveRenderState.traversalSectionIndex();
+        if (!skipCameraRegion && !traversalIndex.isEmpty()) {
+            for (int index = 0; index < traversalIndex.size(); index++) {
+                long key = traversalIndex.keyAt(index);
+                int sectionX = ChunkSectionPos.unpackX(key);
+                int sectionY = ChunkSectionPos.unpackY(key);
+                int sectionZ = ChunkSectionPos.unpackZ(key);
+                if (Math.abs(sectionX - cameraSectionX) > radius
+                        || Math.abs(sectionZ - cameraSectionZ) > radius
+                        || sectionY < minLoadedY || sectionY > maxLoadedY) continue;
+                selectiverender$addSection(key, sectionX, sectionY, sectionZ,
+                        camera, viewport, searchDistance, frame);
+            }
+            selectiverender$visitOrdered(visitor, frame);
+            return;
+        }
         boolean deduplicate = traversalRegions.size() > 1;
         LongOpenHashSet visited = null;
         if (deduplicate) {
@@ -127,19 +144,30 @@ abstract class OcclusionCullerMixin {
                     for (int sectionZ = minZ; sectionZ <= maxZ; sectionZ++) {
                         long key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ);
                         if (deduplicate && !visited.add(key)) continue;
-                        if (!SelectiveRenderState.shouldRenderSection(sectionX, sectionY, sectionZ)) continue;
-
-                        RenderSection section = sections.get(key);
-                        if (section == null || !isWithinRenderDistance(camera, section, searchDistance)) continue;
-                        if (section.getLastVisibleFrame() == frame) continue;
-
-                        if (!OcclusionCuller.isWithinFrustum(viewport, section)) continue;
-                        selectiverender$orderedSections.add(section);
+                        selectiverender$addSection(key, sectionX, sectionY, sectionZ,
+                                camera, viewport, searchDistance, frame);
                     }
                 }
             }
         }
 
+        selectiverender$visitOrdered(visitor, frame);
+    }
+
+    @Unique
+    private void selectiverender$addSection(long key, int sectionX, int sectionY, int sectionZ,
+                                             CameraTransform camera, Viewport viewport,
+                                             float searchDistance, int frame) {
+        if (!SelectiveRenderState.shouldRenderSection(sectionX, sectionY, sectionZ)) return;
+        RenderSection section = sections.get(key);
+        if (section == null || !isWithinRenderDistance(camera, section, searchDistance)
+                || section.getLastVisibleFrame() == frame
+                || !OcclusionCuller.isWithinFrustum(viewport, section)) return;
+        selectiverender$orderedSections.add(section);
+    }
+
+    @Unique
+    private void selectiverender$visitOrdered(OcclusionCuller.Visitor visitor, int frame) {
         selectiverender$orderedSections.unstableSort(selectiverender$distanceComparator);
         for (RenderSection section : selectiverender$orderedSections) {
             section.setLastVisibleFrame(frame);

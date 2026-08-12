@@ -18,6 +18,15 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
       - run: chmod +x gradlew
+      - name: Validate tag version
+        shell: bash
+        run: |
+          project_version=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
+          tag_version=${GITHUB_REF_NAME#v}
+          if [[ -z "$project_version" || "$tag_version" != "$project_version" ]]; then
+            echo "Tag version '$tag_version' does not match mod_version '$project_version'." >&2
+            exit 1
+          fi
       - run: ./gradlew clean build --stacktrace
       - name: Publish tagged JAR
         env:

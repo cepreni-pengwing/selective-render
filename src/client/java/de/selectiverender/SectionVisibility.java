@@ -1,7 +1,7 @@
 package de.selectiverender;
 
 public enum SectionVisibility {
-    UNCHANGED,
+    FULL_VISIBLE,
     PARTIAL,
     HIDDEN
 }

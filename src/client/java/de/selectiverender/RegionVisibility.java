@@ -55,7 +55,7 @@ final class RegionVisibility {
                 || includedRegions.containsSection(sectionX, sectionY, sectionZ);
         boolean hiddenIntersects = hiddenRegions.intersectsSection(sectionX, sectionY, sectionZ);
         return baseFullyVisible && !hiddenIntersects
-                ? SectionVisibility.UNCHANGED
+                ? SectionVisibility.FULL_VISIBLE
                 : SectionVisibility.PARTIAL;
     }
 

@@ -18,4 +18,5 @@ abstract class BlockEntityRenderDispatcherMixin {
                                                VertexConsumerProvider consumers, CallbackInfo ci) {
         if (!SelectiveRenderState.shouldRender(blockEntity.getPos())) ci.cancel();
     }
+
 }

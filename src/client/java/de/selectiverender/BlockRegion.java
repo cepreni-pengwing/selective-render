@@ -45,6 +45,13 @@ public record BlockRegion(int minX, int maxX, int minY, int maxY, int minZ, int 
     }
 
     public long blockCount() {
-        return (long) (maxX - minX + 1) * (long) (maxY - minY + 1) * (long) (maxZ - minZ + 1);
+        long sizeX = (long) maxX - minX + 1L;
+        long sizeY = (long) maxY - minY + 1L;
+        long sizeZ = (long) maxZ - minZ + 1L;
+        try {
+            return Math.multiplyExact(Math.multiplyExact(sizeX, sizeY), sizeZ);
+        } catch (ArithmeticException overflow) {
+            return Long.MAX_VALUE;
+        }
     }
 }

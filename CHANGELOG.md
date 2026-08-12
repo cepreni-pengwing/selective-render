@@ -2,6 +2,31 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.4-test.2
+
+### Changed
+
+- Published visibility, plot, hidden, override, lookup, and traversal data as one immutable render snapshot.
+- Cached traversal section keys and rejected out-of-frustum fallback sections before Sodium receives them.
+- Reused bounded virtual-skylight buffers and accounted for partial block opacity during propagation.
+- Expanded interaction filtering and allowed client raycasts to pass through invisible blocks and fluids.
+- Added an unassigned PlotSquared toggle keybind for `/sr p`.
+- Added temporary PlotSquared Y bounds and X/Z margins through `/sr p minY maxY xzMargin`.
+- Added optional X/Z margins to saved plot presets through `/sr p s NAME minY maxY xzMargin`.
+
+### Fixed
+
+- Removed stale light-cache entries on chunk unload and isolated cached heights by snapshot generation.
+- Rebuilt the full 14-block virtual-light influence area after visibility or occluder changes.
+- Recovered invalid configs from backups and uniquely identified singleplayer saves while migrating legacy data.
+- Rebuilt visible hidden overrides correctly when their preset is deleted.
+- Guarded region block counts against integer overflow and applied virtual direct skylight to entities and block entities.
+
+### Build
+
+- Pinned Fabric Loom and rejected release tags that do not exactly match `mod_version`.
+- Added regression coverage for snapshots, backup recovery, rebuild ranges, preset deletion, traversal keys, and cache cleanup.
+
 ## 1.7.3
 
 ### Changed

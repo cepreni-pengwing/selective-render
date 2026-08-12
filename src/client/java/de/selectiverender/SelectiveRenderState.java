@@ -10,34 +10,21 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 
 import java.util.Collection;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 public final class SelectiveRenderState {
+    public static final int VIRTUAL_LIGHT_RADIUS = 14;
     private static BlockPos first;
     private static BlockPos second;
     private static BlockRegion selection;
-    private static List<BlockRegion> activeRegions = List.of();
-    private static List<BlockRegion> hiddenRegions = List.of();
-    private static List<BlockRegion> visibleOverrides = List.of();
-    private static boolean enabled;
-    private static boolean hideEnabled;
-    private static List<BlockRegion> plotRegions = List.of();
-    private static boolean plotModeActive;
-    private static boolean plotRenderingEnabled;
-    private static List<BlockRegion> traversalRegions = List.of();
-    private static List<BlockRegion> visibleRegions = List.of();
-    private static RegionIndex activeRegionIndex = RegionIndex.empty();
-    private static RegionIndex hiddenRegionIndex = RegionIndex.empty();
-    private static RegionIndex overrideRegionIndex = RegionIndex.empty();
+    private static volatile VisibilitySnapshot visibility = VisibilitySnapshot.EMPTY;
     private static final VisibleOccluderCache visibleOccluderCache = new VisibleOccluderCache(16384);
     private static final ThreadLocal<SectionClassificationCache> sectionClassificationCache =
             ThreadLocal.withInitial(SectionClassificationCache::new);
     private static final ThreadLocal<LightInfluenceCache> lightInfluenceCache =
             ThreadLocal.withInitial(LightInfluenceCache::new);
-    private static volatile int visibilityGeneration = 1;
 
     private SelectiveRenderState() { }
 
@@ -46,30 +33,24 @@ public final class SelectiveRenderState {
     public static BlockPos first() { return first; }
     public static BlockPos second() { return second; }
     public static BlockRegion selection() { return selection; }
-    public static List<BlockRegion> activeRegions() { return plotModeActive ? plotRegions : activeRegions; }
-    public static List<BlockRegion> hiddenRegions() { return hiddenRegions; }
-    public static List<BlockRegion> visibleOverrides() { return visibleOverrides; }
-    public static List<BlockRegion> traversalRegions() { return traversalRegions; }
-    public static boolean enabled() {
-        return plotModeActive
-                ? plotRenderingEnabled && !plotRegions.isEmpty()
-                : enabled && !activeRegions.isEmpty();
-    }
-    public static boolean hideEnabled() { return hideEnabled && !hiddenRegions.isEmpty(); }
-    public static boolean plotModeActive() { return plotModeActive; }
-    public static boolean plotRenderingEnabled() { return plotModeActive && plotRenderingEnabled; }
-    public static List<BlockRegion> plotRegions() { return plotRegions; }
+    public static List<BlockRegion> activeRegions() { return visibility.activeRegions(); }
+    public static List<BlockRegion> hiddenRegions() { return visibility.hiddenRegions(); }
+    public static List<BlockRegion> visibleOverrides() { return visibility.visibleOverrides(); }
+    public static List<BlockRegion> traversalRegions() { return visibility.traversalRegions(); }
+    public static TraversalSectionIndex traversalSectionIndex() { return visibility.traversalSectionIndex(); }
+    public static boolean enabled() { return visibility.enabled(); }
+    public static boolean hideEnabled() { return visibility.hideEnabled(); }
+    public static boolean plotModeActive() { return visibility.plotModeActive(); }
+    public static boolean plotRenderingEnabled() { return visibility.plotRenderingEnabled(); }
+    public static List<BlockRegion> plotRegions() { return visibility.plotRegions(); }
 
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
                                      Collection<BlockRegion> hidden, boolean newHideEnabled,
                                      Collection<BlockRegion> overrides) {
-        activeRegions = List.copyOf(regions);
-        hiddenRegions = List.copyOf(hidden);
-        visibleOverrides = List.copyOf(overrides);
-        enabled = newEnabled;
-        hideEnabled = newHideEnabled;
         visibleOccluderCache.clear();
-        rebuildDerivedRegions();
+        VisibilitySnapshot current = visibility;
+        visibility = current.withSavedState(List.copyOf(regions), newEnabled,
+                List.copyOf(hidden), newHideEnabled, List.copyOf(overrides), nextGeneration(current));
     }
 
     public static boolean saveSelection() {
@@ -79,11 +60,11 @@ public final class SelectiveRenderState {
     }
 
     public static boolean toggle() {
-        if (plotModeActive) return togglePlotRendering();
-        if (activeRegions.isEmpty()) return false;
-        enabled = !enabled;
+        VisibilitySnapshot current = visibility;
+        if (current.plotModeActive()) return togglePlotRendering();
+        if (current.configuredRegions().isEmpty()) return false;
+        visibility = current.toggleConfiguredState(nextGeneration(current));
         visibleOccluderCache.clear();
-        rebuildDerivedRegions();
         refreshRenderer();
         return true;
     }
@@ -91,41 +72,36 @@ public final class SelectiveRenderState {
     public static void activatePlotMode(Collection<BlockRegion> regions) {
         List<BlockRegion> next = List.copyOf(regions);
         if (next.isEmpty()) throw new IllegalArgumentException("Plot regions cannot be empty");
-        plotRegions = next;
-        plotModeActive = true;
-        plotRenderingEnabled = true;
         visibleOccluderCache.clear();
-        rebuildDerivedRegions();
+        VisibilitySnapshot current = visibility;
+        visibility = current.withPlotState(next, true, true, nextGeneration(current));
         refreshRenderer();
     }
 
     public static boolean togglePlotRendering() {
-        if (!plotModeActive || plotRegions.isEmpty()) return false;
-        boolean wasEnabled = plotRenderingEnabled;
-        plotRenderingEnabled = !plotRenderingEnabled;
+        VisibilitySnapshot current = visibility;
+        if (!current.plotModeActive() || current.plotRegions().isEmpty()) return false;
+        boolean wasEnabled = current.plotRenderingEnabled();
         visibleOccluderCache.clear();
-        rebuildDerivedRegions();
-        if (wasEnabled) refreshRenderer(); else refreshRegions(plotRegions);
+        visibility = current.withPlotState(current.plotRegions(), true,
+                !current.plotRenderingEnabled(), nextGeneration(current));
+        if (wasEnabled) refreshRenderer(); else refreshRegions(current.plotRegions());
         return true;
     }
 
     public static boolean disablePlotMode() {
-        if (!plotModeActive) return false;
-        plotModeActive = false;
-        plotRenderingEnabled = false;
-        plotRegions = List.of();
+        VisibilitySnapshot current = visibility;
+        if (!current.plotModeActive()) return false;
         visibleOccluderCache.clear();
-        rebuildDerivedRegions();
+        visibility = current.withPlotState(List.of(), false, false, nextGeneration(current));
         refreshRenderer();
         return true;
     }
 
     public static void resetPlotMode() {
-        plotModeActive = false;
-        plotRenderingEnabled = false;
-        plotRegions = List.of();
         visibleOccluderCache.clear();
-        rebuildDerivedRegions();
+        VisibilitySnapshot current = visibility;
+        visibility = current.withPlotState(List.of(), false, false, nextGeneration(current));
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
@@ -133,13 +109,19 @@ public final class SelectiveRenderState {
     }
 
     public static SectionVisibility sectionVisibility(int sectionX, int sectionY, int sectionZ) {
-        boolean whitelistEnabled = enabled();
-        boolean hiddenEnabled = hideEnabled();
-        if (!whitelistEnabled && !hiddenEnabled) return SectionVisibility.UNCHANGED;
-        return sectionClassificationCache.get().get(visibilityGeneration,
-                sectionX, sectionY, sectionZ, whitelistEnabled, activeRegionIndex,
-                hiddenEnabled ? hiddenRegionIndex : RegionIndex.empty(),
-                whitelistEnabled ? overrideRegionIndex : RegionIndex.empty());
+        VisibilitySnapshot snapshot = visibility;
+        return sectionVisibility(snapshot, sectionX, sectionY, sectionZ);
+    }
+
+    private static SectionVisibility sectionVisibility(VisibilitySnapshot snapshot,
+                                                        int sectionX, int sectionY, int sectionZ) {
+        boolean whitelistEnabled = snapshot.enabled();
+        boolean hiddenEnabled = snapshot.hideEnabled();
+        if (!whitelistEnabled && !hiddenEnabled) return SectionVisibility.FULL_VISIBLE;
+        return sectionClassificationCache.get().get(snapshot.generation(),
+                sectionX, sectionY, sectionZ, whitelistEnabled, snapshot.activeRegionIndex(),
+                hiddenEnabled ? snapshot.hiddenRegionIndex() : RegionIndex.empty(),
+                whitelistEnabled ? snapshot.overrideRegionIndex() : RegionIndex.empty());
     }
 
     public static boolean shouldRender(BlockPos position) {
@@ -151,27 +133,35 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(int blockX, int blockY, int blockZ) {
-        SectionVisibility section = sectionVisibility(
+        VisibilitySnapshot snapshot = visibility;
+        return shouldRender(snapshot, blockX, blockY, blockZ);
+    }
+
+    private static boolean shouldRender(VisibilitySnapshot snapshot,
+                                        int blockX, int blockY, int blockZ) {
+        SectionVisibility section = sectionVisibility(snapshot,
                 blockX >> 4, blockY >> 4, blockZ >> 4);
-        if (section == SectionVisibility.UNCHANGED) return true;
+        if (section == SectionVisibility.FULL_VISIBLE) return true;
         if (section == SectionVisibility.HIDDEN) return false;
-        return RegionVisibility.block(enabled(), activeRegionIndex,
-                hideEnabled() ? hiddenRegionIndex : RegionIndex.empty(),
-                enabled() ? overrideRegionIndex : RegionIndex.empty(),
+        return RegionVisibility.block(snapshot.enabled(), snapshot.activeRegionIndex(),
+                snapshot.hideEnabled() ? snapshot.hiddenRegionIndex() : RegionIndex.empty(),
+                snapshot.enabled() ? snapshot.overrideRegionIndex() : RegionIndex.empty(),
                 blockX, blockY, blockZ);
     }
 
     public static boolean mayNeedVirtualSkyLight(int blockX, int blockZ, int radius) {
-        return lightInfluenceCache.get().get(visibilityGeneration,
+        VisibilitySnapshot snapshot = visibility;
+        return lightInfluenceCache.get().get(snapshot.generation(),
                 blockX >> 4, blockZ >> 4, radius,
-                enabled() ? visibleRegions : List.of(),
-                hideEnabled() ? hiddenRegions : List.of());
+                snapshot.enabled() ? snapshot.visibleRegions() : List.of(),
+                snapshot.hideEnabled() ? snapshot.hiddenRegions() : List.of());
     }
 
     public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
-        if (!enabled()) return worldTop;
+        VisibilitySnapshot snapshot = visibility;
+        if (!snapshot.enabled()) return worldTop;
         int top = Integer.MIN_VALUE;
-        for (BlockRegion region : visibleRegions) {
+        for (BlockRegion region : snapshot.visibleRegions()) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 top = Math.max(top, region.maxY());
@@ -181,9 +171,10 @@ public final class SelectiveRenderState {
     }
 
     public static int visibleColumnBottom(int blockX, int blockZ, int worldBottom) {
-        if (!enabled()) return worldBottom;
+        VisibilitySnapshot snapshot = visibility;
+        if (!snapshot.enabled()) return worldBottom;
         int bottom = Integer.MAX_VALUE;
-        for (BlockRegion region : visibleRegions) {
+        for (BlockRegion region : snapshot.visibleRegions()) {
             if (blockX >= region.minX() && blockX <= region.maxX()
                     && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
                 bottom = Math.min(bottom, region.minY());
@@ -193,27 +184,26 @@ public final class SelectiveRenderState {
     }
 
     public static boolean containsActive(BlockPos position) {
-        for (BlockRegion region : activeRegions()) {
-            if (region.contains(position)) return true;
-        }
-        return false;
+        return visibility.activeRegionIndex().contains(
+                position.getX(), position.getY(), position.getZ());
     }
 
     public static boolean containsHidden(BlockPos position) {
-        for (BlockRegion region : hiddenRegions) {
-            if (region.contains(position)) return true;
-        }
-        return false;
+        return visibility.hiddenRegionIndex().contains(
+                position.getX(), position.getY(), position.getZ());
     }
 
     public static boolean isActivelyHidden(BlockPos position) {
-        return hideEnabled() && containsHidden(position);
+        VisibilitySnapshot snapshot = visibility;
+        return snapshot.hideEnabled() && snapshot.hiddenRegionIndex().contains(
+                position.getX(), position.getY(), position.getZ());
     }
 
     public static boolean isActivelyHidden(Entity entity) {
-        return !(entity instanceof PlayerEntity) && hideEnabled()
-                && hiddenRegions.stream().anyMatch(region -> region.contains(
-                MathHelper.floor(entity.getX()), MathHelper.floor(entity.getY()), MathHelper.floor(entity.getZ())));
+        VisibilitySnapshot snapshot = visibility;
+        return !(entity instanceof PlayerEntity) && snapshot.hideEnabled()
+                && snapshot.hiddenRegionIndex().contains(MathHelper.floor(entity.getX()),
+                MathHelper.floor(entity.getY()), MathHelper.floor(entity.getZ()));
     }
 
     public static boolean shouldRender(Entity entity) {
@@ -221,18 +211,20 @@ public final class SelectiveRenderState {
     }
 
     public static int highestVisibleOccluder(ClientWorld world, int blockX, int blockZ) {
-        if (!enabled() && !hideEnabled()) return world.getTopY() - 1;
-        return visibleOccluderCache.get(blockX, blockZ, (x, z) -> {
+        VisibilitySnapshot snapshot = visibility;
+        if (!snapshot.enabled() && !snapshot.hideEnabled()) return world.getTopY() - 1;
+        return visibleOccluderCache.get(snapshot.generation(), blockX, blockZ, (x, z) -> {
             int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
-            int top = visibleColumnTop(x, z, Math.min(world.getTopY() - 1, worldSurface));
-            int bottom = visibleColumnBottom(x, z, world.getBottomY());
+            int top = visibleColumnTop(snapshot, x, z,
+                    Math.min(world.getTopY() - 1, worldSurface));
+            int bottom = visibleColumnBottom(snapshot, x, z, world.getBottomY());
             if (top == Integer.MIN_VALUE || bottom == Integer.MAX_VALUE || bottom > top) {
                 return Integer.MIN_VALUE;
             }
             BlockPos.Mutable cursor = new BlockPos.Mutable(x, top, z);
             for (int y = top; y >= bottom; y--) {
                 cursor.setY(y);
-                if (!shouldRender(cursor)) continue;
+                if (!shouldRender(snapshot, x, y, z)) continue;
                 BlockState state = world.getBlockState(cursor);
                 if (state.getOpacity(world, cursor) > 0) return y;
             }
@@ -244,17 +236,44 @@ public final class SelectiveRenderState {
         visibleOccluderCache.invalidate(blockX, blockZ);
     }
 
+    private static int visibleColumnTop(VisibilitySnapshot snapshot,
+                                        int blockX, int blockZ, int worldTop) {
+        if (!snapshot.enabled()) return worldTop;
+        int top = Integer.MIN_VALUE;
+        for (BlockRegion region : snapshot.visibleRegions()) {
+            if (blockX >= region.minX() && blockX <= region.maxX()
+                    && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
+                top = Math.max(top, region.maxY());
+            }
+        }
+        return Math.min(top, worldTop);
+    }
+
+    private static int visibleColumnBottom(VisibilitySnapshot snapshot,
+                                           int blockX, int blockZ, int worldBottom) {
+        if (!snapshot.enabled()) return worldBottom;
+        int bottom = Integer.MAX_VALUE;
+        for (BlockRegion region : snapshot.visibleRegions()) {
+            if (blockX >= region.minX() && blockX <= region.maxX()
+                    && blockZ >= region.minZ() && blockZ <= region.maxZ()) {
+                bottom = Math.min(bottom, region.minY());
+            }
+        }
+        return Math.max(bottom, worldBottom);
+    }
+
+    public static void removeVisibleOccluderChunk(int chunkX, int chunkZ) {
+        visibleOccluderCache.removeChunk(chunkX, chunkZ);
+    }
+
     public static void resetForDisconnect() {
         first = null;
         second = null;
         selection = null;
-        activeRegions = List.of();
-        hiddenRegions = List.of();
-        visibleOverrides = List.of();
         visibleOccluderCache.clear();
-        enabled = false;
-        hideEnabled = false;
-        resetPlotMode();
+        VisibilitySnapshot current = visibility;
+        visibility = VisibilitySnapshot.create(List.of(), false, List.of(), false,
+                List.of(), List.of(), false, false, nextGeneration(current));
     }
 
     public static void refreshRenderer() {
@@ -279,12 +298,12 @@ public final class SelectiveRenderState {
         Set<SectionCoordinate> affected = new HashSet<>();
 
         for (BlockRegion region : regions) {
-            int fromX = Math.max(minSectionX, Math.floorDiv(expandMin(region.minX()), 16));
-            int toX = Math.min(maxSectionX, Math.floorDiv(expandMax(region.maxX()), 16));
-            int fromY = Math.max(minSectionY, Math.floorDiv(expandMin(region.minY()), 16));
-            int toY = Math.min(maxSectionY, Math.floorDiv(expandMax(region.maxY()), 16));
-            int fromZ = Math.max(minSectionZ, Math.floorDiv(expandMin(region.minZ()), 16));
-            int toZ = Math.min(maxSectionZ, Math.floorDiv(expandMax(region.maxZ()), 16));
+            int fromX = Math.max(minSectionX, Math.floorDiv(LightRebuildRange.expandMin(region.minX(), VIRTUAL_LIGHT_RADIUS), 16));
+            int toX = Math.min(maxSectionX, Math.floorDiv(LightRebuildRange.expandMax(region.maxX(), VIRTUAL_LIGHT_RADIUS), 16));
+            int fromY = Math.max(minSectionY, Math.floorDiv(LightRebuildRange.expandMin(region.minY(), VIRTUAL_LIGHT_RADIUS), 16));
+            int toY = Math.min(maxSectionY, Math.floorDiv(LightRebuildRange.expandMax(region.maxY(), VIRTUAL_LIGHT_RADIUS), 16));
+            int fromZ = Math.max(minSectionZ, Math.floorDiv(LightRebuildRange.expandMin(region.minZ(), VIRTUAL_LIGHT_RADIUS), 16));
+            int toZ = Math.min(maxSectionZ, Math.floorDiv(LightRebuildRange.expandMax(region.maxZ(), VIRTUAL_LIGHT_RADIUS), 16));
             for (int sectionX = fromX; sectionX <= toX; sectionX++) {
                 for (int sectionY = fromY; sectionY <= toY; sectionY++) {
                     for (int sectionZ = fromZ; sectionZ <= toZ; sectionZ++) {
@@ -306,36 +325,14 @@ public final class SelectiveRenderState {
         client.worldRenderer.scheduleTerrainUpdate();
     }
 
-    private static int expandMin(int value) {
-        return value == Integer.MIN_VALUE ? value : value - 1;
+    public static void refreshLightAround(BlockPos position) {
+        if (!enabled() && !hideEnabled()) return;
+        refreshRegions(List.of(new BlockRegion(position.getX(), position.getX(),
+                position.getY(), position.getY(), position.getZ(), position.getZ())));
     }
 
-    private static int expandMax(int value) {
-        return value == Integer.MAX_VALUE ? value : value + 1;
-    }
-
-    private static void rebuildDerivedRegions() {
-        List<BlockRegion> base = activeRegions();
-        activeRegionIndex = RegionIndex.of(base);
-        hiddenRegionIndex = RegionIndex.of(hiddenRegions);
-        overrideRegionIndex = RegionIndex.of(visibleOverrides);
-        if (visibleOverrides.isEmpty()) {
-            traversalRegions = base;
-            visibleRegions = base;
-            advanceVisibilityGeneration();
-            return;
-        }
-        ArrayList<BlockRegion> combined = new ArrayList<>(base.size() + visibleOverrides.size());
-        combined.addAll(base);
-        combined.addAll(visibleOverrides);
-        List<BlockRegion> snapshot = List.copyOf(combined);
-        traversalRegions = snapshot;
-        visibleRegions = enabled() ? snapshot : base;
-        advanceVisibilityGeneration();
-    }
-
-    private static void advanceVisibilityGeneration() {
-        visibilityGeneration = visibilityGeneration == Integer.MAX_VALUE ? 1 : visibilityGeneration + 1;
+    private static int nextGeneration(VisibilitySnapshot current) {
+        return current.generation() == Integer.MAX_VALUE ? 1 : current.generation() + 1;
     }
 
     private static boolean intersectsExpandedChunk(BlockRegion region,

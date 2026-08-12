@@ -25,4 +25,12 @@ class BlockRegionTest {
         assertTrue(region.intersectsSection(-1, 0, -2));
         assertFalse(region.intersectsSection(0, 0, -2));
     }
+
+    @Test
+    void saturatesCountsThatDoNotFitInALong() {
+        BlockRegion enormous = new BlockRegion(Integer.MIN_VALUE, Integer.MAX_VALUE,
+                Integer.MIN_VALUE, Integer.MAX_VALUE,
+                Integer.MIN_VALUE, Integer.MAX_VALUE);
+        assertEquals(Long.MAX_VALUE, enormous.blockCount());
+    }
 }

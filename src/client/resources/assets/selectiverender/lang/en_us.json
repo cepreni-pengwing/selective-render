@@ -3,5 +3,6 @@
   "key.selectiverender.toggle": "Toggle render group",
   "key.selectiverender.toggle_hide": "Toggle hide group",
   "key.selectiverender.pos1": "Set selection position 1",
-  "key.selectiverender.pos2": "Set selection position 2"
+  "key.selectiverender.pos2": "Set selection position 2",
+  "key.selectiverender.toggle_plot": "Toggle PlotSquared region"
 }

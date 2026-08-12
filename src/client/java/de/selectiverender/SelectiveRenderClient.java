@@ -43,6 +43,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.pos2",
             GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
+    private static final KeyBinding PLOT_TOGGLE_KEY = new KeyBinding(
+            "key.selectiverender.toggle_plot",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
@@ -51,12 +55,14 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(POS1_KEY);
         KeyBindingHelper.registerKeyBinding(POS2_KEY);
+        KeyBindingHelper.registerKeyBinding(PLOT_TOGGLE_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);
             while (POS1_KEY.wasPressed()) setPositionFromKey(client, true);
             while (POS2_KEY.wasPressed()) setPositionFromKey(client, false);
+            while (PLOT_TOGGLE_KEY.wasPressed()) PlotSquaredClient.toggle();
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
@@ -99,6 +105,16 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> plotCommand(String name) {
         return ClientCommandManager.literal(name)
                 .executes(context -> PlotSquaredClient.toggle())
+                .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
+                        .then(ClientCommandManager.argument("maxY", IntegerArgumentType.integer())
+                                .executes(context -> PlotSquaredClient.toggle(
+                                        IntegerArgumentType.getInteger(context, "minY"),
+                                        IntegerArgumentType.getInteger(context, "maxY"), 0))
+                                .then(ClientCommandManager.argument("xzMargin", IntegerArgumentType.integer(0))
+                                        .executes(context -> PlotSquaredClient.toggle(
+                                                IntegerArgumentType.getInteger(context, "minY"),
+                                                IntegerArgumentType.getInteger(context, "maxY"),
+                                                IntegerArgumentType.getInteger(context, "xzMargin"))))))
                 .then(plotSaveCommand("save"))
                 .then(plotSaveCommand("s"));
     }
@@ -111,7 +127,13 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                         .executes(context -> PlotSquaredClient.save(
                                                 StringArgumentType.getString(context, "name"),
                                                 IntegerArgumentType.getInteger(context, "minY"),
-                                                IntegerArgumentType.getInteger(context, "maxY"))))));
+                                                IntegerArgumentType.getInteger(context, "maxY"), 0))
+                                        .then(ClientCommandManager.argument("xzMargin", IntegerArgumentType.integer(0))
+                                                .executes(context -> PlotSquaredClient.save(
+                                                        StringArgumentType.getString(context, "name"),
+                                                        IntegerArgumentType.getInteger(context, "minY"),
+                                                        IntegerArgumentType.getInteger(context, "maxY"),
+                                                        IntegerArgumentType.getInteger(context, "xzMargin")))))));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> listCommand(String name) {

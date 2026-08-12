@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.util.WorldSavePath;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -45,56 +46,41 @@ public final class SelectiveRenderConfig {
         reset();
         if (sessionOwner == null) sessionOwner = ownerFor(client);
         Path path = pathFor(world);
-        if (path == null || !Files.isRegularFile(path)) return;
+        if (path == null) return;
+        ConfigRecovery.Result<StoredConfig> recovery = ConfigRecovery.load(
+                path, SelectiveRenderConfig::readStoredConfig);
+        StoredConfig stored = recovery.value();
+        boolean migratedLegacySingleplayer = false;
+        if (recovery.recoveredFromBackup()) {
+            SelectiveRenderClient.LOGGER.warn(
+                    "Recovered selective render config {} from backup {}",
+                    path, ConfigRecovery.backupPath(path));
+        }
+        if (stored == null && client.getServer() != null) {
+            Path legacyPath = pathFor(world, legacyOwnerFor(client));
+            if (!legacyPath.equals(path)) {
+                ConfigRecovery.Result<StoredConfig> legacyRecovery = ConfigRecovery.load(
+                        legacyPath, SelectiveRenderConfig::readStoredConfig);
+                stored = legacyRecovery.value();
+                migratedLegacySingleplayer = stored != null;
+                if (migratedLegacySingleplayer) {
+                    SelectiveRenderClient.LOGGER.info(
+                            "Migrating selective render config {} to unique world identity {}",
+                            legacyPath, path);
+                }
+            }
+        }
+        if (stored == null) {
+            if (recovery.primaryExisted()) reset();
+            return;
+        }
 
-        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-            StoredConfig stored = GSON.fromJson(reader, StoredConfig.class);
-            if (stored == null) return;
-
-            if (stored.formatVersion >= 7 && stored.regionGroups != null) {
-                stored.regionGroups.forEach((name, regions) -> {
-                    if (name != null && regions != null && !regions.isEmpty()) {
-                        PRESETS.put(normalize(name), regions.stream()
-                                .map(region -> region.toRegion(stored.formatVersion)).toList());
-                    }
-                });
-            } else if (stored.presets != null) {
-                stored.presets.forEach((name, region) -> {
-                    if (name != null && region != null) {
-                        PRESETS.put(normalize(name), List.of(region.toRegion(stored.formatVersion)));
-                    }
-                });
-            } else if (stored.minX != null && stored.maxX != null
-                    && stored.minZ != null && stored.maxZ != null) {
-                PRESETS.put("default", List.of(StoredRegion.fromLegacyChunks(
-                        stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
-            }
-
-            if (stored.formatVersion >= 4 && stored.activePresets != null) {
-                stored.activePresets.stream().map(SelectiveRenderConfig::normalize)
-                        .filter(PRESETS::containsKey).forEach(ACTIVE_PRESETS::add);
-            } else {
-                String requestedActive = normalize(stored.activePreset);
-                String migratedActive = PRESETS.containsKey(requestedActive)
-                        ? requestedActive : PRESETS.keySet().stream().findFirst().orElse(null);
-                if (migratedActive != null) ACTIVE_PRESETS.add(migratedActive);
-            }
-            groupEnabled = stored.enabled;
-            if (stored.formatVersion >= 5 && stored.hiddenPresets != null) {
-                stored.hiddenPresets.stream().map(SelectiveRenderConfig::normalize)
-                        .filter(PRESETS::containsKey).forEach(HIDDEN_PRESETS::add);
-            }
-            if (stored.formatVersion >= 6 && stored.activeHiddenPresets != null) {
-                stored.activeHiddenPresets.stream().map(SelectiveRenderConfig::normalize)
-                        .filter(HIDDEN_PRESETS::contains).forEach(ACTIVE_HIDDEN_PRESETS::add);
-            } else {
-                ACTIVE_HIDDEN_PRESETS.addAll(HIDDEN_PRESETS);
-            }
-            ACTIVE_PRESETS.removeAll(HIDDEN_PRESETS);
-            hideGroupEnabled = stored.formatVersion >= 5 ? stored.hideEnabled : true;
-            applyState();
-        } catch (RuntimeException | IOException exception) {
-            SelectiveRenderClient.LOGGER.error("Could not load selective render config {}", path, exception);
+        try {
+            applyStoredConfig(stored);
+            if (recovery.recoveredFromBackup()) write(client, false);
+            else if (migratedLegacySingleplayer) write(client);
+        } catch (RuntimeException exception) {
+            SelectiveRenderClient.LOGGER.error("Could not apply selective render config {}", path, exception);
             reset();
         }
     }
@@ -222,8 +208,11 @@ public final class SelectiveRenderConfig {
         String name = normalize(requestedName);
         List<BlockRegion> removed = PRESETS.remove(name);
         if (removed == null) return false;
-        boolean visibleChange = (ACTIVE_PRESETS.contains(name) && groupEnabled)
-                || (ACTIVE_HIDDEN_PRESETS.contains(name) && hideGroupEnabled);
+        boolean visibleChange = PresetVisibility.affectsRendering(
+                ACTIVE_PRESETS.contains(name), groupEnabled,
+                SelectiveRenderState.plotModeActive(), SelectiveRenderState.enabled(),
+                HIDDEN_PRESETS.contains(name), ACTIVE_HIDDEN_PRESETS.contains(name),
+                hideGroupEnabled);
         ACTIVE_PRESETS.remove(name);
         HIDDEN_PRESETS.remove(name);
         ACTIVE_HIDDEN_PRESETS.remove(name);
@@ -313,6 +302,10 @@ public final class SelectiveRenderConfig {
     }
 
     private static void write(MinecraftClient client) {
+        write(client, true);
+    }
+
+    private static void write(MinecraftClient client, boolean backupExisting) {
         Path path = client.world == null ? null : pathFor(client.world);
         if (path == null) return;
         try {
@@ -328,8 +321,8 @@ public final class SelectiveRenderConfig {
             PRESETS.forEach((name, regions) -> stored.regionGroups.put(name,
                     regions.stream().map(StoredRegion::from).toList()));
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
-            if (Files.isRegularFile(path)) {
-                Files.copy(path, path.resolveSibling(path.getFileName() + ".bak"),
+            if (backupExisting && Files.isRegularFile(path)) {
+                Files.copy(path, ConfigRecovery.backupPath(path),
                         StandardCopyOption.REPLACE_EXISTING);
             }
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
@@ -379,15 +372,84 @@ public final class SelectiveRenderConfig {
         if (client.getCurrentServerEntry() != null) {
             return "server:" + client.getCurrentServerEntry().address.toLowerCase(Locale.ROOT);
         } else if (client.getServer() != null) {
-            return "singleplayer:" + client.getServer().getSaveProperties().getLevelName();
+            Path saveRoot = client.getServer().getSavePath(WorldSavePath.ROOT)
+                    .toAbsolutePath().normalize();
+            return "singleplayer:" + saveRoot;
         } else {
             return "local:unknown";
         }
     }
 
+    private static StoredConfig readStoredConfig(Path path) {
+        if (!Files.isRegularFile(path)) return null;
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            StoredConfig stored = GSON.fromJson(reader, StoredConfig.class);
+            if (stored == null) {
+                SelectiveRenderClient.LOGGER.error("Selective render config {} is empty", path);
+            }
+            return stored;
+        } catch (RuntimeException | IOException exception) {
+            SelectiveRenderClient.LOGGER.error("Could not load selective render config {}", path, exception);
+            return null;
+        }
+    }
+
+    private static void applyStoredConfig(StoredConfig stored) {
+        if (stored.formatVersion >= 7 && stored.regionGroups != null) {
+            stored.regionGroups.forEach((name, regions) -> {
+                if (name != null && regions != null && !regions.isEmpty()) {
+                    PRESETS.put(normalize(name), regions.stream()
+                            .map(region -> region.toRegion(stored.formatVersion)).toList());
+                }
+            });
+        } else if (stored.presets != null) {
+            stored.presets.forEach((name, region) -> {
+                if (name != null && region != null) {
+                    PRESETS.put(normalize(name), List.of(region.toRegion(stored.formatVersion)));
+                }
+            });
+        } else if (stored.minX != null && stored.maxX != null
+                && stored.minZ != null && stored.maxZ != null) {
+            PRESETS.put("default", List.of(StoredRegion.fromLegacyChunks(
+                    stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
+        }
+
+        if (stored.formatVersion >= 4 && stored.activePresets != null) {
+            stored.activePresets.stream().map(SelectiveRenderConfig::normalize)
+                    .filter(PRESETS::containsKey).forEach(ACTIVE_PRESETS::add);
+        } else {
+            String requestedActive = normalize(stored.activePreset);
+            String migratedActive = PRESETS.containsKey(requestedActive)
+                    ? requestedActive : PRESETS.keySet().stream().findFirst().orElse(null);
+            if (migratedActive != null) ACTIVE_PRESETS.add(migratedActive);
+        }
+        groupEnabled = stored.enabled;
+        if (stored.formatVersion >= 5 && stored.hiddenPresets != null) {
+            stored.hiddenPresets.stream().map(SelectiveRenderConfig::normalize)
+                    .filter(PRESETS::containsKey).forEach(HIDDEN_PRESETS::add);
+        }
+        if (stored.formatVersion >= 6 && stored.activeHiddenPresets != null) {
+            stored.activeHiddenPresets.stream().map(SelectiveRenderConfig::normalize)
+                    .filter(HIDDEN_PRESETS::contains).forEach(ACTIVE_HIDDEN_PRESETS::add);
+        } else {
+            ACTIVE_HIDDEN_PRESETS.addAll(HIDDEN_PRESETS);
+        }
+        ACTIVE_PRESETS.removeAll(HIDDEN_PRESETS);
+        hideGroupEnabled = stored.formatVersion >= 5 ? stored.hideEnabled : true;
+        applyState();
+    }
+
     private static Path pathFor(ClientWorld world) {
+        return pathFor(world, sessionOwner);
+    }
+
+    private static Path pathFor(ClientWorld world, String owner) {
         String dimension = world.getRegistryKey().getValue().toString();
-        return DIRECTORY.resolve(sha256(sessionOwner + "|" + dimension) + ".json");
+        return DIRECTORY.resolve(sha256(owner + "|" + dimension) + ".json");
+    }
+
+    private static String legacyOwnerFor(MinecraftClient client) {
+        return "singleplayer:" + client.getServer().getSaveProperties().getLevelName();
     }
 
     private static String normalize(String name) {

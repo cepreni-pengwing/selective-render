@@ -34,6 +34,9 @@ public final class PlotSquaredClient {
     private static long pendingRequest;
     private static long pendingSince;
     private static ClientWorld pendingWorld;
+    private static Integer pendingMinY;
+    private static Integer pendingMaxY;
+    private static int pendingXzMargin;
 
     private PlotSquaredClient() { }
 
@@ -48,6 +51,18 @@ public final class PlotSquaredClient {
     }
 
     public static int toggle() {
+        return toggleWithOptions(null, null, 0);
+    }
+
+    public static int toggle(int minY, int maxY, int xzMargin) {
+        if (minY > maxY) {
+            send(red("minY must not be greater than maxY"));
+            return 0;
+        }
+        return toggleWithOptions(minY, maxY, xzMargin);
+    }
+
+    private static int toggleWithOptions(Integer minY, Integer maxY, int xzMargin) {
         if (SelectiveRenderState.plotModeActive()) {
             if (SelectiveRenderState.plotRenderingEnabled()) {
                 SelectiveRenderState.disablePlotMode();
@@ -58,10 +73,11 @@ public final class PlotSquaredClient {
             }
             return Command.SINGLE_SUCCESS;
         }
-        return request(ACTION_TOGGLE, "", 0, 0);
+        return request(ACTION_TOGGLE, "", minY == null ? 0 : minY,
+                maxY == null ? 0 : maxY, minY, maxY, xzMargin);
     }
 
-    public static int save(String name, int minY, int maxY) {
+    public static int save(String name, int minY, int maxY, int xzMargin) {
         if (SelectiveRenderConfig.isReservedName(name)) {
             send(aqua(name), red(" is reserved"));
             return 0;
@@ -75,7 +91,7 @@ public final class PlotSquaredClient {
             send(red("minY must not be greater than maxY"));
             return 0;
         }
-        return request(ACTION_SAVE, name, minY, maxY);
+        return request(ACTION_SAVE, name, minY, maxY, minY, maxY, xzMargin);
     }
 
     public static void tick() {
@@ -84,7 +100,8 @@ public final class PlotSquaredClient {
         send(red("Selective Render Plots did not respond"));
     }
 
-    private static int request(int action, String name, int minY, int maxY) {
+    private static int request(int action, String name, int minY, int maxY,
+                               Integer requestedMinY, Integer requestedMaxY, int xzMargin) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null || client.player == null || client.getNetworkHandler() == null) return 0;
         if (!ClientPlayNetworking.canSend(REQUEST_CHANNEL)) {
@@ -102,6 +119,9 @@ public final class PlotSquaredClient {
         pendingRequest = requestId;
         pendingSince = Util.getMeasuringTimeMs();
         pendingWorld = client.world;
+        pendingMinY = requestedMinY;
+        pendingMaxY = requestedMaxY;
+        pendingXzMargin = xzMargin;
 
         PacketByteBuf buffer = PacketByteBufs.create();
         buffer.writeInt(MAGIC);
@@ -145,20 +165,25 @@ public final class PlotSquaredClient {
     private static void applyResponse(MinecraftClient client, ClientWorld responseWorld, long requestId,
                                       int status, String responseName, List<BlockRegion> regions) {
         if (requestId != pendingRequest || responseWorld == null || client.world != responseWorld) return;
+        Integer requestedMinY = pendingMinY;
+        Integer requestedMaxY = pendingMaxY;
+        int requestedMargin = pendingXzMargin;
         clearPending();
-        if (status == STATUS_TOGGLE && !regions.isEmpty()) {
-            SelectiveRenderState.activatePlotMode(regions);
+        List<BlockRegion> adjustedRegions = PlotRegionTransform.apply(
+                regions, requestedMinY, requestedMaxY, requestedMargin);
+        if (status == STATUS_TOGGLE && !adjustedRegions.isEmpty()) {
+            SelectiveRenderState.activatePlotMode(adjustedRegions);
             send(white("Plot "), aqua(responseName), green(" isolated"));
-        } else if (status == STATUS_SAVE && !regions.isEmpty()) {
+        } else if (status == STATUS_SAVE && !adjustedRegions.isEmpty()) {
             if (SelectiveRenderConfig.presetExists(responseName)) {
                 send(white("Preset "), aqua(responseName), red(" already exists"),
                         white(" · delete or rename it first"));
                 return;
             }
             SelectiveRenderState.resetPlotMode();
-            if (SelectiveRenderConfig.saveRegions(client, responseName, regions)) {
+            if (SelectiveRenderConfig.saveRegions(client, responseName, adjustedRegions)) {
                 send(white("Preset "), aqua(responseName), green(" saved"),
-                        gray(" · " + regions.size() + " part(s)"));
+                        gray(" · " + adjustedRegions.size() + " part(s)"));
             } else {
                 send(red("The plot preset could not be saved"));
             }
@@ -177,6 +202,9 @@ public final class PlotSquaredClient {
         pendingRequest = 0L;
         pendingSince = 0L;
         pendingWorld = null;
+        pendingMinY = null;
+        pendingMaxY = null;
+        pendingXzMargin = 0;
     }
 
     private static String readString(PacketByteBuf buffer) {

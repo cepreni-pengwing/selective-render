@@ -38,7 +38,7 @@ class RegionVisibilityTest {
 
     @Test
     void hiddenOnlyLeavesUnrelatedSectionsUnchanged() {
-        assertEquals(SectionVisibility.UNCHANGED,
+        assertEquals(SectionVisibility.FULL_VISIBLE,
                 RegionVisibility.classifySection(false, List.of(), List.of(OUTSIDE_HIDDEN), List.of(),
                         0, 0, 0));
         assertEquals(SectionVisibility.HIDDEN,
@@ -48,7 +48,7 @@ class RegionVisibilityTest {
 
     @Test
     void blockAlignedWhitelistHasNoPerBlockBoundaryWork() {
-        assertEquals(SectionVisibility.UNCHANGED,
+        assertEquals(SectionVisibility.FULL_VISIBLE,
                 RegionVisibility.classifySection(true, List.of(WHITELIST), List.of(), List.of(),
                         0, 0, 0));
         assertEquals(SectionVisibility.HIDDEN,

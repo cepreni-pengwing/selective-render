@@ -22,10 +22,12 @@ import java.util.Arrays;
 @Pseudo
 @Mixin(targets = "me.jellysquid.mods.sodium.client.world.WorldSlice", remap = false)
 abstract class WorldSliceMixin {
-    @Unique private static final int selectiverender$lightRadius = 14;
+    @Unique private static final int selectiverender$lightRadius = SelectiveRenderState.VIRTUAL_LIGHT_RADIUS;
     @Shadow @Final private ClientWorld world;
     @Shadow private BlockBox volume;
+    @Shadow public abstract BlockState getBlockState(int x, int y, int z);
     @Unique private byte[] selectiverender$virtualSkyLight;
+    @Unique private byte[] selectiverender$queuedLight;
     @Unique private int[] selectiverender$lightQueue;
     @Unique private int selectiverender$lightMinX;
     @Unique private int selectiverender$lightMinY;
@@ -92,7 +94,7 @@ abstract class WorldSliceMixin {
         int highest = SelectiveRenderState.highestVisibleOccluder(world, pos.getX(), pos.getZ());
         if (pos.getY() > highest) return 15;
         if (pos.getY() == highest
-                && !world.getBlockState(pos).isOpaqueFullCube(world, pos)) return 15;
+                && !selectiverender$getSourceBlockState(pos).isOpaqueFullCube(world, pos)) return 15;
 
         if (!selectiverender$virtualSkyPrepared) selectiverender$prepareVirtualSkyLight();
         int localX = pos.getX() - selectiverender$lightMinX;
@@ -129,8 +131,14 @@ abstract class WorldSliceMixin {
         if (selectiverender$lightQueue == null || selectiverender$lightQueue.length < cellCount) {
             selectiverender$lightQueue = new int[cellCount];
         }
+        if (selectiverender$queuedLight == null || selectiverender$queuedLight.length < cellCount) {
+            selectiverender$queuedLight = new byte[cellCount];
+        } else {
+            Arrays.fill(selectiverender$queuedLight, 0, cellCount, (byte) 0);
+        }
         int queueHead = 0;
         int queueTail = 0;
+        int queueSize = 0;
         BlockPos.Mutable cursor = new BlockPos.Mutable();
 
         for (int x = minX; x <= maxX; x++) {
@@ -142,7 +150,7 @@ abstract class WorldSliceMixin {
                 int localZ = z - minZ;
                 if (highest >= minY && highest <= maxY) {
                     cursor.set(x, highest, z);
-                    if (!world.getBlockState(cursor).isOpaqueFullCube(world, cursor)) {
+                    if (!selectiverender$getSourceBlockState(cursor).isOpaqueFullCube(world, cursor)) {
                         selectiverender$virtualSkyLight[
                                 selectiverender$lightIndex(localX, highest - minY, localZ)] = 15;
                     }
@@ -150,16 +158,21 @@ abstract class WorldSliceMixin {
                 for (int y = sourceY; y <= maxY; y++) {
                     int index = selectiverender$lightIndex(localX, y - minY, localZ);
                     selectiverender$virtualSkyLight[index] = 15;
-                    selectiverender$lightQueue[queueTail++] = index;
+                    selectiverender$lightQueue[queueTail] = index;
+                    queueTail = (queueTail + 1) % cellCount;
+                    selectiverender$queuedLight[index] = 1;
+                    queueSize++;
                 }
             }
         }
 
-        while (queueHead < queueTail) {
-            int currentIndex = selectiverender$lightQueue[queueHead++];
+        while (queueSize > 0) {
+            int currentIndex = selectiverender$lightQueue[queueHead];
+            queueHead = (queueHead + 1) % cellCount;
+            queueSize--;
+            selectiverender$queuedLight[currentIndex] = 0;
             int currentLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[currentIndex]);
             if (currentLight <= 1) continue;
-            int nextLight = currentLight - 1;
             int localX = currentIndex % selectiverender$lightSizeX;
             int yz = currentIndex / selectiverender$lightSizeX;
             int localZ = yz % selectiverender$lightSizeZ;
@@ -172,11 +185,18 @@ abstract class WorldSliceMixin {
                         || nextY < 0 || nextY >= selectiverender$lightSizeY
                         || nextZ < 0 || nextZ >= selectiverender$lightSizeZ) continue;
                 int nextIndex = selectiverender$lightIndex(nextX, nextY, nextZ);
-                if (Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]) >= nextLight
-                        || !selectiverender$isOpenStep(cursor,
-                        nextX + minX, nextY + minY, nextZ + minZ)) continue;
+                int opacity = selectiverender$opacity(cursor,
+                        nextX + minX, nextY + minY, nextZ + minZ);
+                int nextLight = currentLight - Math.max(1, opacity);
+                if (nextLight <= 0
+                        || Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]) >= nextLight) continue;
                 selectiverender$virtualSkyLight[nextIndex] = (byte) nextLight;
-                selectiverender$lightQueue[queueTail++] = nextIndex;
+                if (selectiverender$queuedLight[nextIndex] == 0) {
+                    selectiverender$lightQueue[queueTail] = nextIndex;
+                    queueTail = (queueTail + 1) % cellCount;
+                    selectiverender$queuedLight[nextIndex] = 1;
+                    queueSize++;
+                }
             }
         }
     }
@@ -187,9 +207,23 @@ abstract class WorldSliceMixin {
     }
 
     @Unique
-    private boolean selectiverender$isOpenStep(BlockPos.Mutable cursor, int x, int y, int z) {
+    private int selectiverender$opacity(BlockPos.Mutable cursor, int x, int y, int z) {
         cursor.set(x, y, z);
-        return !SelectiveRenderState.shouldRender(cursor)
-                || world.getBlockState(cursor).getOpacity(world, cursor) == 0;
+        if (!SelectiveRenderState.shouldRender(cursor)) return 0;
+        return Math.min(15, Math.max(0,
+                selectiverender$getSourceBlockState(cursor).getOpacity(world, cursor)));
+    }
+
+    @Unique
+    private BlockState selectiverender$getSourceBlockState(BlockPos pos) {
+        int x = pos.getX();
+        int y = pos.getY();
+        int z = pos.getZ();
+        if (x >= volume.getMinX() && x <= volume.getMaxX()
+                && y >= volume.getMinY() && y <= volume.getMaxY()
+                && z >= volume.getMinZ() && z <= volume.getMaxZ()) {
+            return getBlockState(x, y, z);
+        }
+        return world.getBlockState(pos);
     }
 }

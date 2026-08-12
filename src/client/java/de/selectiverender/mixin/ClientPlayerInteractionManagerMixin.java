@@ -7,7 +7,13 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.BucketItem;
+import net.minecraft.item.ArmorStandItem;
+import net.minecraft.item.BoatItem;
+import net.minecraft.item.DecorationItem;
+import net.minecraft.item.EndCrystalItem;
 import net.minecraft.item.Item;
+import net.minecraft.item.MinecartItem;
+import net.minecraft.item.SpawnEggItem;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -39,9 +45,33 @@ abstract class ClientPlayerInteractionManagerMixin {
                                                    BlockHitResult hit, CallbackInfoReturnable<ActionResult> cir) {
         BlockPos target = hit.getBlockPos();
         Item item = player.getStackInHand(hand).getItem();
-        boolean placesOutsideRenderedArea = (item instanceof BlockItem || item instanceof BucketItem)
+        boolean placesOutsideRenderedArea = isPlacementItem(item)
                 && !SelectiveRenderState.shouldRender(target.offset(hit.getSide()));
         if (!SelectiveRenderState.shouldRender(target) || placesOutsideRenderedArea) {
+            cir.setReturnValue(ActionResult.FAIL);
+        }
+    }
+
+    private static boolean isPlacementItem(Item item) {
+        return item instanceof BlockItem
+                || item instanceof BucketItem
+                || item instanceof ArmorStandItem
+                || item instanceof BoatItem
+                || item instanceof DecorationItem
+                || item instanceof EndCrystalItem
+                || item instanceof MinecartItem
+                || item instanceof SpawnEggItem;
+    }
+
+    @Inject(method = "interactItem", at = @At("HEAD"), cancellable = true)
+    private void selectiverender$blockUseItem(PlayerEntity player, Hand hand,
+                                               CallbackInfoReturnable<ActionResult> cir) {
+        net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
+        Item item = player.getStackInHand(hand).getItem();
+        if (client.crosshairTarget instanceof BlockHitResult hit
+                && (!SelectiveRenderState.shouldRender(hit.getBlockPos())
+                || isPlacementItem(item)
+                && !SelectiveRenderState.shouldRender(hit.getBlockPos().offset(hit.getSide())))) {
             cir.setReturnValue(ActionResult.FAIL);
         }
     }
