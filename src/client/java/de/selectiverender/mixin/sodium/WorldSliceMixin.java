@@ -1,12 +1,11 @@
 package de.selectiverender.mixin.sodium;
 
 import de.selectiverender.SelectiveRenderState;
-import de.selectiverender.VirtualSkySearch;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.BlockBox;
 import net.minecraft.world.LightType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -19,19 +18,25 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.HashMap;
+import java.util.ArrayDeque;
 import java.util.Map;
 
 @Pseudo
 @Mixin(targets = "me.jellysquid.mods.sodium.client.world.WorldSlice", remap = false)
 abstract class WorldSliceMixin {
     @Shadow @Final private ClientWorld world;
-    @Unique private final Map<Long, Integer> selectiverender$highestOccluders = new HashMap<>();
+    @Shadow private BlockBox volume;
     @Unique private final Map<Long, Integer> selectiverender$virtualSkyLight = new HashMap<>();
+    @Unique private boolean selectiverender$virtualSkyPrepared;
+    @Unique private static final int[][] selectiverender$directions = {
+            {1, 0, 0}, {-1, 0, 0}, {0, 1, 0},
+            {0, -1, 0}, {0, 0, 1}, {0, 0, -1}
+    };
 
     @Inject(method = "copyData", at = @At("HEAD"))
     private void selectiverender$clearLightCache(CallbackInfo ci) {
-        selectiverender$highestOccluders.clear();
         selectiverender$virtualSkyLight.clear();
+        selectiverender$virtualSkyPrepared = false;
     }
 
     @Inject(method = "getBlockState(III)Lnet/minecraft/block/BlockState;", at = @At("HEAD"), cancellable = true, remap = true)
@@ -75,16 +80,49 @@ abstract class WorldSliceMixin {
             return -1;
         }
 
-        return selectiverender$virtualSkyLight.computeIfAbsent(pos.asLong(), ignored ->
-                selectiverender$calculateVirtualSkyLight(pos));
+        if (!selectiverender$virtualSkyPrepared) selectiverender$prepareVirtualSkyLight(pos);
+        return selectiverender$virtualSkyLight.getOrDefault(pos.asLong(), 0);
     }
 
     @Unique
-    private int selectiverender$calculateVirtualSkyLight(BlockPos pos) {
+    private void selectiverender$prepareVirtualSkyLight(BlockPos origin) {
+        selectiverender$virtualSkyPrepared = true;
+        int minX = volume.getMinX();
+        int maxX = volume.getMaxX();
+        int minY = volume.getMinY();
+        int maxY = volume.getMaxY();
+        int minZ = volume.getMinZ();
+        int maxZ = volume.getMaxZ();
+        ArrayDeque<LightNode> queue = new ArrayDeque<>();
         BlockPos.Mutable cursor = new BlockPos.Mutable();
-        return VirtualSkySearch.find(pos.getX(), pos.getY(), pos.getZ(), 14,
-                (x, y, z) -> selectiverender$getHighestVisibleOccluder(x, z) <= y,
-                (x, y, z) -> selectiverender$isOpenStep(cursor, x, y, z));
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    if (SelectiveRenderState.shouldRender(x, y, z)) continue;
+                    long key = BlockPos.asLong(x, y, z);
+                    selectiverender$virtualSkyLight.put(key, 15);
+                    queue.addLast(new LightNode(x, y, z, 15));
+                }
+            }
+        }
+
+        while (!queue.isEmpty()) {
+            LightNode current = queue.removeFirst();
+            if (current.light <= 1) continue;
+            int nextLight = current.light - 1;
+            for (int[] direction : selectiverender$directions) {
+                int x = current.x + direction[0];
+                int y = current.y + direction[1];
+                int z = current.z + direction[2];
+                if (x < minX || x > maxX || y < minY || y > maxY || z < minZ || z > maxZ) continue;
+                long key = BlockPos.asLong(x, y, z);
+                if (selectiverender$virtualSkyLight.getOrDefault(key, 0) >= nextLight
+                        || !selectiverender$isOpenStep(cursor, x, y, z)) continue;
+                selectiverender$virtualSkyLight.put(key, nextLight);
+                queue.addLast(new LightNode(x, y, z, nextLight));
+            }
+        }
     }
 
     @Unique
@@ -95,24 +133,5 @@ abstract class WorldSliceMixin {
     }
 
     @Unique
-    private int selectiverender$getHighestVisibleOccluder(int x, int z) {
-        long column = ChunkPos.toLong(x, z);
-        return selectiverender$highestOccluders.computeIfAbsent(column, ignored -> {
-            BlockPos.Mutable cursor = new BlockPos.Mutable(x, 0, z);
-            int top = SelectiveRenderState.visibleColumnTop(
-                    x, z, world.getTopY() - 1);
-            int bottom = SelectiveRenderState.visibleColumnBottom(
-                    x, z, world.getBottomY());
-            if (top == Integer.MIN_VALUE || bottom == Integer.MAX_VALUE || bottom > top) {
-                return Integer.MIN_VALUE;
-            }
-            for (int y = top; y >= bottom; y--) {
-                cursor.setY(y);
-                if (!SelectiveRenderState.shouldRender(cursor)) continue;
-                BlockState state = world.getBlockState(cursor);
-                if (state.getOpacity(world, cursor) > 0) return y;
-            }
-            return Integer.MIN_VALUE;
-        });
-    }
+    private record LightNode(int x, int y, int z, int light) { }
 }

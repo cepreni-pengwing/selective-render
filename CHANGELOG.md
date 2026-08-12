@@ -2,11 +2,17 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.2-test.1
+## 1.7.2-test.2
 
 ### Fixed
 
-- Replaced the cardinal virtual-skylight approximation with bounded three-dimensional light-path search around visible overhangs.
+- Replaced per-sample virtual-skylight searches with one cached propagation pass per Sodium build volume.
+- Visible hide-group overrides are now included in Sodium section traversal outside the normal whitelist.
+
+### Changed
+
+- Render-group and hide-group keybinds now default to `F8` and `F9`.
+- Suffixed version tags are prereleases while plain version tags publish stable releases.
 
 ## 1.7.1
 

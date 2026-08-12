@@ -26,4 +26,12 @@ class RegionVisibilityTest {
         assertFalse(RegionVisibility.section(true, List.of(WHITELIST), List.of(WHITELIST),
                 List.of(), 0, 0, 0));
     }
+
+    @Test
+    void hiddenRegionWinsOverVisibleOverrideWhenBothAreActive() {
+        assertFalse(RegionVisibility.block(true, List.of(WHITELIST), List.of(OUTSIDE_HIDDEN),
+                List.of(OUTSIDE_HIDDEN), 32, 0, 0));
+        assertFalse(RegionVisibility.section(true, List.of(WHITELIST), List.of(OUTSIDE_HIDDEN),
+                List.of(OUTSIDE_HIDDEN), 2, 0, 0));
+    }
 }

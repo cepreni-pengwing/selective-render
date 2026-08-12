@@ -34,6 +34,12 @@ public final class SelectiveRenderState {
     public static List<BlockRegion> activeRegions() { return plotModeActive ? plotRegions : activeRegions; }
     public static List<BlockRegion> hiddenRegions() { return hiddenRegions; }
     public static List<BlockRegion> visibleOverrides() { return visibleOverrides; }
+    public static List<BlockRegion> traversalRegions() {
+        if (visibleOverrides.isEmpty()) return activeRegions();
+        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(activeRegions());
+        regions.addAll(visibleOverrides);
+        return regions;
+    }
     public static boolean enabled() {
         return plotModeActive
                 ? plotRenderingEnabled && !plotRegions.isEmpty()
@@ -101,8 +107,9 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRenderSection(int sectionX, int sectionY, int sectionZ) {
+        if (!enabled() && !hideEnabled()) return true;
         return RegionVisibility.section(enabled(), activeRegions(),
-                hideEnabled() ? hiddenRegions : List.of(), visibleOverrides,
+                hideEnabled() ? hiddenRegions : List.of(), enabled() ? visibleOverrides : List.of(),
                 sectionX, sectionY, sectionZ);
     }
 
@@ -115,8 +122,9 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(int blockX, int blockY, int blockZ) {
+        if (!enabled() && !hideEnabled()) return true;
         return RegionVisibility.block(enabled(), activeRegions(),
-                hideEnabled() ? hiddenRegions : List.of(), visibleOverrides,
+                hideEnabled() ? hiddenRegions : List.of(), enabled() ? visibleOverrides : List.of(),
                 blockX, blockY, blockZ);
     }
 
@@ -242,7 +250,7 @@ public final class SelectiveRenderState {
     }
 
     private static List<BlockRegion> visibleRegions() {
-        if (visibleOverrides.isEmpty()) return activeRegions();
+        if (!enabled() || visibleOverrides.isEmpty()) return activeRegions();
         java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(activeRegions());
         regions.addAll(visibleOverrides);
         return regions;

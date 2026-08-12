@@ -54,7 +54,7 @@ abstract class OcclusionCullerMixin {
         int maxLoadedY = (world.getTopY() - 1) >> 4;
         LongOpenHashSet visited = new LongOpenHashSet();
 
-        for (BlockRegion region : SelectiveRenderState.activeRegions()) {
+        for (BlockRegion region : SelectiveRenderState.traversalRegions()) {
             int minX = Math.max(Math.floorDiv(region.minX(), 16), cameraSectionX - radius);
             int maxX = Math.min(Math.floorDiv(region.maxX(), 16), cameraSectionX + radius);
             int minY = Math.max(Math.floorDiv(region.minY(), 16), minLoadedY);

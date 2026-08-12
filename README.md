@@ -77,8 +77,8 @@ render group is disabled, the hide group can remove regions from the full world.
 
 Default keybinds:
 
-- `ß`: toggle the render group
-- `´`: toggle the hide group
+- `F8`: toggle the render group
+- `F9`: toggle the hide group
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category. Position 1 and position 2 are unassigned by default.

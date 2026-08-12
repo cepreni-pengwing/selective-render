@@ -29,11 +29,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("selectiverender");
     private static final KeyBinding TOGGLE_KEY = new KeyBinding(
             "key.selectiverender.toggle",
-            GLFW.GLFW_KEY_MINUS,
+            GLFW.GLFW_KEY_F8,
             "category.selectiverender");
     private static final KeyBinding HIDE_TOGGLE_KEY = new KeyBinding(
             "key.selectiverender.toggle_hide",
-            GLFW.GLFW_KEY_EQUAL,
+            GLFW.GLFW_KEY_F9,
             "category.selectiverender");
     private static final KeyBinding POS1_KEY = new KeyBinding(
             "key.selectiverender.pos1",
