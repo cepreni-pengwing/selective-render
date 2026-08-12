@@ -2,10 +2,11 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.2-test.6
+## 1.7.2-test.7
 
 ### Fixed
 
+- Applied virtual skylight to the topmost visible non-full surface block without propagating light through it.
 - Removed 16-block lighting seams by preserving full skylight through unobstructed vertical columns and propagating it through a 14-block halo around each Sodium build volume.
 - Replaced boxed light maps and queue nodes with fixed primitive arrays to bound allocation and chunk-build overhead.
 - Corrected the exact `WorldRenderer.updateBlock(BlockView, ...)` mixin descriptor that prevented `test.3` and `test.4` from starting.

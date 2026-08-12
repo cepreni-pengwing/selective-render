@@ -123,6 +123,13 @@ abstract class WorldSliceMixin {
                 if (sourceY > maxY) continue;
                 int localX = x - minX;
                 int localZ = z - minZ;
+                if (highest >= minY && highest <= maxY) {
+                    cursor.set(x, highest, z);
+                    if (!world.getBlockState(cursor).isOpaqueFullCube(world, cursor)) {
+                        selectiverender$virtualSkyLight[
+                                selectiverender$lightIndex(localX, highest - minY, localZ)] = 15;
+                    }
+                }
                 for (int y = sourceY; y <= maxY; y++) {
                     int index = selectiverender$lightIndex(localX, y - minY, localZ);
                     selectiverender$virtualSkyLight[index] = 15;
