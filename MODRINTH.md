@@ -63,7 +63,8 @@ changed under Controls > Selective Render.
 
 ## PlotSquared integration
 
-With a compatible Selective Render Plots bridge installed on the server:
+With the compatible [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots)
+bridge installed on the server:
 
 ```text
 /sr p
