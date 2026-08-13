@@ -12,7 +12,6 @@ import net.minecraft.block.BlockState;
 import net.minecraft.util.math.Direction;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -37,22 +36,10 @@ abstract class BlockRendererMixin {
         if (SelectiveRenderSettings.boundaryMode()
                 != SelectiveRenderSettings.BoundaryMode.COLORED) return;
         Direction direction = quad.getLightFace();
-        if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)
-                || !selectiverender$isBoundaryPlane(quad, direction)) return;
-        Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 204, 255, 255));
-    }
-
-    @Unique
-    private static boolean selectiverender$isBoundaryPlane(BakedQuadView quad, Direction direction) {
-        float expected = direction.getDirection() == Direction.AxisDirection.POSITIVE ? 1.0f : 0.0f;
-        for (int vertex = 0; vertex < 4; vertex++) {
-            float coordinate = switch (direction.getAxis()) {
-                case X -> quad.getX(vertex);
-                case Y -> quad.getY(vertex);
-                case Z -> quad.getZ(vertex);
-            };
-            if (Math.abs(coordinate - expected) > 0.0001f) return false;
-        }
-        return true;
+        if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
+        Arrays.fill(cir.getReturnValue(), ColorABGR.pack(
+                SelectiveRenderSettings.boundaryRed(),
+                SelectiveRenderSettings.boundaryGreen(),
+                SelectiveRenderSettings.boundaryBlue(), 255));
     }
 }

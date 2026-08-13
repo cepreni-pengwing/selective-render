@@ -18,6 +18,9 @@ public final class SelectiveRenderSettings {
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean debugBoxes;
+    private static volatile int boundaryRed = 255;
+    private static volatile int boundaryGreen;
+    private static volatile int boundaryBlue = 255;
 
     private SelectiveRenderSettings() { }
 
@@ -30,6 +33,9 @@ public final class SelectiveRenderSettings {
                     ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
             boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
             debugBoxes = stored.debugBoxes;
+            boundaryRed = stored.boundaryRed == null ? 255 : clamp(stored.boundaryRed);
+            boundaryGreen = stored.boundaryGreen == null ? 0 : clamp(stored.boundaryGreen);
+            boundaryBlue = stored.boundaryBlue == null ? 255 : clamp(stored.boundaryBlue);
         } catch (IOException | RuntimeException exception) {
             SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", PATH, exception);
         }
@@ -38,6 +44,9 @@ public final class SelectiveRenderSettings {
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
     public static boolean debugBoxes() { return debugBoxes; }
+    public static int boundaryRed() { return boundaryRed; }
+    public static int boundaryGreen() { return boundaryGreen; }
+    public static int boundaryBlue() { return boundaryBlue; }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
         playerVisibility = value;
@@ -56,6 +65,18 @@ public final class SelectiveRenderSettings {
         save();
     }
 
+    public static void setBoundaryColor(int red, int green, int blue) {
+        int nextRed = clamp(red);
+        int nextGreen = clamp(green);
+        int nextBlue = clamp(blue);
+        if (boundaryRed == nextRed && boundaryGreen == nextGreen && boundaryBlue == nextBlue) return;
+        boundaryRed = nextRed;
+        boundaryGreen = nextGreen;
+        boundaryBlue = nextBlue;
+        save();
+        SelectiveRenderState.refreshRenderer();
+    }
+
     private static void save() {
         try {
             Files.createDirectories(PATH.getParent());
@@ -63,12 +84,19 @@ public final class SelectiveRenderSettings {
             stored.playerVisibility = playerVisibility;
             stored.boundaryMode = boundaryMode;
             stored.debugBoxes = debugBoxes;
+            stored.boundaryRed = boundaryRed;
+            stored.boundaryGreen = boundaryGreen;
+            stored.boundaryBlue = boundaryBlue;
             try (Writer writer = Files.newBufferedWriter(PATH, StandardCharsets.UTF_8)) {
                 GSON.toJson(stored, writer);
             }
         } catch (IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not save selective render settings {}", PATH, exception);
         }
+    }
+
+    private static int clamp(int value) {
+        return Math.max(0, Math.min(255, value));
     }
 
     public enum PlayerVisibility {
@@ -100,5 +128,8 @@ public final class SelectiveRenderSettings {
         PlayerVisibility playerVisibility;
         BoundaryMode boundaryMode;
         boolean debugBoxes;
+        Integer boundaryRed;
+        Integer boundaryGreen;
+        Integer boundaryBlue;
     }
 }

@@ -127,7 +127,7 @@ hitboxes follow the same setting. Every other entity, block entity, and particle
 the combined active regions.
 
 The settings screen configures block faces directly adjacent to invisible space as normal exposed
-cut faces, culled faces, or cyan-colored boundary faces. Region wireframe boxes remain available
+cut faces, culled faces, or RGB-colored boundary faces. Region wireframe boxes remain available
 as a separate off/on debug option.
 
 World content filtered by either the render group or active hide regions also

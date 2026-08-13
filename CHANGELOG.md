@@ -2,13 +2,24 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7-test.3
+
+### Added
+
+- Added RGB sliders, a color preview, and a hex display for colored boundary faces.
+
+### Fixed
+
+- Applied Sodium boundary tinting to all directional boundary quads instead of requiring exact
+  full-block plane coordinates, covering partial and custom model geometry more reliably.
+
 ## 1.7.7-test.2
 
 ### Changed
 
 - Replaced the initial region-box styling controls with block-face boundary modes.
 - `Normal` preserves exposed cut faces, `Culled` removes faces adjacent to invisible space,
-  and `Colored` marks those exact boundary faces in cyan.
+  and `Colored` marks those exact boundary faces with the configured color.
 - Kept region wireframe boxes as a separate simple off/on debug option without color controls.
 
 ## 1.7.7-test.1

@@ -40,9 +40,9 @@ abstract class BlockModelRendererMixin {
             target = "Lnet/minecraft/client/render/VertexConsumer;quad(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/render/model/BakedQuad;[FFFF[IIZ)V"))
     private void selectiverender$colorBoundaryQuad(Args args) {
         if (!selectiverender$coloredBoundary.get()) return;
-        args.set(3, 0.0f);
-        args.set(4, 0.8f);
-        args.set(5, 1.0f);
+        args.set(3, SelectiveRenderSettings.boundaryRed() / 255.0f);
+        args.set(4, SelectiveRenderSettings.boundaryGreen() / 255.0f);
+        args.set(5, SelectiveRenderSettings.boundaryBlue() / 255.0f);
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))
