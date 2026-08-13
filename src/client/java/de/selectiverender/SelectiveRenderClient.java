@@ -47,15 +47,22 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.toggle_plot",
             GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
+    private static final KeyBinding SETTINGS_KEY = new KeyBinding(
+            "key.selectiverender.settings",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
+        SelectiveRenderSettings.load();
+        RegionBorderRenderer.initialize();
         PlotSquaredClient.initialize();
         KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(POS1_KEY);
         KeyBindingHelper.registerKeyBinding(POS2_KEY);
         KeyBindingHelper.registerKeyBinding(PLOT_TOGGLE_KEY);
+        KeyBindingHelper.registerKeyBinding(SETTINGS_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
@@ -63,6 +70,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (POS1_KEY.wasPressed()) setPositionFromKey(client, true);
             while (POS2_KEY.wasPressed()) setPositionFromKey(client, false);
             while (PLOT_TOGGLE_KEY.wasPressed()) PlotSquaredClient.toggle();
+            while (SETTINGS_KEY.wasPressed()) {
+                if (client.currentScreen == null) {
+                    client.setScreen(new SelectiveRenderSettingsScreen(null));
+                }
+            }
         });
 
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {
@@ -242,7 +254,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static int toggle(FabricClientCommandSource source, String name) {
         boolean toggled = name == null
                 ? (SelectiveRenderState.plotModeActive()
-                    ? SelectiveRenderState.togglePlotRendering()
+                    ? togglePlotRenderingWithHidden(MinecraftClient.getInstance())
                     : SelectiveRenderConfig.toggleCurrent(MinecraftClient.getInstance()))
                 : SelectiveRenderConfig.togglePreset(MinecraftClient.getInstance(), name);
         if (!toggled) {
@@ -252,6 +264,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             return 0;
         }
         if (name == null) {
+            boolean enabled = SelectiveRenderState.plotModeActive()
+                    ? SelectiveRenderState.plotRenderingEnabled()
+                    : SelectiveRenderConfig.groupEnabled();
+            overlay(message(white(SelectiveRenderState.plotModeActive() ? "Plot rendering " : "Render group "),
+                    enabled ? green("enabled") : red("disabled")));
             return Command.SINGLE_SUCCESS;
         } else {
             boolean active = SelectiveRenderConfig.isPresetActive(name);
@@ -283,6 +300,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             return 0;
         }
         if (name == null) {
+            overlay(message(white("Hide group "), SelectiveRenderConfig.hideGroupEnabled()
+                    ? green("enabled") : red("disabled")));
             return Command.SINGLE_SUCCESS;
         } else {
             boolean hidden = SelectiveRenderConfig.isHiddenPresetActive(name);
@@ -362,12 +381,17 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static void toggleFromKey(MinecraftClient client) {
         if (client.player == null) return;
         boolean toggled = SelectiveRenderState.plotModeActive()
-                ? SelectiveRenderState.togglePlotRendering()
+                ? togglePlotRenderingWithHidden(client)
                 : SelectiveRenderConfig.toggleCurrent(client);
         if (!toggled) {
             client.player.sendMessage(message(red("No presets in the render group.")), false);
             return;
         }
+        boolean enabled = SelectiveRenderState.plotModeActive()
+                ? SelectiveRenderState.plotRenderingEnabled()
+                : SelectiveRenderConfig.groupEnabled();
+        overlay(message(white(SelectiveRenderState.plotModeActive() ? "Plot rendering " : "Render group "),
+                enabled ? green("enabled") : red("disabled")));
     }
 
     private static void toggleHideFromKey(MinecraftClient client) {
@@ -376,6 +400,20 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             client.player.sendMessage(message(red("No presets in the hide group.")), false);
             return;
         }
+        overlay(message(white("Hide group "), SelectiveRenderConfig.hideGroupEnabled()
+                ? green("enabled") : red("disabled")));
+    }
+
+    private static boolean togglePlotRenderingWithHidden(MinecraftClient client) {
+        if (!SelectiveRenderState.plotRenderingEnabled()) {
+            SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
+        }
+        return SelectiveRenderState.togglePlotRendering();
+    }
+
+    public static void overlay(Text message) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.inGameHud != null) client.inGameHud.setOverlayMessage(message, false);
     }
 
     private static void feedback(FabricClientCommandSource source, Text message) {

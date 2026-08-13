@@ -128,6 +128,7 @@ public final class SelectiveRenderConfig {
         if (ACTIVE_PRESETS.isEmpty()) return false;
         boolean wasEnabled = groupEnabled;
         groupEnabled = !groupEnabled;
+        if (groupEnabled && !ACTIVE_HIDDEN_PRESETS.isEmpty()) hideGroupEnabled = true;
         applyState();
         if (wasEnabled) {
             SelectiveRenderState.refreshRenderer();
@@ -304,6 +305,14 @@ public final class SelectiveRenderConfig {
 
     private static void write(MinecraftClient client) {
         write(client, true);
+    }
+
+    public static boolean enableHiddenGroupForIsolation(MinecraftClient client) {
+        if (ACTIVE_HIDDEN_PRESETS.isEmpty() || hideGroupEnabled) return false;
+        hideGroupEnabled = true;
+        applyState();
+        write(client);
+        return true;
     }
 
     private static void write(MinecraftClient client, boolean backupExisting) {

@@ -66,10 +66,11 @@ public final class PlotSquaredClient {
         if (SelectiveRenderState.plotModeActive()) {
             if (SelectiveRenderState.plotRenderingEnabled()) {
                 SelectiveRenderState.disablePlotMode();
-                send(white("Plot mode "), red("disabled"));
+                overlay(white("Plot mode "), red("disabled"));
             } else {
+                SelectiveRenderConfig.enableHiddenGroupForIsolation(MinecraftClient.getInstance());
                 SelectiveRenderState.activatePlotMode(SelectiveRenderState.plotRegions());
-                send(white("Plot mode "), green("enabled"));
+                overlay(white("Plot mode "), green("enabled"));
             }
             return Command.SINGLE_SUCCESS;
         }
@@ -172,8 +173,9 @@ public final class PlotSquaredClient {
         List<BlockRegion> adjustedRegions = PlotRegionTransform.apply(
                 regions, requestedMinY, requestedMaxY, requestedMargin);
         if (status == STATUS_TOGGLE && !adjustedRegions.isEmpty()) {
+            SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
             SelectiveRenderState.activatePlotMode(adjustedRegions);
-            send(white("Plot "), aqua(responseName), green(" isolated"));
+            overlay(white("Plot "), aqua(responseName), green(" isolated"));
         } else if (status == STATUS_SAVE && !adjustedRegions.isEmpty()) {
             if (SelectiveRenderConfig.presetExists(responseName)) {
                 send(white("Preset "), aqua(responseName), red(" already exists"),
@@ -223,6 +225,12 @@ public final class PlotSquaredClient {
         MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
         for (Text part : parts) message.append(part);
         client.player.sendMessage(message, false);
+    }
+
+    private static void overlay(Text... parts) {
+        MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
+        for (Text part : parts) message.append(part);
+        SelectiveRenderClient.overlay(message);
     }
 
     private static MutableText white(String text) { return Text.literal(text).formatted(Formatting.WHITE); }

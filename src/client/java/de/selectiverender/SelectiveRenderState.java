@@ -207,7 +207,21 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(Entity entity) {
-        return entity instanceof PlayerEntity || shouldRender(entity.getX(), entity.getY(), entity.getZ());
+        boolean inside = shouldRender(entity.getX(), entity.getY(), entity.getZ());
+        if (!(entity instanceof PlayerEntity)) return inside;
+        return switch (SelectiveRenderSettings.playerVisibility()) {
+            case NONE -> false;
+            case INSIDE -> inside;
+            case OUTSIDE -> !inside;
+            case EVERYWHERE -> true;
+        };
+    }
+
+    public static List<BlockRegion> borderRegions() {
+        VisibilitySnapshot snapshot = visibility;
+        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(snapshot.traversalRegions());
+        if (snapshot.hideEnabled()) regions.addAll(snapshot.hiddenRegions());
+        return List.copyOf(regions);
     }
 
     public static int highestVisibleOccluder(ClientWorld world, int blockX, int blockZ) {

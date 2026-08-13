@@ -2,6 +2,25 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7-test.1
+
+### Added
+
+- Added configurable player visibility modes: none, inside regions, outside regions, and everywhere.
+- Added region border rendering with off, normal, and see-through modes plus RGB color controls.
+- Added an unassigned keybind for the new Selective Render settings screen.
+- Added HUD overlay feedback for global render, hide, and plot toggles without adding chat noise.
+
+### Changed
+
+- Enabling render or plot isolation now also enables selected hide regions automatically.
+- Precomputed compact per-build-volume opacity masks for virtual skylight propagation.
+
+### Fixed
+
+- Initialized virtual skylight columns from each visible block's actual opacity so partial,
+  translucent, and modded blocks no longer become binary full-column occluders.
+
 ## 1.7.6
 
 ### Added

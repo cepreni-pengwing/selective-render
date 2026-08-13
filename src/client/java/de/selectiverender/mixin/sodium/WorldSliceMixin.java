@@ -7,6 +7,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.world.LightType;
+import net.minecraft.world.Heightmap;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -28,6 +29,7 @@ abstract class WorldSliceMixin {
     @Shadow public abstract BlockState getBlockState(int x, int y, int z);
     @Unique private byte[] selectiverender$virtualSkyLight;
     @Unique private byte[] selectiverender$queuedLight;
+    @Unique private byte[] selectiverender$lightOpacity;
     @Unique private int[] selectiverender$lightQueue;
     @Unique private int selectiverender$lightMinX;
     @Unique private int selectiverender$lightMinY;
@@ -36,6 +38,7 @@ abstract class WorldSliceMixin {
     @Unique private int selectiverender$lightSizeY;
     @Unique private int selectiverender$lightSizeZ;
     @Unique private boolean selectiverender$virtualSkyPrepared;
+    @Unique private boolean selectiverender$sourceRead;
     @Unique private static final int[][] selectiverender$directions = {
             {1, 0, 0}, {-1, 0, 0}, {0, 1, 0},
             {0, -1, 0}, {0, 0, 1}, {0, 0, -1}
@@ -48,6 +51,7 @@ abstract class WorldSliceMixin {
 
     @Inject(method = "getBlockState(III)Lnet/minecraft/block/BlockState;", at = @At("HEAD"), cancellable = true, remap = true)
     private void selectiverender$filterBlockState(int x, int y, int z, CallbackInfoReturnable<BlockState> cir) {
+        if (selectiverender$sourceRead) return;
         if (!SelectiveRenderState.shouldRender(x, y, z)) {
             cir.setReturnValue(Blocks.AIR.getDefaultState());
         }
@@ -91,11 +95,6 @@ abstract class WorldSliceMixin {
                 pos.getX(), pos.getZ(), selectiverender$lightRadius)) return -1;
         if (!SelectiveRenderState.shouldRender(pos)) return -1;
 
-        int highest = SelectiveRenderState.highestVisibleOccluder(world, pos.getX(), pos.getZ());
-        if (pos.getY() > highest) return 15;
-        if (pos.getY() == highest
-                && !selectiverender$getSourceBlockState(pos).isOpaqueFullCube(world, pos)) return 15;
-
         if (!selectiverender$virtualSkyPrepared) selectiverender$prepareVirtualSkyLight();
         int localX = pos.getX() - selectiverender$lightMinX;
         int localY = pos.getY() - selectiverender$lightMinY;
@@ -136,28 +135,42 @@ abstract class WorldSliceMixin {
         } else {
             Arrays.fill(selectiverender$queuedLight, 0, cellCount, (byte) 0);
         }
+        if (selectiverender$lightOpacity == null || selectiverender$lightOpacity.length < cellCount) {
+            selectiverender$lightOpacity = new byte[cellCount];
+        }
         int queueHead = 0;
         int queueTail = 0;
         int queueSize = 0;
         BlockPos.Mutable cursor = new BlockPos.Mutable();
 
+        for (int y = minY; y <= maxY; y++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int x = minX; x <= maxX; x++) {
+                    selectiverender$lightOpacity[selectiverender$lightIndex(
+                            x - minX, y - minY, z - minZ)] = (byte)
+                            selectiverender$sourceOpacity(cursor, x, y, z);
+                }
+            }
+        }
+
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
-                int highest = SelectiveRenderState.highestVisibleOccluder(world, x, z);
-                int sourceY = highest == Integer.MIN_VALUE ? minY : Math.max(minY, highest + 1);
-                if (sourceY > maxY) continue;
                 int localX = x - minX;
                 int localZ = z - minZ;
-                if (highest >= minY && highest <= maxY) {
-                    cursor.set(x, highest, z);
-                    if (!selectiverender$getSourceBlockState(cursor).isOpaqueFullCube(world, cursor)) {
-                        selectiverender$virtualSkyLight[
-                                selectiverender$lightIndex(localX, highest - minY, localZ)] = 15;
-                    }
-                }
-                for (int y = sourceY; y <= maxY; y++) {
+                int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
+                int visibleTop = SelectiveRenderState.visibleColumnTop(x, z,
+                        Math.min(world.getTopY() - 1, worldSurface));
+                int scanTop = visibleTop == Integer.MIN_VALUE ? maxY : Math.max(maxY, visibleTop);
+                int directLight = 15;
+                for (int y = scanTop; y >= minY; y--) {
+                    directLight = de.selectiverender.SkyLightColumn.passDown(directLight,
+                            y <= maxY
+                                    ? Byte.toUnsignedInt(selectiverender$lightOpacity[
+                                    selectiverender$lightIndex(localX, y - minY, localZ)])
+                                    : selectiverender$sourceOpacity(cursor, x, y, z));
+                    if (y > maxY || directLight <= 0) continue;
                     int index = selectiverender$lightIndex(localX, y - minY, localZ);
-                    selectiverender$virtualSkyLight[index] = 15;
+                    selectiverender$virtualSkyLight[index] = (byte) directLight;
                     selectiverender$lightQueue[queueTail] = index;
                     queueTail = (queueTail + 1) % cellCount;
                     selectiverender$queuedLight[index] = 1;
@@ -185,8 +198,7 @@ abstract class WorldSliceMixin {
                         || nextY < 0 || nextY >= selectiverender$lightSizeY
                         || nextZ < 0 || nextZ >= selectiverender$lightSizeZ) continue;
                 int nextIndex = selectiverender$lightIndex(nextX, nextY, nextZ);
-                int opacity = selectiverender$opacity(cursor,
-                        nextX + minX, nextY + minY, nextZ + minZ);
+                int opacity = Byte.toUnsignedInt(selectiverender$lightOpacity[nextIndex]);
                 int nextLight = currentLight - Math.max(1, opacity);
                 if (nextLight <= 0
                         || Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]) >= nextLight) continue;
@@ -207,7 +219,7 @@ abstract class WorldSliceMixin {
     }
 
     @Unique
-    private int selectiverender$opacity(BlockPos.Mutable cursor, int x, int y, int z) {
+    private int selectiverender$sourceOpacity(BlockPos.Mutable cursor, int x, int y, int z) {
         cursor.set(x, y, z);
         if (!SelectiveRenderState.shouldRender(cursor)) return 0;
         return Math.min(15, Math.max(0,
@@ -223,7 +235,12 @@ abstract class WorldSliceMixin {
         if (x >= volume.getMinX() && x <= volume.getMaxX()
                 && y >= volume.getMinY() && y <= volume.getMaxY()
                 && z >= volume.getMinZ() && z <= volume.getMaxZ()) {
-            state = getBlockState(x, y, z);
+            selectiverender$sourceRead = true;
+            try {
+                state = getBlockState(x, y, z);
+            } finally {
+                selectiverender$sourceRead = false;
+            }
         }
         if (state == null) state = world.getBlockState(pos);
         return state == null ? Blocks.AIR.getDefaultState() : state;

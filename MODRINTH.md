@@ -55,10 +55,12 @@ The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
 Hide presets remove selected cuboids while leaving the rest of the world visible.
 They are useful for temporary block palettes, scaffolding, or unwanted structures.
 Filtered blocks cannot be broken, used, placed against, or picked, but collision
-is intentionally unchanged. Players always remain visible.
+is intentionally unchanged. Player visibility can be set to none, inside regions,
+outside regions, or everywhere; debug hitboxes follow the same setting.
 
 Default keybinds are F8 for the render group and F9 for the hide group. Position
-selection and PlotSquared toggling are unassigned by default. All bindings can be
+selection, PlotSquared toggling, and the settings screen are unassigned by default. The settings
+screen also controls normal or see-through region borders and their RGB color. All bindings can be
 changed under Controls > Selective Render.
 
 ## PlotSquared integration

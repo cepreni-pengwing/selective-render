@@ -11,8 +11,8 @@ Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps load
 chunks, network traffic, world state, and collision unchanged while removing
 everything outside selected three-dimensional block regions from the render lists.
 This prevents hidden buildings and terrain from contributing geometry, lighting,
-or shader shadows outside the selected area. Players remain visible everywhere;
-all other entities, block entities, particles, block models, and fluids are
+or shader shadows outside the selected area. Player visibility is configurable;
+other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
 For requests regarding support for other Minecraft versions, contact `cepreni` on Discord.
@@ -59,12 +59,12 @@ Available short commands:
 - `/sr t` enables or disables the entire render group while preserving its members.
 - `/sr t all` or `/sr t a` deselects every regular preset when any are selected; when none are
   selected, it selects all regular presets.
-- Global render toggles and the render keybind do not post success messages in chat.
+- Global render toggles and the render keybind use a HUD overlay instead of chat.
 - `/sr h NAME` registers a preset in the hide context and toggles its selected state.
 - `/sr h` enables or disables the entire hide group while preserving its members.
 - `/sr h all` or `/sr h a` deselects every hide preset when any are selected; when none are
   selected, it selects all registered hide presets.
-  Global hide toggles and the hide keybind do not post success messages in chat.
+  Global hide toggles and the hide keybind use a HUD overlay instead of chat.
 - `/sr d NAME` permanently deletes a preset.
 - `/sr r OLDNAME NEWNAME` renames a preset while preserving its group memberships.
 - `/sr list` displays regular presets on separate lines with status and a corner coordinate.
@@ -83,7 +83,7 @@ Default keybinds:
 
 - `F8`: toggle the render group
 - `F9`: toggle the hide group
-- Unassigned: set Pos1, set Pos2, and toggle the current PlotSquared region
+- Unassigned: set Pos1, set Pos2, toggle the current PlotSquared region, and open settings
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.
@@ -122,8 +122,12 @@ Writes are atomic and preserve the previous file as a `.json.bak` backup. If the
 primary file is damaged, Selective Render attempts to recover the latest valid
 backup automatically.
 
-Players are always rendered. Every other entity, block entity, and particle is
-hidden outside the combined active regions.
+Players can be rendered nowhere, inside regions, outside regions, or everywhere. Their debug
+hitboxes follow the same setting. Every other entity, block entity, and particle is hidden outside
+the combined active regions.
+
+The settings screen also configures region borders as off, normally depth-tested, or see-through,
+with independent red, green, and blue color controls.
 
 World content filtered by either the render group or active hide regions also
 rejects client interactions before they reach the server, including block
@@ -192,7 +196,6 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 - Selective Render does not change render distance, chunk loading, or server network traffic.
 - Selected regions must already be inside the normal client render distance.
-- Players remain visible everywhere; this is currently not configurable.
 - Selective filtering deliberately changes which sections participate in occlusion culling.
 - Very large or numerous simultaneous region changes can still increase section
   rebuild and virtual-light work while the new visibility state is applied.
