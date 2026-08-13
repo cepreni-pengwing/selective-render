@@ -57,10 +57,7 @@ abstract class BlockRendererMixin {
         }
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
         selectiverender$solidColor.set(true);
-        Arrays.fill(cir.getReturnValue(), ColorABGR.pack(
-                SelectiveRenderSettings.boundaryRed(),
-                SelectiveRenderSettings.boundaryGreen(),
-                SelectiveRenderSettings.boundaryBlue(), 255));
+        Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
     }
 
     @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",

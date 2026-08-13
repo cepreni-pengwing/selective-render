@@ -52,9 +52,9 @@ abstract class BlockModelRendererMixin {
         }
         args.set(1, new BakedQuad(vertexData, quad.getColorIndex(), quad.getFace(),
                 quad.getSprite(), quad.hasShade()));
-        args.set(3, SelectiveRenderSettings.boundaryRed() / 255.0f);
-        args.set(4, SelectiveRenderSettings.boundaryGreen() / 255.0f);
-        args.set(5, SelectiveRenderSettings.boundaryBlue() / 255.0f);
+        args.set(3, 0.0f);
+        args.set(4, 0.0f);
+        args.set(5, 0.0f);
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))

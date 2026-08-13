@@ -31,10 +31,7 @@ abstract class AbstractBlockRenderContextMixin {
             if (direction == null || !selectiverender$isOnBlockFace(quad, direction)) return;
         }
         if (!SelectiveRenderState.isBoundaryFace(position, direction)) return;
-        int color = 0xFF000000
-                | SelectiveRenderSettings.boundaryRed() << 16
-                | SelectiveRenderSettings.boundaryGreen() << 8
-                | SelectiveRenderSettings.boundaryBlue();
+        int color = 0xFF000000;
         quad.color(color, color, color, color);
         float u = BoundaryColorTexture.u();
         float v = BoundaryColorTexture.v();

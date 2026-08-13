@@ -2,6 +2,28 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7
+
+### Added
+
+- Added configurable player visibility modes for nowhere, inside regions, outside regions, or
+  everywhere, including matching debug-hitbox visibility.
+- Added an unassigned keybind and settings screen for player visibility, boundary faces, and the
+  separate region-box debug view.
+- Added HUD overlay feedback for global render, hide, and plot toggles without chat noise.
+- Added `Normal`, `Culled`, and `Colored` boundary-face modes. `Colored` renders a fully opaque black
+  cut surface across Vanilla, Sodium, and Indium model paths.
+
+### Changed
+
+- Enabling render or plot isolation now also enables selected hide regions automatically.
+- Improved virtual-skylight opacity handling for partial, translucent, and modded blocks.
+
+### Fixed
+
+- Prevented selected hide regions from silently conflicting with newly enabled render isolation.
+- Used actual boundary-face directions for Sodium and custom Fabric Renderer API models.
+
 ## 1.7.7-test.6
 
 ### Changed
