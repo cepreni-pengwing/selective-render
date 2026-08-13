@@ -2,6 +2,13 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7-test.5
+
+### Fixed
+
+- Moved the shared Indium render context outside the reserved Mixin package so custom-model chunk
+  meshing no longer fails with an `IllegalClassLoadError`.
+
 ## 1.7.7-test.4
 
 ### Added

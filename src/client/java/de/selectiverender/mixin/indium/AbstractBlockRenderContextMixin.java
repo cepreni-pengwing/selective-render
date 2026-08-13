@@ -1,5 +1,6 @@
 package de.selectiverender.mixin.indium;
 
+import de.selectiverender.IndiumRenderContext;
 import de.selectiverender.SelectiveRenderSettings;
 import de.selectiverender.SelectiveRenderState;
 import net.fabricmc.fabric.api.renderer.v1.mesh.MutableQuadView;
