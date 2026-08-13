@@ -126,8 +126,9 @@ Players can be rendered nowhere, inside regions, outside regions, or everywhere.
 hitboxes follow the same setting. Every other entity, block entity, and particle is hidden outside
 the combined active regions.
 
-The settings screen also configures region borders as off, normally depth-tested, or see-through,
-with independent red, green, and blue color controls.
+The settings screen configures block faces directly adjacent to invisible space as normal exposed
+cut faces, culled faces, or cyan-colored boundary faces. Region wireframe boxes remain available
+as a separate off/on debug option.
 
 World content filtered by either the render group or active hide regions also
 rejects client interactions before they reach the server, including block

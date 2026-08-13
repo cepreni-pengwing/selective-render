@@ -16,10 +16,8 @@ public final class SelectiveRenderSettings {
     private static final Path PATH = FabricLoader.getInstance().getConfigDir()
             .resolve("selectiverender").resolve("settings.json");
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
-    private static volatile BorderMode borderMode = BorderMode.OFF;
-    private static volatile int borderRed = 0;
-    private static volatile int borderGreen = 255;
-    private static volatile int borderBlue = 255;
+    private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
+    private static volatile boolean debugBoxes;
 
     private SelectiveRenderSettings() { }
 
@@ -30,35 +28,31 @@ public final class SelectiveRenderSettings {
             if (stored == null) return;
             playerVisibility = stored.playerVisibility == null
                     ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
-            borderMode = stored.borderMode == null ? BorderMode.OFF : stored.borderMode;
-            borderRed = clamp(stored.borderRed);
-            borderGreen = clamp(stored.borderGreen);
-            borderBlue = clamp(stored.borderBlue);
+            boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
+            debugBoxes = stored.debugBoxes;
         } catch (IOException | RuntimeException exception) {
             SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", PATH, exception);
         }
     }
 
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
-    public static BorderMode borderMode() { return borderMode; }
-    public static int borderRed() { return borderRed; }
-    public static int borderGreen() { return borderGreen; }
-    public static int borderBlue() { return borderBlue; }
+    public static BoundaryMode boundaryMode() { return boundaryMode; }
+    public static boolean debugBoxes() { return debugBoxes; }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
         playerVisibility = value;
         save();
     }
 
-    public static void setBorderMode(BorderMode value) {
-        borderMode = value;
+    public static void setBoundaryMode(BoundaryMode value) {
+        if (boundaryMode == value) return;
+        boundaryMode = value;
         save();
+        SelectiveRenderState.refreshRenderer();
     }
 
-    public static void setBorderColor(int red, int green, int blue) {
-        borderRed = clamp(red);
-        borderGreen = clamp(green);
-        borderBlue = clamp(blue);
+    public static void setDebugBoxes(boolean value) {
+        debugBoxes = value;
         save();
     }
 
@@ -67,20 +61,14 @@ public final class SelectiveRenderSettings {
             Files.createDirectories(PATH.getParent());
             StoredSettings stored = new StoredSettings();
             stored.playerVisibility = playerVisibility;
-            stored.borderMode = borderMode;
-            stored.borderRed = borderRed;
-            stored.borderGreen = borderGreen;
-            stored.borderBlue = borderBlue;
+            stored.boundaryMode = boundaryMode;
+            stored.debugBoxes = debugBoxes;
             try (Writer writer = Files.newBufferedWriter(PATH, StandardCharsets.UTF_8)) {
                 GSON.toJson(stored, writer);
             }
         } catch (IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not save selective render settings {}", PATH, exception);
         }
-    }
-
-    private static int clamp(int value) {
-        return Math.max(0, Math.min(255, value));
     }
 
     public enum PlayerVisibility {
@@ -96,23 +84,21 @@ public final class SelectiveRenderSettings {
         public PlayerVisibility next() { return values()[(ordinal() + 1) % values().length]; }
     }
 
-    public enum BorderMode {
-        OFF("Off"),
+    public enum BoundaryMode {
         NORMAL("Normal"),
-        SEE_THROUGH("See-through");
+        CULLED("Culled"),
+        COLORED("Colored");
 
         private final String label;
 
-        BorderMode(String label) { this.label = label; }
+        BoundaryMode(String label) { this.label = label; }
         public String label() { return label; }
-        public BorderMode next() { return values()[(ordinal() + 1) % values().length]; }
+        public BoundaryMode next() { return values()[(ordinal() + 1) % values().length]; }
     }
 
     private static final class StoredSettings {
         PlayerVisibility playerVisibility;
-        BorderMode borderMode;
-        int borderRed;
-        int borderGreen = 255;
-        int borderBlue = 255;
+        BoundaryMode boundaryMode;
+        boolean debugBoxes;
     }
 }

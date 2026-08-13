@@ -8,6 +8,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.Direction;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -215,6 +216,10 @@ public final class SelectiveRenderState {
             case OUTSIDE -> !inside;
             case EVERYWHERE -> true;
         };
+    }
+
+    public static boolean isBoundaryFace(BlockPos position, Direction direction) {
+        return shouldRender(position) && !shouldRender(position.offset(direction));
     }
 
     public static List<BlockRegion> borderRegions() {

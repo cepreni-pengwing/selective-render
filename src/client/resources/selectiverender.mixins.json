@@ -11,6 +11,7 @@
     "EntityRendererMixin",
     "BlockMixin",
     "BlockRenderManagerMixin",
+    "BlockModelRendererMixin",
     "BlockEntityRenderDispatcherMixin",
     "ParticleManagerMixin",
     "ParticlePositionView",

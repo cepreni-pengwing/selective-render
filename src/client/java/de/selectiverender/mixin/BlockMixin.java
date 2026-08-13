@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.SelectiveRenderSettings;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
@@ -19,7 +20,8 @@ abstract class BlockMixin {
                                                            BlockPos neighborPos,
                                                            CallbackInfoReturnable<Boolean> cir) {
         if (SelectiveRenderState.shouldRender(pos) && !SelectiveRenderState.shouldRender(neighborPos)) {
-            cir.setReturnValue(true);
+            cir.setReturnValue(SelectiveRenderSettings.boundaryMode()
+                    != SelectiveRenderSettings.BoundaryMode.CULLED);
         }
     }
 }

@@ -2,12 +2,21 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7-test.2
+
+### Changed
+
+- Replaced the initial region-box styling controls with block-face boundary modes.
+- `Normal` preserves exposed cut faces, `Culled` removes faces adjacent to invisible space,
+  and `Colored` marks those exact boundary faces in cyan.
+- Kept region wireframe boxes as a separate simple off/on debug option without color controls.
+
 ## 1.7.7-test.1
 
 ### Added
 
 - Added configurable player visibility modes: none, inside regions, outside regions, and everywhere.
-- Added region border rendering with off, normal, and see-through modes plus RGB color controls.
+- Added an initial region wireframe visualization and settings screen.
 - Added an unassigned keybind for the new Selective Render settings screen.
 - Added HUD overlay feedback for global render, hide, and plot toggles without adding chat noise.
 
