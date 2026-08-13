@@ -1,5 +1,6 @@
 package de.selectiverender.mixin.sodium;
 
+import de.selectiverender.BoundaryColorTexture;
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.SelectiveRenderSettings;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
@@ -20,6 +21,7 @@ import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -31,6 +33,8 @@ import java.util.List;
 abstract class BlockRendererMixin {
     @Unique private static final ThreadLocal<Direction> selectiverender$quadDirection =
             new ThreadLocal<>();
+    @Unique private static final ThreadLocal<Boolean> selectiverender$solidColor =
+            ThreadLocal.withInitial(() -> false);
 
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlock(BlockRenderContext context,
@@ -43,6 +47,7 @@ abstract class BlockRendererMixin {
                                                     ColorProvider<BlockState> colorProvider,
                                                     BakedQuadView quad,
                                                     CallbackInfoReturnable<int[]> cir) {
+        selectiverender$solidColor.set(false);
         if (SelectiveRenderSettings.boundaryMode()
                 != SelectiveRenderSettings.BoundaryMode.COLORED) return;
         Direction direction = selectiverender$quadDirection.get();
@@ -51,10 +56,23 @@ abstract class BlockRendererMixin {
             if (!selectiverender$isOnBlockFace(quad, direction)) return;
         }
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
+        selectiverender$solidColor.set(true);
         Arrays.fill(cir.getReturnValue(), ColorABGR.pack(
                 SelectiveRenderSettings.boundaryRed(),
                 SelectiveRenderSettings.boundaryGreen(),
                 SelectiveRenderSettings.boundaryBlue(), 255));
+    }
+
+    @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getTexU(I)F"))
+    private float selectiverender$solidBoundaryU(BakedQuadView quad, int vertex) {
+        return selectiverender$solidColor.get() ? BoundaryColorTexture.u() : quad.getTexU(vertex);
+    }
+
+    @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getTexV(I)F"))
+    private float selectiverender$solidBoundaryV(BakedQuadView quad, int vertex) {
+        return selectiverender$solidColor.get() ? BoundaryColorTexture.v() : quad.getTexV(vertex);
     }
 
     @Inject(method = "renderQuadList", at = @At("HEAD"))

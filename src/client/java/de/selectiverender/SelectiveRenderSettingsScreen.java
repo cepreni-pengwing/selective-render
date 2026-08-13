@@ -1,21 +1,13 @@
 package de.selectiverender;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.narration.NarrationMessageBuilder;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.BufferRenderer;
-import net.minecraft.client.render.GameRenderer;
-import net.minecraft.client.render.Tessellator;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
-import org.joml.Matrix4f;
 
 public final class SelectiveRenderSettingsScreen extends Screen {
     private final Screen parent;
@@ -87,7 +79,6 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         private static final int WHEEL_RADIUS = WHEEL_SIZE / 2;
         private static final int VALUE_X = 82;
         private static final int VALUE_WIDTH = 14;
-        private static final int SEGMENTS = 72;
         private float hue;
         private float saturation;
         private float value;
@@ -109,25 +100,19 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         protected void renderButton(DrawContext context, int mouseX, int mouseY, float delta) {
             int centerX = getX() + WHEEL_RADIUS;
             int centerY = getY() + WHEEL_RADIUS;
-            Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
-            RenderSystem.setShader(GameRenderer::getPositionColorProgram);
-            RenderSystem.enableBlend();
-            RenderSystem.defaultBlendFunc();
-            BufferBuilder buffer = Tessellator.getInstance().getBuffer();
-            buffer.begin(VertexFormat.DrawMode.TRIANGLES, VertexFormats.POSITION_COLOR);
-            int center = MathHelper.hsvToRgb(0.0f, 0.0f, 1.0f);
-            for (int segment = 0; segment < SEGMENTS; segment++) {
-                float angle0 = (float) (Math.PI * 2.0 * segment / SEGMENTS);
-                float angle1 = (float) (Math.PI * 2.0 * (segment + 1) / SEGMENTS);
-                int edge0 = MathHelper.hsvToRgb(segment / (float) SEGMENTS, 1.0f, 1.0f);
-                int edge1 = MathHelper.hsvToRgb((segment + 1) / (float) SEGMENTS, 1.0f, 1.0f);
-                vertex(buffer, matrix, centerX, centerY, center);
-                vertex(buffer, matrix, centerX + Math.cos(angle0) * WHEEL_RADIUS,
-                        centerY + Math.sin(angle0) * WHEEL_RADIUS, edge0);
-                vertex(buffer, matrix, centerX + Math.cos(angle1) * WHEEL_RADIUS,
-                        centerY + Math.sin(angle1) * WHEEL_RADIUS, edge1);
+            for (int offsetY = -WHEEL_RADIUS; offsetY < WHEEL_RADIUS; offsetY++) {
+                for (int offsetX = -WHEEL_RADIUS; offsetX < WHEEL_RADIUS; offsetX++) {
+                    double distance = Math.sqrt(offsetX * offsetX + offsetY * offsetY);
+                    if (distance > WHEEL_RADIUS) continue;
+                    float pixelHue = (float) (Math.atan2(offsetY, offsetX) / (Math.PI * 2.0));
+                    if (pixelHue < 0.0f) pixelHue += 1.0f;
+                    float pixelSaturation = (float) (distance / WHEEL_RADIUS);
+                    int pixelColor = 0xFF000000
+                            | MathHelper.hsvToRgb(pixelHue, pixelSaturation, 1.0f);
+                    context.fill(centerX + offsetX, centerY + offsetY,
+                            centerX + offsetX + 1, centerY + offsetY + 1, pixelColor);
+                }
             }
-            BufferRenderer.drawWithGlobalProgram(buffer.end());
 
             int barX = getX() + VALUE_X;
             for (int row = 0; row < WHEEL_SIZE; row++) {
@@ -207,12 +192,6 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
         private int color() {
             return MathHelper.hsvToRgb(hue, saturation, value) & 0xFFFFFF;
-        }
-
-        private static void vertex(BufferBuilder buffer, Matrix4f matrix,
-                                   double x, double y, int color) {
-            buffer.vertex(matrix, (float) x, (float) y, 0.0f)
-                    .color(color >> 16 & 0xFF, color >> 8 & 0xFF, color & 0xFF, 255).next();
         }
 
         private static void drawMarker(DrawContext context, int x, int y) {

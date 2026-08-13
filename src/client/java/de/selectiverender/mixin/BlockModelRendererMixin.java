@@ -1,5 +1,6 @@
 package de.selectiverender.mixin;
 
+import de.selectiverender.BoundaryColorTexture;
 import de.selectiverender.SelectiveRenderSettings;
 import de.selectiverender.SelectiveRenderState;
 import net.minecraft.block.BlockState;
@@ -40,6 +41,17 @@ abstract class BlockModelRendererMixin {
             target = "Lnet/minecraft/client/render/VertexConsumer;quad(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/render/model/BakedQuad;[FFFF[IIZ)V"))
     private void selectiverender$colorBoundaryQuad(Args args) {
         if (!selectiverender$coloredBoundary.get()) return;
+        BakedQuad quad = args.get(1);
+        int[] vertexData = quad.getVertexData().clone();
+        int stride = vertexData.length / 4;
+        int u = Float.floatToRawIntBits(BoundaryColorTexture.u());
+        int v = Float.floatToRawIntBits(BoundaryColorTexture.v());
+        for (int vertex = 0; vertex < 4; vertex++) {
+            vertexData[vertex * stride + 4] = u;
+            vertexData[vertex * stride + 5] = v;
+        }
+        args.set(1, new BakedQuad(vertexData, quad.getColorIndex(), quad.getFace(),
+                quad.getSprite(), quad.hasShade()));
         args.set(3, SelectiveRenderSettings.boundaryRed() / 255.0f);
         args.set(4, SelectiveRenderSettings.boundaryGreen() / 255.0f);
         args.set(5, SelectiveRenderSettings.boundaryBlue() / 255.0f);

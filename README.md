@@ -128,7 +128,8 @@ the combined active regions.
 
 The settings screen configures block faces directly adjacent to invisible space as normal exposed
 cut faces, culled faces, or color-wheel-selected boundary faces. The default boundary color is
-black. Region wireframe boxes remain available as a separate off/on debug option.
+black, and colored faces are fully opaque. Region wireframe boxes remain available as a separate
+off/on debug option.
 
 World content filtered by either the render group or active hide regions also
 rejects client interactions before they reach the server, including block

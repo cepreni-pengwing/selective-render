@@ -2,6 +2,18 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7-test.6
+
+### Changed
+
+- Made colored boundary faces fully opaque by replacing their sampled block texture with a single
+  solid atlas texel. The color no longer acts as a translucent-looking texture tint.
+
+### Fixed
+
+- Rendered the color wheel through Minecraft's normal GUI draw context so the visible wheel matches
+  its interactive area.
+
 ## 1.7.7-test.5
 
 ### Fixed

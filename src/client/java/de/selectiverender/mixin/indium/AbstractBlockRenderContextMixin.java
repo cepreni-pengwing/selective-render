@@ -1,5 +1,6 @@
 package de.selectiverender.mixin.indium;
 
+import de.selectiverender.BoundaryColorTexture;
 import de.selectiverender.IndiumRenderContext;
 import de.selectiverender.SelectiveRenderSettings;
 import de.selectiverender.SelectiveRenderState;
@@ -35,6 +36,9 @@ abstract class AbstractBlockRenderContextMixin {
                 | SelectiveRenderSettings.boundaryGreen() << 8
                 | SelectiveRenderSettings.boundaryBlue();
         quad.color(color, color, color, color);
+        float u = BoundaryColorTexture.u();
+        float v = BoundaryColorTexture.v();
+        for (int vertex = 0; vertex < 4; vertex++) quad.uv(vertex, u, v);
     }
 
     private static boolean selectiverender$isOnBlockFace(MutableQuadView quad,
