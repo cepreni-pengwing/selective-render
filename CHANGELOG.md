@@ -2,6 +2,23 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.7.7-test.4
+
+### Added
+
+- Replaced the three RGB sliders with a color wheel, brightness control, live preview, and hex value.
+- Added colored boundary-face support for custom Fabric Renderer API models rendered through Indium.
+
+### Changed
+
+- Changed the default boundary color for new settings to black.
+
+### Fixed
+
+- Used each Sodium quad list's actual cull direction instead of its lighting direction when coloring
+  boundary faces.
+- Limited unculled custom-model coloring to geometry that lies on the corresponding block boundary.
+
 ## 1.7.7-test.3
 
 ### Added

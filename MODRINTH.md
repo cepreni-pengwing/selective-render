@@ -60,8 +60,8 @@ outside regions, or everywhere; debug hitboxes follow the same setting.
 
 Default keybinds are F8 for the render group and F9 for the hide group. Position
 selection, PlotSquared toggling, and the settings screen are unassigned by default. The settings
-screen also controls normal, culled, or RGB-colored block faces at exact region boundaries and a
-separate off/on wireframe debug view. All bindings can be
+screen also controls normal, culled, or color-wheel-selected block faces at exact region boundaries
+and a separate off/on wireframe debug view. All bindings can be
 changed under Controls > Selective Render.
 
 ## PlotSquared integration

@@ -18,9 +18,9 @@ public final class SelectiveRenderSettings {
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean debugBoxes;
-    private static volatile int boundaryRed = 255;
+    private static volatile int boundaryRed;
     private static volatile int boundaryGreen;
-    private static volatile int boundaryBlue = 255;
+    private static volatile int boundaryBlue;
 
     private SelectiveRenderSettings() { }
 
@@ -33,9 +33,9 @@ public final class SelectiveRenderSettings {
                     ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
             boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
             debugBoxes = stored.debugBoxes;
-            boundaryRed = stored.boundaryRed == null ? 255 : clamp(stored.boundaryRed);
+            boundaryRed = stored.boundaryRed == null ? 0 : clamp(stored.boundaryRed);
             boundaryGreen = stored.boundaryGreen == null ? 0 : clamp(stored.boundaryGreen);
-            boundaryBlue = stored.boundaryBlue == null ? 255 : clamp(stored.boundaryBlue);
+            boundaryBlue = stored.boundaryBlue == null ? 0 : clamp(stored.boundaryBlue);
         } catch (IOException | RuntimeException exception) {
             SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", PATH, exception);
         }

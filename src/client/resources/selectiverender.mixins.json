@@ -15,6 +15,8 @@
     "BlockEntityRenderDispatcherMixin",
     "ParticleManagerMixin",
     "ParticlePositionView",
+    "indium.AbstractBlockRenderContextMixin",
+    "indium.TerrainRenderContextMixin",
     "sodium.BlockRendererMixin",
     "sodium.BlockOcclusionCacheMixin",
     "sodium.FluidRendererMixin",
