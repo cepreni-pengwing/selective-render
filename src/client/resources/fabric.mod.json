@@ -6,7 +6,6 @@
   "description": "Client-side block-precise render whitelist for selected world regions.",
   "authors": ["cepreni-pengwing"],
   "contributors": ["Codex"],
-  "icon": "assets/selectiverender/icon.png",
   "license": "GPL-3.0-only",
   "environment": "client",
   "entrypoints": {

@@ -2,12 +2,6 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.7.7
-
-### Added
-
-- Added an embedded mod icon for launchers and mod-list interfaces.
-
 ## 1.7.6
 
 ### Added
