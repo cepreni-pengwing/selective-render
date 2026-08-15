@@ -95,7 +95,7 @@ The preset names `all` and `a` are reserved for group commands.
 
 ## PlotSquared integration
 
-Servers running the optional [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots)
+Servers running the optional [Selective Render Plots](https://github.com/cepreni-pengwing/selective-render-plots)
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
 Plot integration is part of the normal Selective Render command tree:
 
