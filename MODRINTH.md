@@ -54,14 +54,13 @@ The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
 
 Hide presets remove selected cuboids while leaving the rest of the world visible.
 They are useful for temporary block palettes, scaffolding, or unwanted structures.
-Filtered blocks cannot be broken, used, placed against, or picked, but collision
-is intentionally unchanged. Player visibility can be set to none, inside regions,
-outside regions, or everywhere; debug hitboxes follow the same setting.
+Player visibility and interactions can independently be set to none, inside regions, outside
+regions, or everywhere. Player hitboxes follow player visibility; collision is unchanged.
 
 Default keybinds are F8 for the render group and F9 for the hide group. Position
-selection, PlotSquared toggling, and the settings screen are unassigned by default. The settings
-screen also controls normal, culled, or fully opaque black block faces at exact region boundaries
-and a separate off/on wireframe debug view. All bindings can be
+selection, PlotSquared toggling, player visibility, and the settings screen are unassigned by
+default. The settings screen cycles exact region-boundary faces through normal, black, and culled;
+hide-region boundaries always stay normal. A separate wireframe debug toggle is also available. All bindings can be
 changed under Controls > Selective Render.
 
 ## PlotSquared integration
@@ -71,12 +70,12 @@ bridge installed on the server:
 
 ```text
 /sr p
-/sr p minY maxY [xzMargin]
-/sr p s NAME minY maxY [xzMargin]
+/sr p [minY] [maxY] [xzMargin]
+/sr p s NAME [minY] [maxY] [xzMargin]
 ```
 
-This uses the exact PlotSquared region, including merged or irregular plots. The
-margin is optional and expands X/Z client-side.
+This uses the exact PlotSquared region, including merged or irregular plots. Omitted Y values
+default to `-100` and `400`; the optional margin expands X/Z client-side.
 
 ## Storage and limitations
 

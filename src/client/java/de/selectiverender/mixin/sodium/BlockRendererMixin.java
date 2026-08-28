@@ -48,13 +48,13 @@ abstract class BlockRendererMixin {
                                                     BakedQuadView quad,
                                                     CallbackInfoReturnable<int[]> cir) {
         selectiverender$solidColor.set(false);
-        if (SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.COLORED) return;
         Direction direction = selectiverender$quadDirection.get();
         if (direction == null) {
             direction = quad.getLightFace();
             if (!selectiverender$isOnBlockFace(quad, direction)) return;
         }
+        if (SelectiveRenderState.boundaryModeForFace(context.pos(), direction)
+                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
         selectiverender$solidColor.set(true);
         Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));

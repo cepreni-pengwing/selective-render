@@ -17,13 +17,13 @@ abstract class RaycastContextMixin {
     @Inject(method = "getBlockShape", at = @At("HEAD"), cancellable = true)
     private void selectiverender$skipInvisibleBlock(BlockState state, BlockView world, BlockPos pos,
                                                      CallbackInfoReturnable<VoxelShape> cir) {
-        if (!SelectiveRenderState.shouldRender(pos)) cir.setReturnValue(VoxelShapes.empty());
+        if (!SelectiveRenderState.shouldInteract(pos)) cir.setReturnValue(VoxelShapes.empty());
     }
 
     @Inject(method = "getFluidShape", at = @At("HEAD"), cancellable = true)
     private void selectiverender$skipInvisibleFluid(net.minecraft.fluid.FluidState state,
                                                      BlockView world, BlockPos pos,
                                                      CallbackInfoReturnable<VoxelShape> cir) {
-        if (!SelectiveRenderState.shouldRender(pos)) cir.setReturnValue(VoxelShapes.empty());
+        if (!SelectiveRenderState.shouldInteract(pos)) cir.setReturnValue(VoxelShapes.empty());
     }
 }

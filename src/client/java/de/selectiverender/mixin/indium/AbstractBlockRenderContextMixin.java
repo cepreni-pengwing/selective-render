@@ -20,9 +20,7 @@ abstract class AbstractBlockRenderContextMixin {
     @Inject(method = "colorizeQuad", at = @At("RETURN"), require = 0)
     private void selectiverender$colorBoundaryFace(@Coerce Object rawQuad, int colorIndex,
                                                     CallbackInfo ci) {
-        if (SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.COLORED
-                || !(rawQuad instanceof MutableQuadView quad)) return;
+        if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
         Direction direction = quad.cullFace();
@@ -30,6 +28,8 @@ abstract class AbstractBlockRenderContextMixin {
             direction = quad.nominalFace();
             if (direction == null || !selectiverender$isOnBlockFace(quad, direction)) return;
         }
+        if (SelectiveRenderState.boundaryModeForFace(position, direction)
+                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
         if (!SelectiveRenderState.isBoundaryFace(position, direction)) return;
         int color = 0xFF000000;
         quad.color(color, color, color, color);

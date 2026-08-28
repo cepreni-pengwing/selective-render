@@ -51,6 +51,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.settings",
             GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
+    private static final KeyBinding PLAYER_VISIBILITY_KEY = new KeyBinding(
+            "key.selectiverender.toggle_players",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
@@ -63,6 +67,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(POS2_KEY);
         KeyBindingHelper.registerKeyBinding(PLOT_TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(SETTINGS_KEY);
+        KeyBindingHelper.registerKeyBinding(PLAYER_VISIBILITY_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
@@ -70,6 +75,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (POS1_KEY.wasPressed()) setPositionFromKey(client, true);
             while (POS2_KEY.wasPressed()) setPositionFromKey(client, false);
             while (PLOT_TOGGLE_KEY.wasPressed()) PlotSquaredClient.toggle();
+            while (PLAYER_VISIBILITY_KEY.wasPressed()) togglePlayerVisibility();
             while (SETTINGS_KEY.wasPressed()) {
                 if (client.currentScreen == null) {
                     client.setScreen(new SelectiveRenderSettingsScreen(null));
@@ -118,6 +124,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommandManager.literal(name)
                 .executes(context -> PlotSquaredClient.toggle())
                 .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
+                        .executes(context -> PlotSquaredClient.toggle(
+                                IntegerArgumentType.getInteger(context, "minY"),
+                                PlotSquaredClient.DEFAULT_MAX_Y, 0))
                         .then(ClientCommandManager.argument("maxY", IntegerArgumentType.integer())
                                 .executes(context -> PlotSquaredClient.toggle(
                                         IntegerArgumentType.getInteger(context, "minY"),
@@ -134,7 +143,14 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> plotSaveCommand(String name) {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> PlotSquaredClient.save(
+                                StringArgumentType.getString(context, "name"),
+                                PlotSquaredClient.DEFAULT_MIN_Y, PlotSquaredClient.DEFAULT_MAX_Y, 0))
                         .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
+                                .executes(context -> PlotSquaredClient.save(
+                                        StringArgumentType.getString(context, "name"),
+                                        IntegerArgumentType.getInteger(context, "minY"),
+                                        PlotSquaredClient.DEFAULT_MAX_Y, 0))
                                 .then(ClientCommandManager.argument("maxY", IntegerArgumentType.integer())
                                         .executes(context -> PlotSquaredClient.save(
                                                 StringArgumentType.getString(context, "name"),
@@ -409,6 +425,17 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
         }
         return SelectiveRenderState.togglePlotRendering();
+    }
+
+    private static void togglePlayerVisibility() {
+        SelectiveRenderSettings.PlayerVisibility next =
+                SelectiveRenderSettings.playerVisibility()
+                        == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE
+                        ? SelectiveRenderSettings.PlayerVisibility.NONE
+                        : SelectiveRenderSettings.PlayerVisibility.EVERYWHERE;
+        SelectiveRenderSettings.setPlayerVisibility(next);
+        overlay(message(white("Players "), next == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE
+                ? green("visible") : red("hidden")));
     }
 
     public static void overlay(Text message) {

@@ -218,8 +218,32 @@ public final class SelectiveRenderState {
         };
     }
 
+    public static boolean shouldInteract(BlockPos position) {
+        return shouldInteract(shouldRender(position));
+    }
+
+    public static boolean shouldInteract(Entity entity) {
+        return shouldInteract(shouldRender(entity.getX(), entity.getY(), entity.getZ()));
+    }
+
+    private static boolean shouldInteract(boolean inside) {
+        return switch (SelectiveRenderSettings.interactionMode()) {
+            case NONE -> false;
+            case INSIDE -> inside;
+            case OUTSIDE -> !inside;
+            case EVERYWHERE -> true;
+        };
+    }
+
     public static boolean isBoundaryFace(BlockPos position, Direction direction) {
         return shouldRender(position) && !shouldRender(position.offset(direction));
+    }
+
+    public static SelectiveRenderSettings.BoundaryMode boundaryModeForFace(
+            BlockPos position, Direction direction) {
+        BlockPos neighbor = position.offset(direction);
+        if (isActivelyHidden(neighbor)) return SelectiveRenderSettings.BoundaryMode.NORMAL;
+        return SelectiveRenderSettings.boundaryMode();
     }
 
     public static List<BlockRegion> borderRegions() {

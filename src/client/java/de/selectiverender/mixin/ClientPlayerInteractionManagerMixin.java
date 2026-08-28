@@ -31,13 +31,13 @@ abstract class ClientPlayerInteractionManagerMixin {
     @Inject(method = "attackBlock", at = @At("HEAD"), cancellable = true)
     private void selectiverender$blockAttack(BlockPos pos, Direction direction,
                                              CallbackInfoReturnable<Boolean> cir) {
-        if (!SelectiveRenderState.shouldRender(pos)) cir.setReturnValue(false);
+        if (!SelectiveRenderState.shouldInteract(pos)) cir.setReturnValue(false);
     }
 
     @Inject(method = "updateBlockBreakingProgress", at = @At("HEAD"), cancellable = true)
     private void selectiverender$blockBreakingProgress(BlockPos pos, Direction direction,
                                                        CallbackInfoReturnable<Boolean> cir) {
-        if (!SelectiveRenderState.shouldRender(pos)) cir.setReturnValue(false);
+        if (!SelectiveRenderState.shouldInteract(pos)) cir.setReturnValue(false);
     }
 
     @Inject(method = "interactBlock", at = @At("HEAD"), cancellable = true)
@@ -46,8 +46,8 @@ abstract class ClientPlayerInteractionManagerMixin {
         BlockPos target = hit.getBlockPos();
         Item item = player.getStackInHand(hand).getItem();
         boolean placesOutsideRenderedArea = isPlacementItem(item)
-                && !SelectiveRenderState.shouldRender(target.offset(hit.getSide()));
-        if (!SelectiveRenderState.shouldRender(target) || placesOutsideRenderedArea) {
+                && !SelectiveRenderState.shouldInteract(target.offset(hit.getSide()));
+        if (!SelectiveRenderState.shouldInteract(target) || placesOutsideRenderedArea) {
             cir.setReturnValue(ActionResult.FAIL);
         }
     }
@@ -69,28 +69,28 @@ abstract class ClientPlayerInteractionManagerMixin {
         net.minecraft.client.MinecraftClient client = net.minecraft.client.MinecraftClient.getInstance();
         Item item = player.getStackInHand(hand).getItem();
         if (client.crosshairTarget instanceof BlockHitResult hit
-                && (!SelectiveRenderState.shouldRender(hit.getBlockPos())
+                && (!SelectiveRenderState.shouldInteract(hit.getBlockPos())
                 || isPlacementItem(item)
-                && !SelectiveRenderState.shouldRender(hit.getBlockPos().offset(hit.getSide())))) {
+                && !SelectiveRenderState.shouldInteract(hit.getBlockPos().offset(hit.getSide())))) {
             cir.setReturnValue(ActionResult.FAIL);
         }
     }
 
     @Inject(method = "attackEntity", at = @At("HEAD"), cancellable = true)
     private void selectiverender$blockEntityAttack(PlayerEntity player, Entity target, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(target)) ci.cancel();
+        if (!SelectiveRenderState.shouldInteract(target)) ci.cancel();
     }
 
     @Inject(method = "interactEntity", at = @At("HEAD"), cancellable = true)
     private void selectiverender$blockEntityInteraction(PlayerEntity player, Entity target, Hand hand,
                                                          CallbackInfoReturnable<ActionResult> cir) {
-        if (!SelectiveRenderState.shouldRender(target)) cir.setReturnValue(ActionResult.FAIL);
+        if (!SelectiveRenderState.shouldInteract(target)) cir.setReturnValue(ActionResult.FAIL);
     }
 
     @Inject(method = "interactEntityAtLocation", at = @At("HEAD"), cancellable = true)
     private void selectiverender$blockEntityInteractionAt(PlayerEntity player, Entity target,
                                                            EntityHitResult hit, Hand hand,
                                                            CallbackInfoReturnable<ActionResult> cir) {
-        if (!SelectiveRenderState.shouldRender(target)) cir.setReturnValue(ActionResult.FAIL);
+        if (!SelectiveRenderState.shouldInteract(target)) cir.setReturnValue(ActionResult.FAIL);
     }
 }

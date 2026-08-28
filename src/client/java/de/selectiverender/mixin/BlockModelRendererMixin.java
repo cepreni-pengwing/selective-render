@@ -32,8 +32,8 @@ abstract class BlockModelRendererMixin {
                                                     int light0, int light1, int light2, int light3,
                                                     int overlay, CallbackInfo ci) {
         selectiverender$coloredBoundary.set(
-                SelectiveRenderSettings.boundaryMode()
-                        == SelectiveRenderSettings.BoundaryMode.COLORED
+                SelectiveRenderState.boundaryModeForFace(pos, quad.getFace())
+                        == SelectiveRenderSettings.BoundaryMode.BLACK
                         && SelectiveRenderState.isBoundaryFace(pos, quad.getFace()));
     }
 

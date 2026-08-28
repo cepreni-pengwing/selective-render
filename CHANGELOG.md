@@ -2,6 +2,23 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.0-test.1
+
+### Added
+
+- Added an unassigned keybind that switches player rendering directly between everywhere and
+  nowhere while remaining synchronized with the player visibility setting.
+- Added interaction modes for nowhere, inside regions, outside regions, or everywhere.
+- Added default PlotSquared Y bounds of `-100` to `400`, allowing either or both Y arguments to be
+  omitted from temporary and saved plot commands.
+
+### Changed
+
+- Renamed the opaque `Colored` boundary mode to `Black` and changed the cycle order to `Normal`,
+  `Black`, then `Culled`.
+- Hidden-region cut surfaces now always use normal exposed faces, independent of the selected
+  boundary mode.
+
 ## 1.7.7
 
 ### Added

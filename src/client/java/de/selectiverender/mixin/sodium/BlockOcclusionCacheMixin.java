@@ -22,7 +22,7 @@ abstract class BlockOcclusionCacheMixin {
                                                     CallbackInfoReturnable<Boolean> cir) {
         if (SelectiveRenderState.shouldRender(pos)
                 && !SelectiveRenderState.shouldRender(pos.offset(direction))) {
-            cir.setReturnValue(SelectiveRenderSettings.boundaryMode()
+            cir.setReturnValue(SelectiveRenderState.boundaryModeForFace(pos, direction)
                     != SelectiveRenderSettings.BoundaryMode.CULLED);
         }
     }

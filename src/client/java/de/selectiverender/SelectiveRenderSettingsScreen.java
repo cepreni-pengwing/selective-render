@@ -8,6 +8,7 @@ import net.minecraft.text.Text;
 public final class SelectiveRenderSettingsScreen extends Screen {
     private final Screen parent;
     private ButtonWidget playerButton;
+    private ButtonWidget interactionButton;
     private ButtonWidget boundaryButton;
     private ButtonWidget debugButton;
 
@@ -19,22 +20,27 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     @Override
     protected void init() {
         int left = width / 2 - 100;
-        int y = Math.max(48, height / 2 - 58);
+        int y = Math.max(48, height / 2 - 71);
         playerButton = addDrawableChild(ButtonWidget.builder(playerText(), button -> {
             SelectiveRenderSettings.setPlayerVisibility(
                     SelectiveRenderSettings.playerVisibility().next());
             button.setMessage(playerText());
         }).dimensions(left, y, 200, 20).build());
+        interactionButton = addDrawableChild(ButtonWidget.builder(interactionText(), button -> {
+            SelectiveRenderSettings.setInteractionMode(
+                    SelectiveRenderSettings.interactionMode().next());
+            button.setMessage(interactionText());
+        }).dimensions(left, y + 26, 200, 20).build());
         boundaryButton = addDrawableChild(ButtonWidget.builder(boundaryText(), button -> {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.boundaryMode().next());
             button.setMessage(boundaryText());
-        }).dimensions(left, y + 26, 200, 20).build());
+        }).dimensions(left, y + 52, 200, 20).build());
         debugButton = addDrawableChild(ButtonWidget.builder(debugText(), button -> {
             SelectiveRenderSettings.setDebugBoxes(!SelectiveRenderSettings.debugBoxes());
             button.setMessage(debugText());
-        }).dimensions(left, y + 52, 200, 20).build());
+        }).dimensions(left, y + 78, 200, 20).build());
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-                .dimensions(left, y + 90, 200, 20).build());
+                .dimensions(left, y + 116, 200, 20).build());
     }
 
     @Override
@@ -55,6 +61,10 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     private Text boundaryText() {
         return Text.literal("Boundary faces: " + SelectiveRenderSettings.boundaryMode().label());
+    }
+
+    private Text interactionText() {
+        return Text.literal("Interactions: " + SelectiveRenderSettings.interactionMode().label());
     }
 
     private Text debugText() {

@@ -83,7 +83,8 @@ Default keybinds:
 
 - `F8`: toggle the render group
 - `F9`: toggle the hide group
-- Unassigned: set Pos1, set Pos2, toggle the current PlotSquared region, and open settings
+- Unassigned: set Pos1, set Pos2, toggle the current PlotSquared region, toggle player visibility,
+  and open settings
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.
@@ -99,16 +100,17 @@ Servers running the optional [Selective Render Plots](https://modrinth.com/plugi
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
 Plot integration is part of the normal Selective Render command tree:
 
-- `/selectiverender plot` or `/sr plot` toggles temporary isolation of the plot under the player.
-- `/sr p minY maxY [xzMargin]` temporarily isolates the plot with inclusive vertical bounds and an
+- `/selectiverender plot` or `/sr plot` toggles temporary isolation of the plot under the player
+  using the default Y range `-100` to `400`.
+- `/sr p [minY] [maxY] [xzMargin]` temporarily isolates the plot with inclusive vertical bounds and an
   outward horizontal margin. The margin must be zero or greater.
-- `/selectiverender plot save NAME minY maxY [xzMargin]` permanently saves the exact plot shape as one
+- `/selectiverender plot save NAME [minY] [maxY] [xzMargin]` permanently saves the exact plot shape as one
   normal preset and immediately activates it. The Y boundaries are inclusive, and the X/Z margin
   expands every internal PlotSquared cuboid.
 
 `p` is the short alias for `plot`, and `s` is the short alias for `save`, so
-`/sr p s NAME minY maxY xzMargin` is equivalent. Omitting `xzMargin` preserves the exact PlotSquared
-X/Z bounds and remains supported for compatibility.
+`/sr p s NAME minY maxY xzMargin` is equivalent. Omitted Y values default to `-100` and `400`;
+omitting `xzMargin` preserves the exact PlotSquared X/Z bounds.
 
 Plot mode is temporary. It does not alter saved presets, and active hide regions
 continue to be subtracted from the plot regions. A saved merged or irregular plot
@@ -126,16 +128,13 @@ Players can be rendered nowhere, inside regions, outside regions, or everywhere.
 hitboxes follow the same setting. Every other entity, block entity, and particle is hidden outside
 the combined active regions.
 
-The settings screen configures block faces directly adjacent to invisible space as normal exposed
-cut faces, culled faces, or fully opaque black boundary faces. Region wireframe boxes remain
-available as a separate off/on debug option.
+The settings screen cycles block faces directly adjacent to invisible space through normal exposed
+cut faces, fully opaque black faces, and culled faces. Boundaries created by hide regions always
+remain normal. Region wireframe boxes remain available as a separate off/on debug option.
 
-World content filtered by either the render group or active hide regions also
-rejects client interactions before they reach the server, including block
-breaking, block use, block or fluid placement, entity attacks and use, and pick
-block. Client raycasts pass through filtered blocks and fluids so visible content
-behind them can still be targeted. Player interaction remains available and
-collision is unchanged.
+Interactions can be allowed nowhere, inside regions, outside regions, or everywhere. This covers
+block breaking and use, placement, entity attacks and use, pick block, and the matching client
+raycasts. Collision is unchanged.
 
 ## Implementation
 

@@ -5,7 +5,6 @@ import de.selectiverender.PlotSquaredClient;
 import de.selectiverender.SelectiveRenderState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.hit.EntityHitResult;
 import net.minecraft.util.hit.HitResult;
@@ -28,11 +27,10 @@ abstract class MinecraftClientMixin {
     private void selectiverender$blockHiddenItemPick(CallbackInfo ci) {
         HitResult target = ((MinecraftClient) (Object) this).crosshairTarget;
         if (target instanceof BlockHitResult blockHit
-                && !SelectiveRenderState.shouldRender(blockHit.getBlockPos())) {
+                && !SelectiveRenderState.shouldInteract(blockHit.getBlockPos())) {
             ci.cancel();
         } else if (target instanceof EntityHitResult entityHit
-                && !(entityHit.getEntity() instanceof PlayerEntity)
-                && !SelectiveRenderState.shouldRender(entityHit.getEntity())) {
+                && !SelectiveRenderState.shouldInteract(entityHit.getEntity())) {
             ci.cancel();
         }
     }
