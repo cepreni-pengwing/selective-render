@@ -77,11 +77,20 @@ bridge installed on the server:
 This uses the exact PlotSquared region, including merged or irregular plots. Omitted Y values
 default to `-100` and `400`; the optional margin expands X/Z client-side.
 
+When LuckPerms or another permission manager is installed, ensure every intended user or group has
+`selectiverender.plot.solo`. Grant it explicitly on Fabric or when a Paper permission policy
+overrides the plugin's default, for example with
+`/lp user PLAYER permission set selectiverender.plot.solo true`.
+
 ## Storage and limitations
 
 Presets are stored locally per server or world and per dimension in
 `config/selective-render/`. Config writes are atomic and keep a recoverable
 `.json.bak` backup.
+The JSON data can be transferred between instances, but its hashed file name depends on the server
+address or absolute single-player save path and the dimension ID. If that context changes, keep the
+file name SR generates for the target context and copy the old JSON contents into it while Minecraft
+is closed.
 
 - Selected content must be within the normal client render distance.
 - The mod does not reduce server-sent chunks or network traffic.

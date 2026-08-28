@@ -2,6 +2,19 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.0-test.2
+
+### Fixed
+
+- Made virtual skylight respect Vanilla's adjacent block-face occlusion in both direct vertical
+  lighting and six-direction propagation, preventing partial shapes such as slabs from being
+  treated as fully open air.
+
+### Documentation
+
+- Documented the SRP LuckPerms permission and how to transfer context-hashed region files between
+  instances.
+
 ## 1.8.0-test.1
 
 ### Added

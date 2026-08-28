@@ -116,10 +116,23 @@ Plot mode is temporary. It does not alter saved presets, and active hide regions
 continue to be subtracted from the plot regions. A saved merged or irregular plot
 appears as one entry in `/sr list`, even though it contains multiple internal cuboids.
 
+Servers using LuckPerms or another permission manager must ensure that users or groups allowed to
+use SRP have `selectiverender.plot.solo`. Grant it explicitly on Fabric or whenever a Paper
+permission policy overrides the plugin's default. For example:
+
+```text
+/lp user PLAYER permission set selectiverender.plot.solo true
+```
+
 Presets, render-group membership, and the group's enabled state are stored per server or single-player world
 and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
 automatically when joining or changing dimensions. The hashed file name prevents server
 addresses from being exposed as file names.
+The JSON contents are portable, but the file name is derived from the server address or absolute
+single-player save path together with the dimension ID. Between instances, the same multiplayer
+address and dimension use the same name. For a different address, save path, or dimension, let SR
+create the target context's file, close Minecraft, then replace its JSON contents with the copied
+configuration while keeping the target-generated file name.
 Writes are atomic and preserve the previous file as a `.json.bak` backup. If the
 primary file is damaged, Selective Render attempts to recover the latest valid
 backup automatically.
