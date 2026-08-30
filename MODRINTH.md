@@ -71,11 +71,15 @@ bridge installed on the server:
 ```text
 /sr p
 /sr p [minY] [maxY] [xzMargin]
+/sr p clear
 /sr p s NAME [minY] [maxY] [xzMargin]
 ```
 
-This uses the exact PlotSquared region, including merged or irregular plots. Omitted Y values
-default to `-100` and `400`; the optional margin expands X/Z client-side.
+This uses exact PlotSquared shapes, including merged or irregular plots. Visit more plots and use
+`/sr p` again to add them to the same temporary view; repeat it on an active plot to remove it.
+The selection lasts for the current Minecraft session, including reconnects and dimension changes.
+Omitted Y values default to `-100` and `400`; a positive margin expands X/Z and a negative one
+shrinks the complete outline.
 
 When LuckPerms or another permission manager is installed, ensure every intended user or group has
 `selectiverender.plot.solo`. Grant it explicitly on Fabric or when a Paper permission policy

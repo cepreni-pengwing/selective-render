@@ -307,6 +307,10 @@ public final class SelectiveRenderConfig {
         write(client, true);
     }
 
+    public static String contextIdentity(MinecraftClient client, ClientWorld world) {
+        return ownerFor(client) + "|" + world.getRegistryKey().getValue();
+    }
+
     public static boolean enableHiddenGroupForIsolation(MinecraftClient client) {
         if (ACTIVE_HIDDEN_PRESETS.isEmpty() || hideGroupEnabled) return false;
         hideGroupEnabled = true;

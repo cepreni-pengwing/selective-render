@@ -14,7 +14,10 @@ import net.minecraft.util.Util;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class PlotSquaredClient {
@@ -39,6 +42,8 @@ public final class PlotSquaredClient {
     private static Integer pendingMinY;
     private static Integer pendingMaxY;
     private static int pendingXzMargin;
+    private static final Map<String, PlotSession> SESSIONS = new LinkedHashMap<>();
+    private static String activeContext;
 
     private PlotSquaredClient() { }
 
@@ -47,9 +52,22 @@ public final class PlotSquaredClient {
                 (client, handler, buffer, responseSender) -> receive(client, buffer));
     }
 
-    public static void reset() {
+    public static void leaveWorld() {
         clearPending();
+        PlotSession session = activeContext == null ? null : SESSIONS.get(activeContext);
+        if (session != null && SelectiveRenderState.plotModeActive()) {
+            session.renderingEnabled = SelectiveRenderState.plotRenderingEnabled();
+        }
+        activeContext = null;
         SelectiveRenderState.resetPlotMode();
+    }
+
+    public static void enterWorld(MinecraftClient client, ClientWorld world) {
+        activeContext = SelectiveRenderConfig.contextIdentity(client, world);
+        PlotSession session = SESSIONS.get(activeContext);
+        if (session == null || session.plots.isEmpty()) return;
+        SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
+        SelectiveRenderState.activatePlotMode(session.regions(), session.renderingEnabled);
     }
 
     public static int toggle() {
@@ -65,19 +83,21 @@ public final class PlotSquaredClient {
     }
 
     private static int toggleWithOptions(Integer minY, Integer maxY, int xzMargin) {
-        if (SelectiveRenderState.plotModeActive()) {
-            if (SelectiveRenderState.plotRenderingEnabled()) {
-                SelectiveRenderState.disablePlotMode();
-                overlay(white("Plot mode "), red("disabled"));
-            } else {
-                SelectiveRenderConfig.enableHiddenGroupForIsolation(MinecraftClient.getInstance());
-                SelectiveRenderState.activatePlotMode(SelectiveRenderState.plotRegions());
-                overlay(white("Plot mode "), green("enabled"));
-            }
-            return Command.SINGLE_SUCCESS;
-        }
         return request(ACTION_TOGGLE, "", minY == null ? 0 : minY,
                 maxY == null ? 0 : maxY, minY, maxY, xzMargin);
+    }
+
+    public static int clear() {
+        PlotSession session = currentSession(false);
+        if (session == null || session.plots.isEmpty()) {
+            overlay(white("No temporary plots to clear"));
+            return 0;
+        }
+        session.plots.clear();
+        if (activeContext != null) SESSIONS.remove(activeContext);
+        SelectiveRenderState.disablePlotMode();
+        overlay(white("Temporary plots "), red("cleared"));
+        return Command.SINGLE_SUCCESS;
     }
 
     public static int save(String name, int minY, int maxY, int xzMargin) {
@@ -172,19 +192,20 @@ public final class PlotSquaredClient {
         Integer requestedMaxY = pendingMaxY;
         int requestedMargin = pendingXzMargin;
         clearPending();
-        List<BlockRegion> adjustedRegions = PlotRegionTransform.apply(
-                regions, requestedMinY, requestedMaxY, requestedMargin);
-        if (status == STATUS_TOGGLE && !adjustedRegions.isEmpty()) {
-            SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
-            SelectiveRenderState.activatePlotMode(adjustedRegions);
-            overlay(white("Plot "), aqua(responseName), green(" isolated"));
+        List<BlockRegion> adjustedRegions = (status == STATUS_TOGGLE || status == STATUS_SAVE)
+                ? PlotRegionTransform.apply(regions, requestedMinY, requestedMaxY, requestedMargin)
+                : List.of();
+        if ((status == STATUS_TOGGLE || status == STATUS_SAVE)
+                && !regions.isEmpty() && adjustedRegions.isEmpty()) {
+            send(red("The margin removes the entire plot"));
+        } else if (status == STATUS_TOGGLE && !adjustedRegions.isEmpty()) {
+            togglePlot(client, responseName, regions, adjustedRegions);
         } else if (status == STATUS_SAVE && !adjustedRegions.isEmpty()) {
             if (SelectiveRenderConfig.presetExists(responseName)) {
                 send(white("Preset "), aqua(responseName), red(" already exists"),
                         white(" · delete or rename it first"));
                 return;
             }
-            SelectiveRenderState.resetPlotMode();
             if (SelectiveRenderConfig.saveRegions(client, responseName, adjustedRegions)) {
                 send(white("Preset "), aqua(responseName), green(" saved"),
                         gray(" · " + adjustedRegions.size() + " part(s)"));
@@ -200,6 +221,53 @@ public final class PlotSquaredClient {
         } else {
             send(red("Invalid response from Selective Render Plots"));
         }
+    }
+
+    private static void togglePlot(MinecraftClient client, String responseName,
+                                   List<BlockRegion> rawRegions, List<BlockRegion> adjustedRegions) {
+        PlotSession session = currentSession(true);
+        PlotIdentity identity = new PlotIdentity(canonical(rawRegions));
+        PlotEntry removed = session.plots.remove(identity);
+        if (removed != null) {
+            if (session.plots.isEmpty()) {
+                if (activeContext != null) SESSIONS.remove(activeContext);
+                SelectiveRenderState.disablePlotMode();
+                overlay(white("Plot "), aqua(responseName), red(" removed"), gray(" · 0 active"));
+                return;
+            }
+            boolean rendering = SelectiveRenderState.plotModeActive()
+                    ? SelectiveRenderState.plotRenderingEnabled() : session.renderingEnabled;
+            session.renderingEnabled = rendering;
+            SelectiveRenderState.updatePlotMode(session.regions(), rendering, removed.regions);
+            overlay(white("Plot "), aqua(responseName), red(" removed"),
+                    gray(" · " + session.plots.size() + " active"));
+            return;
+        }
+
+        PlotEntry added = new PlotEntry(responseName, List.copyOf(adjustedRegions));
+        session.plots.put(identity, added);
+        session.renderingEnabled = true;
+        SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
+        SelectiveRenderState.updatePlotMode(session.regions(), true, added.regions);
+        overlay(white("Plot "), aqua(responseName), green(" added"),
+                gray(" · " + session.plots.size() + " active"));
+    }
+
+    private static PlotSession currentSession(boolean create) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (activeContext == null && client.world != null) {
+            activeContext = SelectiveRenderConfig.contextIdentity(client, client.world);
+        }
+        if (activeContext == null) return null;
+        return create ? SESSIONS.computeIfAbsent(activeContext, ignored -> new PlotSession())
+                : SESSIONS.get(activeContext);
+    }
+
+    private static List<BlockRegion> canonical(List<BlockRegion> regions) {
+        return regions.stream().sorted(Comparator.comparingInt(BlockRegion::minX)
+                .thenComparingInt(BlockRegion::maxX).thenComparingInt(BlockRegion::minY)
+                .thenComparingInt(BlockRegion::maxY).thenComparingInt(BlockRegion::minZ)
+                .thenComparingInt(BlockRegion::maxZ)).toList();
     }
 
     private static void clearPending() {
@@ -240,4 +308,16 @@ public final class PlotSquaredClient {
     private static MutableText aqua(String text) { return Text.literal(text).formatted(Formatting.AQUA); }
     private static MutableText green(String text) { return Text.literal(text).formatted(Formatting.GREEN); }
     private static MutableText red(String text) { return Text.literal(text).formatted(Formatting.RED); }
+
+    private record PlotIdentity(List<BlockRegion> rawRegions) { }
+    private record PlotEntry(String name, List<BlockRegion> regions) { }
+
+    private static final class PlotSession {
+        private final LinkedHashMap<PlotIdentity, PlotEntry> plots = new LinkedHashMap<>();
+        private boolean renderingEnabled = true;
+
+        private List<BlockRegion> regions() {
+            return plots.values().stream().flatMap(plot -> plot.regions.stream()).toList();
+        }
+    }
 }

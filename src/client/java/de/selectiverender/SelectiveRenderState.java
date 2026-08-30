@@ -71,12 +71,30 @@ public final class SelectiveRenderState {
     }
 
     public static void activatePlotMode(Collection<BlockRegion> regions) {
+        activatePlotMode(regions, true);
+    }
+
+    public static void activatePlotMode(Collection<BlockRegion> regions, boolean renderingEnabled) {
         List<BlockRegion> next = List.copyOf(regions);
         if (next.isEmpty()) throw new IllegalArgumentException("Plot regions cannot be empty");
         visibleOccluderCache.clear();
         VisibilitySnapshot current = visibility;
-        visibility = current.withPlotState(next, true, true, nextGeneration(current));
+        visibility = current.withPlotState(next, true, renderingEnabled, nextGeneration(current));
         refreshRenderer();
+    }
+
+    public static void updatePlotMode(Collection<BlockRegion> regions, boolean renderingEnabled,
+                                      Collection<BlockRegion> changedRegions) {
+        List<BlockRegion> next = List.copyOf(regions);
+        if (next.isEmpty()) throw new IllegalArgumentException("Plot regions cannot be empty");
+        VisibilitySnapshot current = visibility;
+        if (!current.plotModeActive()) {
+            activatePlotMode(next, renderingEnabled);
+            return;
+        }
+        visibleOccluderCache.clear();
+        visibility = current.withPlotState(next, true, renderingEnabled, nextGeneration(current));
+        refreshRegions(changedRegions);
     }
 
     public static boolean togglePlotRendering() {

@@ -92,7 +92,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 client.execute(() -> SelectiveRenderConfig.beginSession(client)));
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            PlotSquaredClient.reset();
+            PlotSquaredClient.leaveWorld();
             SelectiveRenderConfig.endSession();
             SelectiveRenderState.resetForDisconnect();
         });
@@ -123,6 +123,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> plotCommand(String name) {
         return ClientCommandManager.literal(name)
                 .executes(context -> PlotSquaredClient.toggle())
+                .then(ClientCommandManager.literal("clear").executes(context -> PlotSquaredClient.clear()))
                 .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
                         .executes(context -> PlotSquaredClient.toggle(
                                 IntegerArgumentType.getInteger(context, "minY"),
@@ -131,7 +132,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                 .executes(context -> PlotSquaredClient.toggle(
                                         IntegerArgumentType.getInteger(context, "minY"),
                                         IntegerArgumentType.getInteger(context, "maxY"), 0))
-                                .then(ClientCommandManager.argument("xzMargin", IntegerArgumentType.integer(0))
+                                .then(ClientCommandManager.argument("xzMargin", IntegerArgumentType.integer())
                                         .executes(context -> PlotSquaredClient.toggle(
                                                 IntegerArgumentType.getInteger(context, "minY"),
                                                 IntegerArgumentType.getInteger(context, "maxY"),
@@ -156,7 +157,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                                 StringArgumentType.getString(context, "name"),
                                                 IntegerArgumentType.getInteger(context, "minY"),
                                                 IntegerArgumentType.getInteger(context, "maxY"), 0))
-                                        .then(ClientCommandManager.argument("xzMargin", IntegerArgumentType.integer(0))
+                                        .then(ClientCommandManager.argument("xzMargin", IntegerArgumentType.integer())
                                                 .executes(context -> PlotSquaredClient.save(
                                                         StringArgumentType.getString(context, "name"),
                                                         IntegerArgumentType.getInteger(context, "minY"),

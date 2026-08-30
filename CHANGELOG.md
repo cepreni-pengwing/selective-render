@@ -2,6 +2,21 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.0-test.3
+
+### Added
+
+- Added temporary multi-plot isolation: using `/sr p` on more plots adds them to the current view,
+  using it again on an active plot removes that plot, and `/sr p clear` clears the group.
+- Temporary plot groups now survive reconnects and dimension changes during the current Minecraft
+  session while remaining separate per server/world and dimension.
+- Added negative X/Z margins for temporary and saved plot commands to shrink plot outlines.
+
+### Fixed
+
+- Negative margins treat merged and irregular PlotSquared parts as one shape, avoiding artificial
+  gaps at internal cuboid borders and rejecting changes that erase the entire plot.
+
 ## 1.8.0-test.2
 
 ### Fixed

@@ -100,19 +100,21 @@ Servers running the optional [Selective Render Plots](https://modrinth.com/plugi
 can provide their exact PlotSquared regions, including merged and non-rectangular plots.
 Plot integration is part of the normal Selective Render command tree:
 
-- `/selectiverender plot` or `/sr plot` toggles temporary isolation of the plot under the player
-  using the default Y range `-100` to `400`.
-- `/sr p [minY] [maxY] [xzMargin]` temporarily isolates the plot with inclusive vertical bounds and an
-  outward horizontal margin. The margin must be zero or greater.
+- `/selectiverender plot` or `/sr plot` adds the plot under the player to temporary isolation using
+  the default Y range `-100` to `400`. Use it again on that plot to remove only that plot.
+- `/sr p [minY] [maxY] [xzMargin]` does the same with inclusive vertical bounds. A positive margin
+  expands the outline; a negative margin shrinks the complete plot shape.
+- `/sr p clear` clears all temporarily selected plots.
 - `/selectiverender plot save NAME [minY] [maxY] [xzMargin]` permanently saves the exact plot shape as one
   normal preset and immediately activates it. The Y boundaries are inclusive, and the X/Z margin
-  expands every internal PlotSquared cuboid.
+  adjusts the complete PlotSquared shape without creating seams between merged parts.
 
 `p` is the short alias for `plot`, and `s` is the short alias for `save`, so
 `/sr p s NAME minY maxY xzMargin` is equivalent. Omitted Y values default to `-100` and `400`;
 omitting `xzMargin` preserves the exact PlotSquared X/Z bounds.
 
-Plot mode is temporary. It does not alter saved presets, and active hide regions
+Plot mode is temporary for the current Minecraft session and is remembered across reconnects and
+dimension changes for the same server/world and dimension. It does not alter saved presets, and active hide regions
 continue to be subtracted from the plot regions. A saved merged or irregular plot
 appears as one entry in `/sr list`, even though it contains multiple internal cuboids.
 
