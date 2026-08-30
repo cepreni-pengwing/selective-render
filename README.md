@@ -170,10 +170,13 @@ raycasts. Collision is unchanged.
   terrain lists, so geometry outside the region never enters a shadow pass.
 - Entities, block entities, and particle geometry use separate render filters.
   Player, entity, and block-entity lightmaps use the same shape-aware virtual skylight as terrain,
-  preventing mismatched brightness below filtered roofs and around partial blocks.
+  preventing mismatched brightness below filtered roofs and around partial blocks. Compact cached
+  section results are invalidated only where block or chunk changes can affect them.
 - Region changes rebuild only intersecting 16 x 16 x 16 render sections plus the
   virtual-light influence area. Large updates automatically fall back to a full
   renderer reload.
+- With no render or hide regions active, hot render and lighting hooks immediately use their
+  normal game paths; unrestricted player and interaction settings do the same.
 
 The mod does not change render distance, server packets, chunk loading, game
 logic, or collision. The implementation does not use reflection.

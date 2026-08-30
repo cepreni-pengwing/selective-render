@@ -45,6 +45,10 @@ public final class SelectiveRenderState {
     public static boolean plotRenderingEnabled() { return visibility.plotRenderingEnabled(); }
     public static List<BlockRegion> plotRegions() { return visibility.plotRegions(); }
     public static int visibilityGeneration() { return visibility.generation(); }
+    public static boolean filteringActive() {
+        VisibilitySnapshot snapshot = visibility;
+        return snapshot.enabled() || snapshot.hideEnabled();
+    }
 
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
                                      Collection<BlockRegion> hidden, boolean newHideEnabled,
@@ -154,6 +158,7 @@ public final class SelectiveRenderState {
 
     public static boolean shouldRender(int blockX, int blockY, int blockZ) {
         VisibilitySnapshot snapshot = visibility;
+        if (!snapshot.enabled() && !snapshot.hideEnabled()) return true;
         return shouldRender(snapshot, blockX, blockY, blockZ);
     }
 
@@ -227,30 +232,42 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldRender(Entity entity) {
+        if (!(entity instanceof PlayerEntity) && !filteringActive()) return true;
+        SelectiveRenderSettings.PlayerVisibility playerVisibility =
+                SelectiveRenderSettings.playerVisibility();
+        if (entity instanceof PlayerEntity) {
+            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE) return true;
+            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.NONE) return false;
+        }
         boolean inside = shouldRender(entity.getX(), entity.getY(), entity.getZ());
         if (!(entity instanceof PlayerEntity)) return inside;
-        return switch (SelectiveRenderSettings.playerVisibility()) {
-            case NONE -> false;
+        return switch (playerVisibility) {
             case INSIDE -> inside;
             case OUTSIDE -> !inside;
-            case EVERYWHERE -> true;
+            default -> true;
         };
     }
 
     public static boolean shouldInteract(BlockPos position) {
-        return shouldInteract(shouldRender(position));
+        SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
+        if (mode == SelectiveRenderSettings.InteractionMode.EVERYWHERE) return true;
+        if (mode == SelectiveRenderSettings.InteractionMode.NONE) return false;
+        return shouldInteract(mode, shouldRender(position));
     }
 
     public static boolean shouldInteract(Entity entity) {
-        return shouldInteract(shouldRender(entity.getX(), entity.getY(), entity.getZ()));
+        SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
+        if (mode == SelectiveRenderSettings.InteractionMode.EVERYWHERE) return true;
+        if (mode == SelectiveRenderSettings.InteractionMode.NONE) return false;
+        return shouldInteract(mode, shouldRender(entity.getX(), entity.getY(), entity.getZ()));
     }
 
-    private static boolean shouldInteract(boolean inside) {
-        return switch (SelectiveRenderSettings.interactionMode()) {
-            case NONE -> false;
+    private static boolean shouldInteract(SelectiveRenderSettings.InteractionMode mode,
+                                          boolean inside) {
+        return switch (mode) {
             case INSIDE -> inside;
             case OUTSIDE -> !inside;
-            case EVERYWHERE -> true;
+            default -> true;
         };
     }
 
@@ -296,7 +313,11 @@ public final class SelectiveRenderState {
 
     public static void invalidateVisibleOccluder(int blockX, int blockZ) {
         visibleOccluderCache.invalidate(blockX, blockZ);
-        VirtualSkyLightSampler.invalidate();
+    }
+
+    public static void invalidateVirtualSkyLight(int blockX, int blockY, int blockZ) {
+        if (!filteringActive()) return;
+        VirtualSkyLightSampler.invalidateBlock(blockX, blockY, blockZ);
     }
 
     private static int visibleColumnTop(VisibilitySnapshot snapshot,
@@ -325,9 +346,10 @@ public final class SelectiveRenderState {
         return Math.max(bottom, worldBottom);
     }
 
-    public static void removeVisibleOccluderChunk(int chunkX, int chunkZ) {
+    public static void invalidateLightCacheChunk(int chunkX, int chunkZ) {
+        if (!filteringActive()) return;
         visibleOccluderCache.removeChunk(chunkX, chunkZ);
-        VirtualSkyLightSampler.invalidate();
+        VirtualSkyLightSampler.invalidateChunk(chunkX, chunkZ);
     }
 
     public static void resetForDisconnect() {

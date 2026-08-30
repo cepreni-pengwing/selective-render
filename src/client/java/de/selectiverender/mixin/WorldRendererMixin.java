@@ -41,7 +41,9 @@ abstract class WorldRendererMixin {
     private void selectiverender$invalidateLightColumn(BlockView world, BlockPos pos,
                                                         BlockState oldState, BlockState newState,
                                                         int flags, CallbackInfo ci) {
-        if (oldState != newState) VirtualSkyLightSampler.invalidate();
+        if (oldState != newState) {
+            SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
+        }
         if (oldState.getOpacity(world, pos) != newState.getOpacity(world, pos)) {
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
             SelectiveRenderState.refreshLightAround(pos);

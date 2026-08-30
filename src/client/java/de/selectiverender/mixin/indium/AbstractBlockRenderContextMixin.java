@@ -20,6 +20,7 @@ abstract class AbstractBlockRenderContextMixin {
     @Inject(method = "colorizeQuad", at = @At("RETURN"), require = 0)
     private void selectiverender$colorBoundaryFace(@Coerce Object rawQuad, int colorIndex,
                                                     CallbackInfo ci) {
+        if (SelectiveRenderSettings.boundaryMode() != SelectiveRenderSettings.BoundaryMode.BLACK) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;

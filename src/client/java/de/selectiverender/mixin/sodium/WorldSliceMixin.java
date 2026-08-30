@@ -51,7 +51,7 @@ abstract class WorldSliceMixin {
 
     @Inject(method = "getBlockState(III)Lnet/minecraft/block/BlockState;", at = @At("HEAD"), cancellable = true, remap = true)
     private void selectiverender$filterBlockState(int x, int y, int z, CallbackInfoReturnable<BlockState> cir) {
-        if (selectiverender$sourceRead) return;
+        if (selectiverender$sourceRead || !SelectiveRenderState.filteringActive()) return;
         if (!SelectiveRenderState.shouldRender(x, y, z)) {
             cir.setReturnValue(Blocks.AIR.getDefaultState());
         }
@@ -59,9 +59,11 @@ abstract class WorldSliceMixin {
 
     @Inject(method = "getLightLevel(Lnet/minecraft/world/LightType;Lnet/minecraft/util/math/BlockPos;)I", at = @At("RETURN"), cancellable = true, remap = true)
     private void selectiverender$filterLightLevel(LightType type, BlockPos pos, CallbackInfoReturnable<Integer> cir) {
+        if (!SelectiveRenderState.filteringActive()) return;
         if (!SelectiveRenderState.shouldRender(pos)) {
-            cir.setReturnValue(type == LightType.SKY ? 15 : 0);
-        } else if (type == LightType.SKY && cir.getReturnValueI() < 15) {
+            cir.setReturnValue(type == LightType.SKY && world.getDimension().hasSkyLight() ? 15 : 0);
+        } else if (type == LightType.SKY && world.getDimension().hasSkyLight()
+                && cir.getReturnValueI() < 15) {
             int virtualLight = selectiverender$getVirtualSkyLight(pos);
             if (virtualLight >= 0) cir.setReturnValue(Math.max(cir.getReturnValueI(), virtualLight));
         }
@@ -70,16 +72,19 @@ abstract class WorldSliceMixin {
     @Inject(method = "getBaseLightLevel(Lnet/minecraft/util/math/BlockPos;I)I", at = @At("HEAD"), cancellable = true, remap = true)
     private void selectiverender$filterBaseLightLevel(BlockPos pos, int ambientDarkness,
                                                        CallbackInfoReturnable<Integer> cir) {
+        if (!SelectiveRenderState.filteringActive()) return;
         if (!SelectiveRenderState.shouldRender(pos)) {
-            cir.setReturnValue(Math.max(0, 15 - ambientDarkness));
+            cir.setReturnValue(world.getDimension().hasSkyLight()
+                    ? Math.max(0, 15 - ambientDarkness) : 0);
         }
     }
 
     @Inject(method = "getBaseLightLevel(Lnet/minecraft/util/math/BlockPos;I)I", at = @At("RETURN"), cancellable = true, remap = true)
     private void selectiverender$applyVirtualBaseLight(BlockPos pos, int ambientDarkness,
                                                         CallbackInfoReturnable<Integer> cir) {
+        if (!SelectiveRenderState.filteringActive()) return;
         int maximumSkyLight = Math.max(0, 15 - ambientDarkness);
-        if (cir.getReturnValueI() >= maximumSkyLight) return;
+        if (!world.getDimension().hasSkyLight() || cir.getReturnValueI() >= maximumSkyLight) return;
         int virtualLight = selectiverender$getVirtualSkyLight(pos);
         if (virtualLight >= 0) {
             cir.setReturnValue(Math.max(cir.getReturnValueI(), Math.max(0, virtualLight - ambientDarkness)));
@@ -91,6 +96,7 @@ abstract class WorldSliceMixin {
         if (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled()) {
             return -1;
         }
+        if (!world.getDimension().hasSkyLight()) return -1;
         if (!SelectiveRenderState.mayNeedVirtualSkyLight(
                 pos.getX(), pos.getZ(), selectiverender$lightRadius)) return -1;
         if (!SelectiveRenderState.shouldRender(pos)) return -1;
@@ -224,6 +230,9 @@ abstract class WorldSliceMixin {
                         || nextY < 0 || nextY >= selectiverender$lightSizeY
                         || nextZ < 0 || nextZ >= selectiverender$lightSizeZ) continue;
                 int nextIndex = selectiverender$lightIndex(nextX, nextY, nextZ);
+                int existingLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]);
+                if (!de.selectiverender.VirtualLightPropagation.canImprove(
+                        currentLight, existingLight)) continue;
                 int opacity = Byte.toUnsignedInt(selectiverender$lightOpacity[nextIndex]);
                 nextPos.set(selectiverender$lightMinX + nextX,
                         selectiverender$lightMinY + nextY,
@@ -233,8 +242,7 @@ abstract class WorldSliceMixin {
                         selectiverender$lightStates[nextIndex], nextPos,
                         direction, Math.max(1, opacity));
                 int nextLight = currentLight - realisticOpacity;
-                if (nextLight <= 0
-                        || Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]) >= nextLight) continue;
+                if (nextLight <= existingLight) continue;
                 selectiverender$virtualSkyLight[nextIndex] = (byte) nextLight;
                 if (selectiverender$queuedLight[nextIndex] == 0) {
                     selectiverender$lightQueue[queueTail] = nextIndex;

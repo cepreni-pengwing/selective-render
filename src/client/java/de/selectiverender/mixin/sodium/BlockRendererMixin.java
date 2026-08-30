@@ -47,7 +47,10 @@ abstract class BlockRendererMixin {
                                                     ColorProvider<BlockState> colorProvider,
                                                     BakedQuadView quad,
                                                     CallbackInfoReturnable<int[]> cir) {
-        selectiverender$solidColor.set(false);
+        if (selectiverender$solidColor.get()) selectiverender$solidColor.set(false);
+        if (!SelectiveRenderState.filteringActive()
+                || SelectiveRenderSettings.boundaryMode()
+                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
         Direction direction = selectiverender$quadDirection.get();
         if (direction == null) {
             direction = quad.getLightFace();
@@ -79,6 +82,9 @@ abstract class BlockRendererMixin {
                                                 Vec3d offset, ChunkModelBuilder builder,
                                                 List<BakedQuad> quads, Direction direction,
                                                 CallbackInfo ci) {
+        if (!SelectiveRenderState.filteringActive()
+                || SelectiveRenderSettings.boundaryMode()
+                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
         selectiverender$quadDirection.set(direction);
     }
 
@@ -89,7 +95,7 @@ abstract class BlockRendererMixin {
                                               Vec3d offset, ChunkModelBuilder builder,
                                               List<BakedQuad> quads, Direction direction,
                                               CallbackInfo ci) {
-        selectiverender$quadDirection.remove();
+        if (selectiverender$quadDirection.get() != null) selectiverender$quadDirection.remove();
     }
 
     @Unique

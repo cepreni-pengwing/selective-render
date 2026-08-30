@@ -1,6 +1,8 @@
 package de.selectiverender.mixin.indium;
 
 import de.selectiverender.IndiumRenderContext;
+import de.selectiverender.SelectiveRenderSettings;
+import de.selectiverender.SelectiveRenderState;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderContext;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -13,11 +15,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class TerrainRenderContextMixin {
     @Inject(method = "tessellateBlock", at = @At("HEAD"), require = 0)
     private void selectiverender$beginBlock(BlockRenderContext context, CallbackInfo ci) {
-        IndiumRenderContext.begin(context.pos());
+        if (SelectiveRenderState.filteringActive()
+                && SelectiveRenderSettings.boundaryMode()
+                == SelectiveRenderSettings.BoundaryMode.BLACK) {
+            IndiumRenderContext.begin(context.pos());
+        }
     }
 
     @Inject(method = "tessellateBlock", at = @At("RETURN"), require = 0)
     private void selectiverender$endBlock(BlockRenderContext context, CallbackInfo ci) {
-        IndiumRenderContext.end();
+        if (SelectiveRenderState.filteringActive()
+                && SelectiveRenderSettings.boundaryMode()
+                == SelectiveRenderSettings.BoundaryMode.BLACK) {
+            IndiumRenderContext.end();
+        }
     }
 }

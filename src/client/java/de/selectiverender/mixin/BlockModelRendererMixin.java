@@ -31,6 +31,12 @@ abstract class BlockModelRendererMixin {
                                                     float brightness2, float brightness3,
                                                     int light0, int light1, int light2, int light3,
                                                     int overlay, CallbackInfo ci) {
+        if (!SelectiveRenderState.filteringActive()
+                || SelectiveRenderSettings.boundaryMode()
+                != SelectiveRenderSettings.BoundaryMode.BLACK) {
+            if (selectiverender$coloredBoundary.get()) selectiverender$coloredBoundary.set(false);
+            return;
+        }
         selectiverender$coloredBoundary.set(
                 SelectiveRenderState.boundaryModeForFace(pos, quad.getFace())
                         == SelectiveRenderSettings.BoundaryMode.BLACK
@@ -65,6 +71,6 @@ abstract class BlockModelRendererMixin {
                                                   float brightness2, float brightness3,
                                                   int light0, int light1, int light2, int light3,
                                                   int overlay, CallbackInfo ci) {
-        selectiverender$coloredBoundary.set(false);
+        if (selectiverender$coloredBoundary.get()) selectiverender$coloredBoundary.set(false);
     }
 }

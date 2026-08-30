@@ -20,6 +20,7 @@ abstract class BlockOcclusionCacheMixin {
     private void selectiverender$exposeBoundaryFace(BlockState state, BlockView world,
                                                     BlockPos pos, Direction direction,
                                                     CallbackInfoReturnable<Boolean> cir) {
+        if (!SelectiveRenderState.filteringActive()) return;
         if (SelectiveRenderState.shouldRender(pos)
                 && !SelectiveRenderState.shouldRender(pos.offset(direction))) {
             cir.setReturnValue(SelectiveRenderState.boundaryModeForFace(pos, direction)

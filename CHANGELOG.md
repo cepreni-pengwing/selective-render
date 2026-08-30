@@ -2,6 +2,23 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.0-test.5
+
+### Changed
+
+- Reduced entity, player, and block-entity virtual-light cache memory and cache misses by retaining
+  compact section results while reusing the larger calculation workspace.
+- Skipped unnecessary boundary and light-propagation work when it cannot affect the result.
+- Added explicit no-op fast paths across hot terrain, lighting, entity, and interaction checks when
+  no render or hide regions are active and the related settings remain unrestricted.
+
+### Fixed
+
+- Invalidated only virtual-light sections affected by block and chunk changes, including newly
+  loaded chunks, instead of discarding the complete cache.
+- Kept virtual skylight disabled in dimensions without skylight and aligned entity light scans with
+  terrain around distant partial shapes.
+
 ## 1.8.0-test.4
 
 ### Fixed

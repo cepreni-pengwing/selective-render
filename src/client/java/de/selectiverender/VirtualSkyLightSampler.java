@@ -1,33 +1,36 @@
 package de.selectiverender;
 
+import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Direction;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.chunk.light.ChunkLightProvider;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.Arrays;
 
 /** Main-thread virtual skylight sampler for entities and block entities. */
 public final class VirtualSkyLightSampler {
     private static final int RADIUS = SelectiveRenderState.VIRTUAL_LIGHT_RADIUS;
-    private static final int MAX_VOLUMES = 8;
+    private static final int CORE_SIZE = 16;
+    private static final int CORE_CELLS = CORE_SIZE * CORE_SIZE * CORE_SIZE;
+    private static final int MAX_VOLUMES = 128;
     private static final Direction[] DIRECTIONS = Direction.values();
-    private static final Map<SectionKey, Volume> VOLUMES = new LinkedHashMap<>(16, 0.75f, true) {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<SectionKey, Volume> eldest) {
-            return size() > MAX_VOLUMES;
-        }
-    };
+    private static final Long2ObjectLinkedOpenHashMap<CoreVolume> VOLUMES =
+            new Long2ObjectLinkedOpenHashMap<>();
+    private static final Scratch SCRATCH = new Scratch();
     private static ClientWorld cachedWorld;
     private static int cachedGeneration = Integer.MIN_VALUE;
 
     private VirtualSkyLightSampler() { }
 
     public static int sample(ClientWorld world, BlockPos pos) {
-        if (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled()) return -1;
+        if (!world.getDimension().hasSkyLight()
+                || (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())) return -1;
         if (!SelectiveRenderState.shouldRender(pos)) return 15;
         if (pos.getY() >= world.getTopY()) return 15;
         if (pos.getY() < world.getBottomY()) return 0;
@@ -39,32 +42,71 @@ public final class VirtualSkyLightSampler {
             cachedWorld = world;
             cachedGeneration = generation;
         }
-        SectionKey key = new SectionKey(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
-        return VOLUMES.computeIfAbsent(key, ignored -> build(world, key)).sample(pos);
+        int sectionX = pos.getX() >> 4;
+        int sectionY = pos.getY() >> 4;
+        int sectionZ = pos.getZ() >> 4;
+        long key = ChunkSectionPos.asLong(sectionX, sectionY, sectionZ);
+        CoreVolume volume = VOLUMES.getAndMoveToLast(key);
+        if (volume == null) {
+            volume = build(world, sectionX, sectionY, sectionZ);
+            VOLUMES.putAndMoveToLast(key, volume);
+            if (VOLUMES.size() > MAX_VOLUMES) VOLUMES.removeFirst();
+        }
+        return volume.sample(pos);
     }
 
     public static void invalidate() {
         VOLUMES.clear();
     }
 
-    private static Volume build(ClientWorld world, SectionKey section) {
-        int minX = (section.x << 4) - RADIUS;
-        int maxX = (section.x << 4) + 15 + RADIUS;
-        int minY = Math.max(world.getBottomY(), (section.y << 4) - RADIUS);
-        int maxY = Math.min(world.getTopY() - 1, (section.y << 4) + 15 + RADIUS);
-        int minZ = (section.z << 4) - RADIUS;
-        int maxZ = (section.z << 4) + 15 + RADIUS;
-        Volume volume = new Volume(minX, minY, minZ,
-                maxX - minX + 1, maxY - minY + 1, maxZ - minZ + 1);
+    public static void invalidateBlock(int blockX, int blockY, int blockZ) {
+        var iterator = VOLUMES.long2ObjectEntrySet().fastIterator();
+        while (iterator.hasNext()) {
+            Long2ObjectMap.Entry<CoreVolume> entry = iterator.next();
+            long key = entry.getLongKey();
+            if (LightVolumeInfluence.blockAffectsSection(
+                    ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key),
+                    ChunkSectionPos.unpackZ(key), blockX, blockY, blockZ, RADIUS)) {
+                iterator.remove();
+            }
+        }
+    }
+
+    public static void invalidateChunk(int chunkX, int chunkZ) {
+        var iterator = VOLUMES.long2ObjectEntrySet().fastIterator();
+        while (iterator.hasNext()) {
+            Long2ObjectMap.Entry<CoreVolume> entry = iterator.next();
+            long key = entry.getLongKey();
+            if (LightVolumeInfluence.chunkAffectsSection(
+                    ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key),
+                    chunkX, chunkZ, RADIUS)) iterator.remove();
+        }
+    }
+
+    private static CoreVolume build(ClientWorld world, int sectionX, int sectionY, int sectionZ) {
+        int coreMinX = sectionX << 4;
+        int coreMinY = sectionY << 4;
+        int coreMinZ = sectionZ << 4;
+        int minX = coreMinX - RADIUS;
+        int maxX = coreMinX + 15 + RADIUS;
+        int minY = Math.max(world.getBottomY(), coreMinY - RADIUS);
+        int maxY = Math.min(world.getTopY() - 1, coreMinY + 15 + RADIUS);
+        int minZ = coreMinZ - RADIUS;
+        int maxZ = coreMinZ + 15 + RADIUS;
+        int sizeX = maxX - minX + 1;
+        int sizeY = maxY - minY + 1;
+        int sizeZ = maxZ - minZ + 1;
+        int cells = sizeX * sizeY * sizeZ;
+        SCRATCH.prepare(cells, sizeX, sizeZ);
         BlockPos.Mutable cursor = new BlockPos.Mutable();
 
         for (int y = minY; y <= maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
-                    int index = volume.index(x - minX, y - minY, z - minZ);
+                    int index = SCRATCH.index(x - minX, y - minY, z - minZ);
                     BlockState state = sourceState(world, cursor, x, y, z);
-                    volume.states[index] = state;
-                    volume.opacity[index] = (byte) opacity(world, state, cursor);
+                    SCRATCH.states[index] = state;
+                    SCRATCH.opacity[index] = (byte) opacity(world, state, cursor);
                 }
             }
         }
@@ -77,9 +119,10 @@ public final class VirtualSkyLightSampler {
             for (int z = minZ; z <= maxZ; z++) {
                 int localX = x - minX;
                 int localZ = z - minZ;
-                int highestOccluder = SelectiveRenderState.highestVisibleOccluder(world, x, z);
-                int scanTop = highestOccluder == Integer.MIN_VALUE
-                        ? maxY : Math.max(maxY, highestOccluder);
+                int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
+                int visibleTop = SelectiveRenderState.visibleColumnTop(x, z,
+                        Math.min(world.getTopY() - 1, worldSurface));
+                int scanTop = visibleTop == Integer.MIN_VALUE ? maxY : Math.max(maxY, visibleTop);
                 int directLight = 15;
                 BlockState aboveState = sourceState(world, above, x, scanTop + 1, z);
                 for (int y = scanTop; y >= minY; y--) {
@@ -87,9 +130,9 @@ public final class VirtualSkyLightSampler {
                     BlockState state;
                     int stateOpacity;
                     if (y <= maxY) {
-                        int index = volume.index(localX, y - minY, localZ);
-                        state = volume.states[index];
-                        stateOpacity = Byte.toUnsignedInt(volume.opacity[index]);
+                        int index = SCRATCH.index(localX, y - minY, localZ);
+                        state = SCRATCH.states[index];
+                        stateOpacity = Byte.toUnsignedInt(SCRATCH.opacity[index]);
                     } else {
                         state = sourceState(world, cursor, x, y, z);
                         stateOpacity = opacity(world, state, cursor);
@@ -101,11 +144,11 @@ public final class VirtualSkyLightSampler {
                     aboveState = state;
                     if (directLight <= 0) break;
                     if (y > maxY) continue;
-                    int index = volume.index(localX, y - minY, localZ);
-                    volume.light[index] = (byte) directLight;
-                    volume.queue[queueTail] = index;
-                    queueTail = (queueTail + 1) % volume.light.length;
-                    volume.queued[index] = 1;
+                    int index = SCRATCH.index(localX, y - minY, localZ);
+                    SCRATCH.light[index] = (byte) directLight;
+                    SCRATCH.queue[queueTail] = index;
+                    queueTail = (queueTail + 1) % cells;
+                    SCRATCH.queued[index] = 1;
                     queueSize++;
                 }
             }
@@ -114,41 +157,56 @@ public final class VirtualSkyLightSampler {
         BlockPos.Mutable currentPos = above;
         BlockPos.Mutable nextPos = cursor;
         while (queueSize > 0) {
-            int currentIndex = volume.queue[queueHead];
-            queueHead = (queueHead + 1) % volume.light.length;
+            int currentIndex = SCRATCH.queue[queueHead];
+            queueHead = (queueHead + 1) % cells;
             queueSize--;
-            volume.queued[currentIndex] = 0;
-            int currentLight = Byte.toUnsignedInt(volume.light[currentIndex]);
+            SCRATCH.queued[currentIndex] = 0;
+            int currentLight = Byte.toUnsignedInt(SCRATCH.light[currentIndex]);
             if (currentLight <= 1) continue;
-            int localX = currentIndex % volume.sizeX;
-            int yz = currentIndex / volume.sizeX;
-            int localZ = yz % volume.sizeZ;
-            int localY = yz / volume.sizeZ;
+            int localX = currentIndex % sizeX;
+            int yz = currentIndex / sizeX;
+            int localZ = yz % sizeZ;
+            int localY = yz / sizeZ;
             currentPos.set(minX + localX, minY + localY, minZ + localZ);
-            BlockState currentState = volume.states[currentIndex];
+            BlockState currentState = SCRATCH.states[currentIndex];
             for (Direction direction : DIRECTIONS) {
                 int nextX = localX + direction.getOffsetX();
                 int nextY = localY + direction.getOffsetY();
                 int nextZ = localZ + direction.getOffsetZ();
-                if (nextX < 0 || nextX >= volume.sizeX || nextY < 0 || nextY >= volume.sizeY
-                        || nextZ < 0 || nextZ >= volume.sizeZ) continue;
-                int nextIndex = volume.index(nextX, nextY, nextZ);
+                if (nextX < 0 || nextX >= sizeX || nextY < 0 || nextY >= sizeY
+                        || nextZ < 0 || nextZ >= sizeZ) continue;
+                int nextIndex = SCRATCH.index(nextX, nextY, nextZ);
+                int existingLight = Byte.toUnsignedInt(SCRATCH.light[nextIndex]);
+                if (!VirtualLightPropagation.canImprove(currentLight, existingLight)) continue;
                 nextPos.set(minX + nextX, minY + nextY, minZ + nextZ);
                 int realisticOpacity = ChunkLightProvider.getRealisticOpacity(
-                        world, currentState, currentPos, volume.states[nextIndex], nextPos,
-                        direction, Math.max(1, Byte.toUnsignedInt(volume.opacity[nextIndex])));
+                        world, currentState, currentPos, SCRATCH.states[nextIndex], nextPos,
+                        direction, Math.max(1, Byte.toUnsignedInt(SCRATCH.opacity[nextIndex])));
                 int nextLight = currentLight - realisticOpacity;
-                if (nextLight <= 0 || Byte.toUnsignedInt(volume.light[nextIndex]) >= nextLight) continue;
-                volume.light[nextIndex] = (byte) nextLight;
-                if (volume.queued[nextIndex] == 0) {
-                    volume.queue[queueTail] = nextIndex;
-                    queueTail = (queueTail + 1) % volume.light.length;
-                    volume.queued[nextIndex] = 1;
+                if (nextLight <= existingLight) continue;
+                SCRATCH.light[nextIndex] = (byte) nextLight;
+                if (SCRATCH.queued[nextIndex] == 0) {
+                    SCRATCH.queue[queueTail] = nextIndex;
+                    queueTail = (queueTail + 1) % cells;
+                    SCRATCH.queued[nextIndex] = 1;
                     queueSize++;
                 }
             }
         }
-        return volume;
+
+        byte[] coreLight = new byte[CORE_CELLS];
+        int fromY = Math.max(world.getBottomY(), coreMinY);
+        int toY = Math.min(world.getTopY() - 1, coreMinY + 15);
+        for (int y = fromY; y <= toY; y++) {
+            int localY = y - minY;
+            int coreY = y - coreMinY;
+            for (int coreZ = 0; coreZ < CORE_SIZE; coreZ++) {
+                int source = SCRATCH.index(RADIUS, localY, RADIUS + coreZ);
+                int target = (coreY * CORE_SIZE + coreZ) * CORE_SIZE;
+                System.arraycopy(SCRATCH.light, source, coreLight, target, CORE_SIZE);
+            }
+        }
+        return new CoreVolume(coreMinX, coreMinY, coreMinZ, coreLight);
     }
 
     private static BlockState sourceState(ClientWorld world, BlockPos.Mutable cursor,
@@ -163,39 +221,37 @@ public final class VirtualSkyLightSampler {
         return Math.min(15, Math.max(0, state.getOpacity(world, pos)));
     }
 
-    private record SectionKey(int x, int y, int z) { }
-
-    private static final class Volume {
-        private final int minX;
-        private final int minY;
-        private final int minZ;
-        private final int sizeX;
-        private final int sizeY;
-        private final int sizeZ;
-        private final byte[] light;
-        private final byte[] queued;
-        private final byte[] opacity;
-        private final BlockState[] states;
-        private final int[] queue;
-
-        private Volume(int minX, int minY, int minZ, int sizeX, int sizeY, int sizeZ) {
-            this.minX = minX;
-            this.minY = minY;
-            this.minZ = minZ;
-            this.sizeX = sizeX;
-            this.sizeY = sizeY;
-            this.sizeZ = sizeZ;
-            int cells = Math.multiplyExact(Math.multiplyExact(sizeX, sizeY), sizeZ);
-            light = new byte[cells];
-            queued = new byte[cells];
-            opacity = new byte[cells];
-            states = new BlockState[cells];
-            queue = new int[cells];
-        }
-
+    private record CoreVolume(int minX, int minY, int minZ, byte[] light) {
         private int sample(BlockPos pos) {
-            return Byte.toUnsignedInt(light[index(
-                    pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ)]);
+            int localX = pos.getX() - minX;
+            int localY = pos.getY() - minY;
+            int localZ = pos.getZ() - minZ;
+            return Byte.toUnsignedInt(light[(localY * CORE_SIZE + localZ) * CORE_SIZE + localX]);
+        }
+    }
+
+    private static final class Scratch {
+        private byte[] light = new byte[0];
+        private byte[] queued = new byte[0];
+        private byte[] opacity = new byte[0];
+        private BlockState[] states = new BlockState[0];
+        private int[] queue = new int[0];
+        private int sizeX;
+        private int sizeZ;
+
+        private void prepare(int cells, int sizeX, int sizeZ) {
+            this.sizeX = sizeX;
+            this.sizeZ = sizeZ;
+            if (light.length < cells) {
+                light = new byte[cells];
+                queued = new byte[cells];
+                opacity = new byte[cells];
+                states = new BlockState[cells];
+                queue = new int[cells];
+            } else {
+                Arrays.fill(light, 0, cells, (byte) 0);
+                Arrays.fill(queued, 0, cells, (byte) 0);
+            }
         }
 
         private int index(int localX, int localY, int localZ) {
