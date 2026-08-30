@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.VirtualSkyLightSampler;
 import net.minecraft.client.render.entity.EntityRenderer;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.math.BlockPos;
@@ -18,8 +19,9 @@ abstract class EntityRendererMixin<T extends Entity> {
                 || cir.getReturnValueI() >= 15) {
             return;
         }
-        if (entity.getWorld() instanceof net.minecraft.client.world.ClientWorld clientWorld
-                && pos.getY() > SelectiveRenderState.highestVisibleOccluder(
-                clientWorld, pos.getX(), pos.getZ())) cir.setReturnValue(15);
+        if (entity.getWorld() instanceof net.minecraft.client.world.ClientWorld clientWorld) {
+            int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);
+            if (virtualLight >= 0) cir.setReturnValue(Math.max(cir.getReturnValueI(), virtualLight));
+        }
     }
 }

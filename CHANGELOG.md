@@ -2,6 +2,15 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.0-test.4
+
+### Fixed
+
+- Made entity, player, and block-entity skylight use the same shape-aware virtual light propagation
+  as terrain, including correct face occlusion for slabs, stairs, walls, and overhangs.
+- Cached virtual entity-light volumes per section and invalidated them for visibility, chunk, and
+  block-shape changes to avoid repeating the full calculation every frame.
+
 ## 1.8.0-test.3
 
 ### Added

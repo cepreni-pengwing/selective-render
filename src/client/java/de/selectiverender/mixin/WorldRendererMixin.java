@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.VirtualSkyLightSampler;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
@@ -28,17 +29,19 @@ abstract class WorldRendererMixin {
         if (LightmapTextureManager.getSkyLightCoordinates(light) >= 15
                 || !(world instanceof ClientWorld clientWorld)
                 || (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())
-                || !SelectiveRenderState.shouldRender(pos)
-                || pos.getY() <= SelectiveRenderState.highestVisibleOccluder(
-                clientWorld, pos.getX(), pos.getZ())) return;
+                || !SelectiveRenderState.shouldRender(pos)) return;
+        int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);
+        if (virtualLight < 0) return;
         cir.setReturnValue(LightmapTextureManager.pack(
-                15, LightmapTextureManager.getBlockLightCoordinates(light)));
+                Math.max(LightmapTextureManager.getSkyLightCoordinates(light), virtualLight),
+                LightmapTextureManager.getBlockLightCoordinates(light)));
     }
 
     @Inject(method = "updateBlock", at = @At("HEAD"))
     private void selectiverender$invalidateLightColumn(BlockView world, BlockPos pos,
                                                         BlockState oldState, BlockState newState,
                                                         int flags, CallbackInfo ci) {
+        if (oldState != newState) VirtualSkyLightSampler.invalidate();
         if (oldState.getOpacity(world, pos) != newState.getOpacity(world, pos)) {
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
             SelectiveRenderState.refreshLightAround(pos);

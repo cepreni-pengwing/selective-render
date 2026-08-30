@@ -44,6 +44,7 @@ public final class SelectiveRenderState {
     public static boolean plotModeActive() { return visibility.plotModeActive(); }
     public static boolean plotRenderingEnabled() { return visibility.plotRenderingEnabled(); }
     public static List<BlockRegion> plotRegions() { return visibility.plotRegions(); }
+    public static int visibilityGeneration() { return visibility.generation(); }
 
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
                                      Collection<BlockRegion> hidden, boolean newHideEnabled,
@@ -295,6 +296,7 @@ public final class SelectiveRenderState {
 
     public static void invalidateVisibleOccluder(int blockX, int blockZ) {
         visibleOccluderCache.invalidate(blockX, blockZ);
+        VirtualSkyLightSampler.invalidate();
     }
 
     private static int visibleColumnTop(VisibilitySnapshot snapshot,
@@ -325,6 +327,7 @@ public final class SelectiveRenderState {
 
     public static void removeVisibleOccluderChunk(int chunkX, int chunkZ) {
         visibleOccluderCache.removeChunk(chunkX, chunkZ);
+        VirtualSkyLightSampler.invalidate();
     }
 
     public static void resetForDisconnect() {
@@ -332,6 +335,7 @@ public final class SelectiveRenderState {
         second = null;
         selection = null;
         visibleOccluderCache.clear();
+        VirtualSkyLightSampler.invalidate();
         VisibilitySnapshot current = visibility;
         visibility = VisibilitySnapshot.create(List.of(), false, List.of(), false,
                 List.of(), List.of(), false, false, nextGeneration(current));
