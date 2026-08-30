@@ -2,6 +2,39 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.0
+
+### Added
+
+- Added temporary multi-plot isolation: `/sr p` can add or remove individual plots, `/sr p clear`
+  clears the group, and temporary groups survive reconnects and dimension changes for the current
+  Minecraft session.
+- Added negative horizontal plot margins, allowing temporary and saved plot regions to be shrunk
+  while preserving merged and irregular plot shapes.
+- Added an unassigned player-visibility keybind and interaction modes for nowhere, inside regions,
+  outside regions, or everywhere.
+- Added default PlotSquared Y bounds of `-100` to `400`, so either or both Y values may be omitted.
+
+### Changed
+
+- Renamed the opaque boundary mode to `Black`, ordered the modes as `Normal`, `Black`, `Culled`, and
+  kept hidden-region cut surfaces normal in every mode.
+- Made terrain, player, entity, and block-entity skylight share shape-aware lighting around slabs,
+  stairs, walls, overhangs, and other partial blocks.
+- Reduced virtual-light cache memory, localized block and chunk invalidation, and added no-op fast
+  paths when Selective Render is installed but no filtering features are active.
+
+### Fixed
+
+- Prevented virtual skylight in dimensions without skylight and kept entity lighting aligned with
+  terrain around distant partial shapes.
+- Invalidated affected lighting when chunks load or unload and when nearby blocks change.
+
+### Documentation
+
+- Documented the Selective Render Plots LuckPerms permission and transferable context-hashed region
+  files.
+
 ## 1.8.0-test.5
 
 ### Changed
