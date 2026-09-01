@@ -6,7 +6,7 @@ final class LightVolumeInfluence {
     static boolean blockAffectsSection(int sectionX, int sectionY, int sectionZ,
                                        int blockX, int blockY, int blockZ, int radius) {
         return inside(blockX, sectionX, radius)
-                && inside(blockY, sectionY, radius)
+                && atOrAboveLowerInfluence(blockY, sectionY, radius)
                 && inside(blockZ, sectionZ, radius);
     }
 
@@ -21,6 +21,11 @@ final class LightVolumeInfluence {
     private static boolean inside(int block, int section, int radius) {
         long sectionMin = (long) section << 4;
         return block >= sectionMin - radius && block <= sectionMin + 15 + radius;
+    }
+
+    private static boolean atOrAboveLowerInfluence(int block, int section, int radius) {
+        long sectionMin = (long) section << 4;
+        return block >= sectionMin - radius;
     }
 
     private static boolean intersects(long min, long max, int section, int radius) {

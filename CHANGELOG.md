@@ -2,6 +2,21 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.1-test.1
+
+### Fixed
+
+- Filtered Create/Flywheel block entities and entities by their logical anchor position, including
+  animated visuals that bypass Minecraft's normal entity and block-entity renderers.
+- Filtered BelieveMod's separately batched rope entities outside visible regions.
+- Invalidated cached entity, player, and block-entity skylight when roofs change far above the
+  sampled section, preventing stale light below tall enclosed spaces.
+
+### Compatibility
+
+- Rebuilds Flywheel's persistent GPU visuals only when Selective Render visibility changes; setups
+  without Flywheel retain the existing localized terrain rebuild path.
+
 ## 1.8.0
 
 ### Added

@@ -45,8 +45,10 @@ public final class SelectiveRenderSettings {
     public static boolean debugBoxes() { return debugBoxes; }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
+        if (playerVisibility == value) return;
         playerVisibility = value;
         save();
+        SelectiveRenderState.refreshOptionalVisuals();
     }
 
     public static void setInteractionMode(InteractionMode value) {

@@ -9,6 +9,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Direction;
+import net.fabricmc.loader.api.FabricLoader;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -374,6 +375,13 @@ public final class SelectiveRenderState {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.worldRenderer == null || client.world == null || regions.isEmpty()) return;
 
+        // Flywheel keeps long-lived GPU instances outside vanilla's regional rebuilds.
+        // A renderer reload makes it recreate them through our storage filters.
+        if (FabricLoader.getInstance().isModLoaded("flywheel")) {
+            refreshRenderer();
+            return;
+        }
+
         BlockPos camera = client.gameRenderer.getCamera().getBlockPos();
         int viewDistance = client.options.getViewDistance().getValue() + 1;
         int minSectionX = Math.floorDiv(camera.getX(), 16) - viewDistance;
@@ -416,6 +424,10 @@ public final class SelectiveRenderState {
         if (!enabled() && !hideEnabled()) return;
         refreshRegions(List.of(new BlockRegion(position.getX(), position.getX(),
                 position.getY(), position.getY(), position.getZ(), position.getZ())));
+    }
+
+    public static void refreshOptionalVisuals() {
+        if (FabricLoader.getInstance().isModLoaded("flywheel")) refreshRenderer();
     }
 
     private static int nextGeneration(VisibilitySnapshot current) {
