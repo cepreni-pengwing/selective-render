@@ -55,7 +55,8 @@ The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
 Hide presets remove selected cuboids while leaving the rest of the world visible.
 They are useful for temporary block palettes, scaffolding, or unwanted structures.
 Player visibility and interactions can independently be set to none, inside regions, outside
-regions, or everywhere. Player hitboxes follow player visibility; collision is unchanged.
+regions, or everywhere. Crosshair targets and outlines follow interaction visibility, including
+Axiom Orbit Camera and brush targeting. Player hitboxes follow player visibility; collision is unchanged.
 
 Default keybinds are F8 for the render group and F9 for the hide group. Position
 selection, PlotSquared toggling, player visibility, and the settings screen are unassigned by

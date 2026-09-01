@@ -2,6 +2,20 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.3
+
+### Fixed
+
+- Kept Vanilla crosshair targets, block outlines, and entity targeting consistent with the selected
+  interaction mode, while allowing raycasts to continue through disallowed targets.
+- Added Axiom 5.4.2 raycast compatibility, including Orbit Camera and Axiom brush targeting, by
+  filtering its custom block and fluid collision-shape queries at exact region boundaries.
+
+### Compatibility
+
+- Leaves server-side WorldEdit, FAWE, TerraSniper, and VoxelSniper targeting authoritative while
+  keeping their Vanilla client target feedback aligned with Selective Render.
+
 ## 1.8.2
 
 ### Fixed

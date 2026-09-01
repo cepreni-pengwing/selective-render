@@ -149,7 +149,8 @@ remain normal. Region wireframe boxes remain available as a separate off/on debu
 
 Interactions can be allowed nowhere, inside regions, outside regions, or everywhere. This covers
 block breaking and use, placement, entity attacks and use, pick block, and the matching client
-raycasts. Collision is unchanged.
+raycasts. Vanilla crosshair targets and outlines follow the same mode, and Axiom's Orbit Camera
+and brush raycasts are supported. Collision is unchanged.
 
 ## Implementation
 
