@@ -46,7 +46,6 @@ abstract class WorldRendererMixin {
         }
         if (oldState.getOpacity(world, pos) != newState.getOpacity(world, pos)) {
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
-            SelectiveRenderState.refreshLightAround(pos);
         }
     }
 

@@ -413,12 +413,6 @@ public final class SelectiveRenderState {
         client.worldRenderer.scheduleTerrainUpdate();
     }
 
-    public static void refreshLightAround(BlockPos position) {
-        if (!enabled() && !hideEnabled()) return;
-        refreshRegions(List.of(new BlockRegion(position.getX(), position.getX(),
-                position.getY(), position.getY(), position.getZ(), position.getZ())));
-    }
-
     public static void refreshOptionalVisuals() {
         if (FabricLoader.getInstance().isModLoaded("flywheel")) refreshRenderer();
     }

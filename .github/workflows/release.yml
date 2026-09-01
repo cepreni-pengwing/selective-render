@@ -33,6 +33,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           jar=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-          prerelease=()
-          if [[ "$GITHUB_REF_NAME" == *-* ]]; then prerelease+=(--prerelease); fi
-          gh release create "$GITHUB_REF_NAME" "$jar" --generate-notes --verify-tag "${prerelease[@]}"
+          gh release create "$GITHUB_REF_NAME" "$jar" --generate-notes --verify-tag --prerelease

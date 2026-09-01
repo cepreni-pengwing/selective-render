@@ -2,6 +2,15 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.2
+
+### Fixed
+
+- Filtered CanvasBlocks paintings rendered through its custom world-render callback, using each
+  painting's anchor position for region visibility.
+- Removed broad terrain rebuilds after individual block changes and restored bounded virtual-light
+  cache invalidation to prevent placement and removal lag spikes.
+
 ## 1.8.1
 
 ### Fixed

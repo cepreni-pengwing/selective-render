@@ -16,6 +16,8 @@
     "ParticleManagerMixin",
     "ParticlePositionView",
     "believemod.RopeBatchRendererMixin",
+    "canvasblocks.PaintingRecordAccess",
+    "canvasblocks.WorldPaintingRendererMixin",
     "flywheel.BlockEntityStorageMixin",
     "flywheel.EntityStorageMixin",
     "indium.AbstractBlockRenderContextMixin",
