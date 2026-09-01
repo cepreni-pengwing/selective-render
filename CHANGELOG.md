@@ -2,7 +2,7 @@
 
 All notable changes to Selective Render are documented here.
 
-## 1.8.1-test.1
+## 1.8.1
 
 ### Fixed
 
@@ -11,6 +11,8 @@ All notable changes to Selective Render are documented here.
 - Filtered BelieveMod's separately batched rope entities outside visible regions.
 - Invalidated cached entity, player, and block-entity skylight when roofs change far above the
   sampled section, preventing stale light below tall enclosed spaces.
+- Kept ordinary block and lighting updates localized when Flywheel is installed instead of
+  reloading the renderer after every placed or removed block.
 
 ### Compatibility
 

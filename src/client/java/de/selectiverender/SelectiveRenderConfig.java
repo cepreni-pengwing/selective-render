@@ -102,7 +102,7 @@ public final class SelectiveRenderConfig {
         write(client);
         if ((ACTIVE_PRESETS.contains(name) && groupEnabled)
                 || (ACTIVE_HIDDEN_PRESETS.contains(name) && hideGroupEnabled)) {
-            SelectiveRenderState.refreshRegions(regions);
+            SelectiveRenderState.refreshVisibilityRegions(regions);
         }
         return true;
     }
@@ -120,7 +120,7 @@ public final class SelectiveRenderConfig {
         groupEnabled = true;
         applyState();
         write(client);
-        SelectiveRenderState.refreshRegions(next);
+        SelectiveRenderState.refreshVisibilityRegions(next);
         return true;
     }
 
@@ -133,7 +133,7 @@ public final class SelectiveRenderConfig {
         if (wasEnabled) {
             SelectiveRenderState.refreshRenderer();
         } else {
-            SelectiveRenderState.refreshRegions(activeRegions());
+            SelectiveRenderState.refreshVisibilityRegions(activeRegions());
         }
         write(client);
         return true;
@@ -150,7 +150,7 @@ public final class SelectiveRenderConfig {
             ACTIVE_PRESETS.add(name);
         }
         applyState();
-        if (groupEnabled || wasHiddenVisible) SelectiveRenderState.refreshRegions(PRESETS.get(name));
+        if (groupEnabled || wasHiddenVisible) SelectiveRenderState.refreshVisibilityRegions(PRESETS.get(name));
         write(client);
         return true;
     }
@@ -166,7 +166,7 @@ public final class SelectiveRenderConfig {
             ACTIVE_HIDDEN_PRESETS.add(name);
         }
         applyState();
-        if (hideGroupEnabled || wasRenderVisible) SelectiveRenderState.refreshRegions(PRESETS.get(name));
+        if (hideGroupEnabled || wasRenderVisible) SelectiveRenderState.refreshVisibilityRegions(PRESETS.get(name));
         write(client);
         return true;
     }
@@ -175,7 +175,7 @@ public final class SelectiveRenderConfig {
         if (ACTIVE_HIDDEN_PRESETS.isEmpty()) return false;
         hideGroupEnabled = !hideGroupEnabled;
         applyState();
-        SelectiveRenderState.refreshRegions(hiddenRegions());
+        SelectiveRenderState.refreshVisibilityRegions(hiddenRegions());
         write(client);
         return true;
     }
@@ -189,7 +189,7 @@ public final class SelectiveRenderConfig {
         groupEnabled = true;
         applyState();
         if (disabling) SelectiveRenderState.refreshRenderer();
-        else SelectiveRenderState.refreshRegions(changed);
+        else SelectiveRenderState.refreshVisibilityRegions(changed);
         write(client);
         return true;
     }
@@ -200,7 +200,7 @@ public final class SelectiveRenderConfig {
         PresetGroupLogic.toggleAll(ACTIVE_HIDDEN_PRESETS, HIDDEN_PRESETS);
         hideGroupEnabled = true;
         applyState();
-        SelectiveRenderState.refreshRegions(changed);
+        SelectiveRenderState.refreshVisibilityRegions(changed);
         write(client);
         return true;
     }
@@ -218,7 +218,7 @@ public final class SelectiveRenderConfig {
         HIDDEN_PRESETS.remove(name);
         ACTIVE_HIDDEN_PRESETS.remove(name);
         applyState();
-        if (visibleChange) SelectiveRenderState.refreshRegions(removed);
+        if (visibleChange) SelectiveRenderState.refreshVisibilityRegions(removed);
         write(client);
         return true;
     }

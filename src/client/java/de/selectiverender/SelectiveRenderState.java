@@ -100,7 +100,7 @@ public final class SelectiveRenderState {
         }
         visibleOccluderCache.clear();
         visibility = current.withPlotState(next, true, renderingEnabled, nextGeneration(current));
-        refreshRegions(changedRegions);
+        refreshVisibilityRegions(changedRegions);
     }
 
     public static boolean togglePlotRendering() {
@@ -110,7 +110,7 @@ public final class SelectiveRenderState {
         visibleOccluderCache.clear();
         visibility = current.withPlotState(current.plotRegions(), true,
                 !current.plotRenderingEnabled(), nextGeneration(current));
-        if (wasEnabled) refreshRenderer(); else refreshRegions(current.plotRegions());
+        if (wasEnabled) refreshRenderer(); else refreshVisibilityRegions(current.plotRegions());
         return true;
     }
 
@@ -375,13 +375,6 @@ public final class SelectiveRenderState {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.worldRenderer == null || client.world == null || regions.isEmpty()) return;
 
-        // Flywheel keeps long-lived GPU instances outside vanilla's regional rebuilds.
-        // A renderer reload makes it recreate them through our storage filters.
-        if (FabricLoader.getInstance().isModLoaded("flywheel")) {
-            refreshRenderer();
-            return;
-        }
-
         BlockPos camera = client.gameRenderer.getCamera().getBlockPos();
         int viewDistance = client.options.getViewDistance().getValue() + 1;
         int minSectionX = Math.floorDiv(camera.getX(), 16) - viewDistance;
@@ -428,6 +421,13 @@ public final class SelectiveRenderState {
 
     public static void refreshOptionalVisuals() {
         if (FabricLoader.getInstance().isModLoaded("flywheel")) refreshRenderer();
+    }
+
+    public static void refreshVisibilityRegions(Collection<BlockRegion> regions) {
+        // Flywheel keeps long-lived GPU instances outside vanilla's regional rebuilds.
+        // Only visibility changes need to recreate them; ordinary block/light updates stay local.
+        if (FabricLoader.getInstance().isModLoaded("flywheel")) refreshRenderer();
+        else refreshRegions(regions);
     }
 
     private static int nextGeneration(VisibilitySnapshot current) {
