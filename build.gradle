@@ -23,6 +23,7 @@ dependencies {
     implementation annotationProcessor("io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}")
     include "io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}"
     modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
+    modCompileOnly "com.terraformersmc:modmenu:7.2.2"
     modLocalRuntime "maven.modrinth:sodium:${project.sodium_version}"
     testImplementation platform('org.junit:junit-bom:5.10.2')
     testImplementation 'org.junit.jupiter:junit-jupiter'
@@ -54,6 +55,10 @@ tasks.test {
 tasks.withType(ProcessResources).configureEach {
     inputs.property 'version', project.version
     filesMatching('fabric.mod.json') { expand version: project.version }
+}
+
+tasks.named('processClientResources', ProcessResources) {
+    from('docs/images/icon.png') { into 'assets/selectiverender' }
 }
 
 tasks.withType(JavaCompile).configureEach {

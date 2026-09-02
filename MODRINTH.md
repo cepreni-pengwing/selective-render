@@ -58,11 +58,15 @@ Player visibility and interactions can independently be set to none, inside regi
 regions, or everywhere. Crosshair targets and outlines follow interaction visibility, including
 Axiom Orbit Camera and brush targeting. Player hitboxes follow player visibility; collision is unchanged.
 
-Default keybinds are F8 for the render group and F9 for the hide group. Position
-selection, PlotSquared toggling, player visibility, and the settings screen are unassigned by
-default. The settings screen cycles exact region-boundary faces through normal, black, and culled;
-hide-region boundaries always stay normal. A separate wireframe debug toggle is also available. All bindings can be
-changed under Controls > Selective Render.
+Default keybinds are F8 for the render group, F9 for the hide group, and K to cycle all player
+visibility modes. Optional unassigned bindings select positions, toggle or clear temporary plots,
+cycle interaction and boundary modes, and open settings. Change bindings under Controls >
+Selective Render; existing custom bindings are preserved.
+
+Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through
+normal, black, and culled; hide-region boundaries always stay normal. New settings default to
+players and interactions everywhere, normal boundary faces, and debug boxes off. Saved settings
+are preserved when updating.
 
 ## PlotSquared integration
 
@@ -90,7 +94,7 @@ overrides the plugin's default, for example with
 ## Storage and limitations
 
 Presets are stored locally per server or world and per dimension in
-`config/selective-render/`. Config writes are atomic and keep a recoverable
+`config/selectiverender/`. Config writes are atomic and keep a recoverable
 `.json.bak` backup.
 The JSON data can be transferred between instances, but its hashed file name depends on the server
 address or absolute single-player save path and the dimension ID. If that context changes, keep the
@@ -103,6 +107,6 @@ is closed.
 - Selective filtering can change occlusion-culling behavior at region boundaries.
 
 Minecraft 1.20.1 is currently supported. For requests regarding other Minecraft
-versions, contact `cepreni` on Discord.
+versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only.

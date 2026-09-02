@@ -1,7 +1,6 @@
 package de.selectiverender.mixin;
 
-import de.selectiverender.SelectiveRenderConfig;
-import de.selectiverender.PlotSquaredClient;
+import de.selectiverender.SelectiveRenderClient;
 import de.selectiverender.SelectiveRenderState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -17,11 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 abstract class MinecraftClientMixin {
     @Inject(method = "setWorld", at = @At("TAIL"))
     private void selectiverender$loadDimensionConfig(ClientWorld world, CallbackInfo ci) {
-        PlotSquaredClient.leaveWorld();
-        if (world != null) {
-            SelectiveRenderConfig.load((MinecraftClient) (Object) this, world);
-            PlotSquaredClient.enterWorld((MinecraftClient) (Object) this, world);
-        }
+        SelectiveRenderClient.worldChanged((MinecraftClient) (Object) this, world);
     }
 
     @Inject(method = "doItemPick", at = @At("HEAD"), cancellable = true)

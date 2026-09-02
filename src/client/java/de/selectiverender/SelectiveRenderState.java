@@ -403,7 +403,7 @@ public final class SelectiveRenderState {
 
         int loadedEstimate = (viewDistance * 2 + 1) * (viewDistance * 2 + 1)
                 * (maxSectionY - minSectionY + 1);
-        if (affected.size() > 1024 || affected.size() > loadedEstimate * 0.35) {
+        if (RenderReloadPolicy.requiresFullReload(affected.size(), loadedEstimate)) {
             refreshRenderer();
             return;
         }

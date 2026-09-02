@@ -13,6 +13,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.option.KeyBinding;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandSource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
@@ -26,6 +27,8 @@ import java.util.List;
 import java.util.Locale;
 
 public final class SelectiveRenderClient implements ClientModInitializer {
+    private static final WorldSessionLifecycle<ClientWorld> WORLD_SESSION =
+            new WorldSessionLifecycle<>();
     public static final Logger LOGGER = LoggerFactory.getLogger("selectiverender");
     private static final KeyBinding TOGGLE_KEY = new KeyBinding(
             "key.selectiverender.toggle",
@@ -53,6 +56,18 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "category.selectiverender");
     private static final KeyBinding PLAYER_VISIBILITY_KEY = new KeyBinding(
             "key.selectiverender.toggle_players",
+            GLFW.GLFW_KEY_K,
+            "category.selectiverender");
+    private static final KeyBinding INTERACTION_KEY = new KeyBinding(
+            "key.selectiverender.cycle_interactions",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
+    private static final KeyBinding BOUNDARY_KEY = new KeyBinding(
+            "key.selectiverender.cycle_boundary",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
+    private static final KeyBinding CLEAR_PLOTS_KEY = new KeyBinding(
+            "key.selectiverender.clear_plots",
             GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
 
@@ -68,6 +83,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(PLOT_TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(SETTINGS_KEY);
         KeyBindingHelper.registerKeyBinding(PLAYER_VISIBILITY_KEY);
+        KeyBindingHelper.registerKeyBinding(INTERACTION_KEY);
+        KeyBindingHelper.registerKeyBinding(BOUNDARY_KEY);
+        KeyBindingHelper.registerKeyBinding(CLEAR_PLOTS_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
@@ -75,7 +93,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (POS1_KEY.wasPressed()) setPositionFromKey(client, true);
             while (POS2_KEY.wasPressed()) setPositionFromKey(client, false);
             while (PLOT_TOGGLE_KEY.wasPressed()) PlotSquaredClient.toggle();
-            while (PLAYER_VISIBILITY_KEY.wasPressed()) togglePlayerVisibility();
+            while (PLAYER_VISIBILITY_KEY.wasPressed()) cyclePlayerVisibility();
+            while (INTERACTION_KEY.wasPressed()) cycleInteractions();
+            while (BOUNDARY_KEY.wasPressed()) cycleBoundaryFaces();
+            while (CLEAR_PLOTS_KEY.wasPressed()) {
+                if (client.world != null) PlotSquaredClient.clear();
+            }
             while (SETTINGS_KEY.wasPressed()) {
                 if (client.currentScreen == null) {
                     client.setScreen(new SelectiveRenderSettingsScreen(null));
@@ -89,12 +112,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         });
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
-                client.execute(() -> SelectiveRenderConfig.beginSession(client)));
+                client.execute(() -> worldChanged(client, client.world)));
 
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> worldChanged(client, null));
+    }
+
+    public static void worldChanged(MinecraftClient client, ClientWorld world) {
+        WORLD_SESSION.switchTo(world, () -> {
             PlotSquaredClient.leaveWorld();
             SelectiveRenderConfig.endSession();
             SelectiveRenderState.resetForDisconnect();
+        }, next -> {
+            SelectiveRenderConfig.beginSession(client);
+            PlotSquaredClient.enterWorld(client, next);
         });
     }
 
@@ -428,15 +458,23 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return SelectiveRenderState.togglePlotRendering();
     }
 
-    private static void togglePlayerVisibility() {
+    private static void cyclePlayerVisibility() {
         SelectiveRenderSettings.PlayerVisibility next =
-                SelectiveRenderSettings.playerVisibility()
-                        == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE
-                        ? SelectiveRenderSettings.PlayerVisibility.NONE
-                        : SelectiveRenderSettings.PlayerVisibility.EVERYWHERE;
+                SelectiveRenderSettings.playerVisibility().next();
         SelectiveRenderSettings.setPlayerVisibility(next);
-        overlay(message(white("Players "), next == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE
-                ? green("visible") : red("hidden")));
+        overlay(message(white("Players: "), aqua(next.label())));
+    }
+
+    private static void cycleInteractions() {
+        SelectiveRenderSettings.InteractionMode next = SelectiveRenderSettings.interactionMode().next();
+        SelectiveRenderSettings.setInteractionMode(next);
+        overlay(message(white("Interactions: "), aqua(next.label())));
+    }
+
+    private static void cycleBoundaryFaces() {
+        SelectiveRenderSettings.BoundaryMode next = SelectiveRenderSettings.boundaryMode().next();
+        SelectiveRenderSettings.setBoundaryMode(next);
+        overlay(message(white("Boundary faces: "), aqua(next.label())));
     }
 
     public static void overlay(Text message) {

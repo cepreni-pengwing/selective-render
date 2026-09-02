@@ -3,13 +3,21 @@
   "id": "selectiverender",
   "version": "${version}",
   "name": "Selective Render",
-  "description": "Client-side block-precise render whitelist for selected world regions.",
+  "description": "Show only what matters. Isolate builds or hide selected areas with precise 3D regions.",
   "authors": ["cepreni-pengwing"],
   "contributors": ["Codex"],
   "license": "GPL-3.0-only",
+  "icon": "assets/selectiverender/icon.png",
+  "contact": {
+    "email": "pengwing.ac@gmail.com",
+    "homepage": "https://modrinth.com/mod/selective-render",
+    "issues": "https://github.com/cepreni-pengwing/selective-render/issues",
+    "sources": "https://github.com/cepreni-pengwing/selective-render"
+  },
   "environment": "client",
   "entrypoints": {
-    "client": ["de.selectiverender.SelectiveRenderClient"]
+    "client": ["de.selectiverender.SelectiveRenderClient"],
+    "modmenu": ["de.selectiverender.compat.SelectiveRenderModMenu"]
   },
   "mixins": [
     "selectiverender.mixins.json"

@@ -15,7 +15,7 @@ or shader shadows outside the selected area. Player visibility is configurable;
 other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
-For requests regarding support for other Minecraft versions, contact `cepreni` on Discord.
+For requests regarding support for other Minecraft versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 ## Usage
 
@@ -83,11 +83,14 @@ Default keybinds:
 
 - `F8`: toggle the render group
 - `F9`: toggle the hide group
-- Unassigned: set Pos1, set Pos2, toggle the current PlotSquared region, toggle player visibility,
-  and open settings
+- `K`: cycle player visibility through everywhere, none, inside regions, and outside regions
+- Unassigned: set Pos1, set Pos2, toggle the current PlotSquared region, clear temporary plots
+  (`/sr p clear`), cycle interactions, cycle boundary faces, and open settings
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.
+Existing custom bindings are preserved. The settings screen is also available through Mod Menu
+when installed. Keybinds and the settings screen change the same options.
 
 Preset arguments support tab completion for toggle, hide, delete, and rename
 commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
@@ -151,6 +154,9 @@ Interactions can be allowed nowhere, inside regions, outside regions, or everywh
 block breaking and use, placement, entity attacks and use, pick block, and the matching client
 raycasts. Vanilla crosshair targets and outlines follow the same mode, and Axiom's Orbit Camera
 and brush raycasts are supported. Collision is unchanged.
+
+New settings default to players and interactions everywhere, normal boundary faces, and debug
+boxes off. Updating the mod preserves your saved settings.
 
 ## Implementation
 
@@ -224,7 +230,7 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Use the GitHub issue forms for
 crashes, rendering bugs, and compatibility reports, and include the requested logs and versions.
-Version support requests can also be sent to `cepreni` on Discord.
+Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Release history is maintained in [CHANGELOG.md](CHANGELOG.md).
 

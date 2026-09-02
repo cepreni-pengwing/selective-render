@@ -13,29 +13,32 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class SelectiveRenderSettings {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path PATH = FabricLoader.getInstance().getConfigDir()
-            .resolve("selectiverender").resolve("settings.json");
+    private static final class SettingsFile {
+        private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+        private static final Path PATH = FabricLoader.getInstance().getConfigDir()
+                .resolve("selectiverender").resolve("settings.json");
+    }
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
-    private static volatile InteractionMode interactionMode = InteractionMode.INSIDE;
+    private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean debugBoxes;
 
     private SelectiveRenderSettings() { }
 
     public static void load() {
-        if (!Files.isRegularFile(PATH)) return;
-        try (Reader reader = Files.newBufferedReader(PATH, StandardCharsets.UTF_8)) {
-            StoredSettings stored = GSON.fromJson(reader, StoredSettings.class);
+        Path path = SettingsFile.PATH;
+        if (!Files.isRegularFile(path)) return;
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            StoredSettings stored = SettingsFile.GSON.fromJson(reader, StoredSettings.class);
             if (stored == null) return;
             playerVisibility = stored.playerVisibility == null
                     ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
             interactionMode = stored.interactionMode == null
-                    ? InteractionMode.INSIDE : stored.interactionMode;
+                    ? InteractionMode.EVERYWHERE : stored.interactionMode;
             boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
             debugBoxes = stored.debugBoxes;
         } catch (IOException | RuntimeException exception) {
-            SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", PATH, exception);
+            SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", path, exception);
         }
     }
 
@@ -69,18 +72,19 @@ public final class SelectiveRenderSettings {
     }
 
     private static void save() {
+        Path path = SettingsFile.PATH;
         try {
-            Files.createDirectories(PATH.getParent());
+            Files.createDirectories(path.getParent());
             StoredSettings stored = new StoredSettings();
             stored.playerVisibility = playerVisibility;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
             stored.debugBoxes = debugBoxes;
-            try (Writer writer = Files.newBufferedWriter(PATH, StandardCharsets.UTF_8)) {
-                GSON.toJson(stored, writer);
+            try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+                SettingsFile.GSON.toJson(stored, writer);
             }
         } catch (IOException exception) {
-            SelectiveRenderClient.LOGGER.error("Could not save selective render settings {}", PATH, exception);
+            SelectiveRenderClient.LOGGER.error("Could not save selective render settings {}", path, exception);
         }
     }
 

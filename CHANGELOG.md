@@ -2,6 +2,19 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.4
+
+- Added the SR icon, a simpler description, Modrinth website link, and an optional Mod Menu settings button.
+- Added keybinds to cycle every player, interaction, and boundary mode, plus a shortcut for `/sr p clear`.
+  Player visibility defaults to K; the other new shortcuts are unassigned. Existing bindings are preserved.
+- Changed the interaction default to Everywhere. Players default to Everywhere, boundary faces to Normal,
+  and debug boxes to Off; existing saved settings are preserved.
+- Raised the local section-update threshold before a full renderer reload from 1,024 sections / 35%
+  to 4,096 sections / 60%. Flywheel visibility changes still require their dedicated full refresh.
+- Unified world-transition handling so the JOIN event does not reload saved groups after temporary
+  plots have already been restored. The reported visual plot-arrangement issue still needs in-game verification.
+- Replaced Discord contact details with pengwing.ac@gmail.com.
+
 ## 1.8.3
 
 ### Fixed
