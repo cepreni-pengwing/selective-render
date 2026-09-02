@@ -15,7 +15,7 @@ or shader shadows outside the selected area. Player visibility is configurable;
 other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
-For requests regarding support for other Minecraft versions, contact `cepreni` on Discord.
+For requests regarding support for other Minecraft versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 ## Usage
 
@@ -206,7 +206,7 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Use the GitHub issue forms for
 crashes, rendering bugs, and compatibility reports, and include the requested logs and versions.
-Version support requests can also be sent to `cepreni` on Discord.
+Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Release history is maintained in [CHANGELOG.md](CHANGELOG.md).
 

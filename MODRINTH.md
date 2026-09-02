@@ -90,6 +90,6 @@ Presets are stored locally per server or world and per dimension in
 - Selective filtering can change occlusion-culling behavior at region boundaries.
 
 Minecraft 1.20.1 is currently supported. For requests regarding other Minecraft
-versions, contact `cepreni` on Discord.
+versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only.
