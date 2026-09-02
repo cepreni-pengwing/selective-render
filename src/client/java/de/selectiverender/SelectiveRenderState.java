@@ -100,7 +100,9 @@ public final class SelectiveRenderState {
         }
         visibleOccluderCache.clear();
         visibility = current.withPlotState(next, true, renderingEnabled, nextGeneration(current));
-        refreshVisibilityRegions(changedRegions);
+        if (PlotSelectionPolicy.needsMeshUpdate(current.plotRenderingEnabled(), renderingEnabled)) {
+            refreshVisibilityRegions(changedRegions);
+        }
     }
 
     public static boolean togglePlotRendering() {

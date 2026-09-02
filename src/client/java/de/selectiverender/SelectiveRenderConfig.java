@@ -2,6 +2,7 @@ package de.selectiverender;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import de.selectiverender.mixin.ClientWorldNetworkAccess;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
@@ -37,14 +38,14 @@ public final class SelectiveRenderConfig {
 
     private SelectiveRenderConfig() { }
 
-    public static void beginSession(MinecraftClient client) {
-        sessionOwner = ownerFor(client);
-        if (client.world != null) load(client, client.world);
+    public static void beginSession(MinecraftClient client, ClientWorld world) {
+        sessionOwner = ownerFor(client, world);
+        load(client, world);
     }
 
     public static void load(MinecraftClient client, ClientWorld world) {
         reset();
-        if (sessionOwner == null) sessionOwner = ownerFor(client);
+        if (sessionOwner == null) sessionOwner = ownerFor(client, world);
         Path path = pathFor(world);
         if (path == null) return;
         ConfigRecovery.Result<StoredConfig> recovery = ConfigRecovery.load(
@@ -308,7 +309,7 @@ public final class SelectiveRenderConfig {
     }
 
     public static String contextIdentity(MinecraftClient client, ClientWorld world) {
-        return ownerFor(client) + "|" + world.getRegistryKey().getValue();
+        return ownerFor(client, world) + "|" + world.getRegistryKey().getValue();
     }
 
     public static boolean enableHiddenGroupForIsolation(MinecraftClient client) {
@@ -382,9 +383,11 @@ public final class SelectiveRenderConfig {
         RESERVED_NAME
     }
 
-    private static String ownerFor(MinecraftClient client) {
-        if (client.getCurrentServerEntry() != null) {
-            return "server:" + client.getCurrentServerEntry().address.toLowerCase(Locale.ROOT);
+    private static String ownerFor(MinecraftClient client, ClientWorld world) {
+        // setWorld runs before client.player exists; resolve the connection from the incoming world.
+        var serverInfo = ((ClientWorldNetworkAccess) world).selectiverender$getNetworkHandler().getServerInfo();
+        if (serverInfo != null) {
+            return "server:" + serverInfo.address.toLowerCase(Locale.ROOT);
         } else if (client.getServer() != null) {
             Path saveRoot = client.getServer().getSavePath(WorldSavePath.ROOT)
                     .toAbsolutePath().normalize();

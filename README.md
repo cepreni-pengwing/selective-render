@@ -108,6 +108,8 @@ Plot integration is part of the normal Selective Render command tree:
 - `/sr p [minY] [maxY] [xzMargin]` does the same with inclusive vertical bounds. A positive margin
   expands the outline; a negative margin shrinks the complete plot shape.
 - `/sr p clear` clears all temporarily selected plots.
+- The first plot in an empty temporary selection enables isolation. After switching it off with
+  `/sr t`, you can add more plots without switching it back on; `/sr t` then shows the whole selection.
 - `/selectiverender plot save NAME [minY] [maxY] [xzMargin]` permanently saves the exact plot shape as one
   normal preset and immediately activates it. The Y boundaries are inclusive, and the X/Z margin
   adjusts the complete PlotSquared shape without creating seams between merged parts.

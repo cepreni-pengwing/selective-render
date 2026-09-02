@@ -123,7 +123,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             SelectiveRenderConfig.endSession();
             SelectiveRenderState.resetForDisconnect();
         }, next -> {
-            SelectiveRenderConfig.beginSession(client);
+            SelectiveRenderConfig.beginSession(client, next);
             PlotSquaredClient.enterWorld(client, next);
         });
     }

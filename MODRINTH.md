@@ -82,6 +82,8 @@ bridge installed on the server:
 
 This uses exact PlotSquared shapes, including merged or irregular plots. Visit more plots and use
 `/sr p` again to add them to the same temporary view; repeat it on an active plot to remove it.
+Only the first plot in an empty selection automatically enables isolation. Switch it off with
+`/sr t` to collect more plots while seeing the full world, then toggle it back on when ready.
 The selection lasts for the current Minecraft session, including reconnects and dimension changes.
 Omitted Y values default to `-100` and `400`; a positive margin expands X/Z and a negative one
 shrinks the complete outline.

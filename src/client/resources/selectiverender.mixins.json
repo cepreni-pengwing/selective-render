@@ -5,6 +5,7 @@
   "client": [
     "WorldRendererMixin",
     "ClientChunkManagerMixin",
+    "ClientWorldNetworkAccess",
     "MinecraftClientMixin",
     "ClientPlayerInteractionManagerMixin",
     "RaycastContextMixin",

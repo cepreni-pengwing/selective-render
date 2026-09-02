@@ -66,7 +66,7 @@ public final class PlotSquaredClient {
         activeContext = SelectiveRenderConfig.contextIdentity(client, world);
         PlotSession session = SESSIONS.get(activeContext);
         if (session == null || session.plots.isEmpty()) return;
-        SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
+        if (session.renderingEnabled) SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
         SelectiveRenderState.activatePlotMode(session.regions(), session.renderingEnabled);
     }
 
@@ -245,10 +245,13 @@ public final class PlotSquaredClient {
         }
 
         PlotEntry added = new PlotEntry(responseName, List.copyOf(adjustedRegions));
+        boolean rendering = SelectiveRenderState.plotModeActive()
+                ? SelectiveRenderState.plotRenderingEnabled() : session.renderingEnabled;
+        rendering = PlotSelectionPolicy.renderingAfterAdd(session.plots.isEmpty(), rendering);
         session.plots.put(identity, added);
-        session.renderingEnabled = true;
-        SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
-        SelectiveRenderState.updatePlotMode(session.regions(), true, added.regions);
+        session.renderingEnabled = rendering;
+        if (rendering) SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
+        SelectiveRenderState.updatePlotMode(session.regions(), rendering, added.regions);
         overlay(white("Plot "), aqua(responseName), green(" added"),
                 gray(" · " + session.plots.size() + " active"));
     }

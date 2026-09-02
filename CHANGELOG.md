@@ -2,6 +2,16 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.5
+
+- Fixed multiplayer region files not loading in 1.8.4: server identity now comes directly from
+  the incoming world's connection, before the client player exists. Existing file names and
+  stored region data remain compatible; no migration or recreation is needed.
+- The first plot in an empty temporary selection enables isolation. Adding more plots preserves
+  your current render toggle, so you can collect plots while viewing the full world.
+- Avoided terrain/optional-renderer rebuilds when modifying a disabled temporary plot selection,
+  and stopped re-enabling the hidden group when restoring a disabled plot selection.
+
 ## 1.8.4
 
 - Added the SR icon, a simpler description, Modrinth website link, and an optional Mod Menu settings button.
