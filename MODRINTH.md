@@ -66,7 +66,8 @@ Selective Render; existing custom bindings are preserved.
 Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through
 normal, black, and culled; hide-region boundaries always stay normal. New settings default to
 players and interactions everywhere, normal boundary faces, and debug boxes off. Saved settings
-are preserved when updating.
+are preserved when updating. Enabled debug boxes outline every saved region, including inactive and
+hidden presets, plus temporary PlotSquared regions.
 
 Switching region rendering off restores vanilla interaction behavior by default. An optional
 setting can keep the selected interaction policy active for retained regions while rendering is

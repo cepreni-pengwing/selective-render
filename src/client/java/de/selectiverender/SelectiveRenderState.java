@@ -292,8 +292,9 @@ public final class SelectiveRenderState {
 
     public static List<BlockRegion> borderRegions() {
         VisibilitySnapshot snapshot = visibility;
-        java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>(snapshot.traversalRegions());
-        if (snapshot.hideEnabled()) regions.addAll(snapshot.hiddenRegions());
+        java.util.LinkedHashSet<BlockRegion> regions =
+                new java.util.LinkedHashSet<>(SelectiveRenderConfig.allRegions());
+        regions.addAll(snapshot.plotRegions());
         return List.copyOf(regions);
     }
 

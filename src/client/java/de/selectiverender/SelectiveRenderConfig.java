@@ -275,6 +275,10 @@ public final class SelectiveRenderConfig {
         return List.copyOf(PRESETS.keySet());
     }
 
+    public static List<BlockRegion> allRegions() {
+        return regionsFor(PRESETS.keySet());
+    }
+
     public static boolean presetExists(String name) {
         return PRESETS.containsKey(normalize(name));
     }

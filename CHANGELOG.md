@@ -2,6 +2,15 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.8
+
+### Fixed
+
+- Applied Black and Culled boundary handling after Fabric Renderer/Indium quad transforms, allowing
+  Conquest Reforged extension-toggle geometry to be detected at its final translated position.
+- Debug boxes now show every saved region, including inactive and hidden presets, as well as the
+  current temporary PlotSquared selection.
+
 ## 1.8.7
 
 ### Fixed

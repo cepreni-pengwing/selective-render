@@ -168,7 +168,8 @@ avoid visible full reloads but can schedule more localized work at once; lower v
 weaker hardware. The default is 8,192 sections, with an additional 85% loaded-section safety limit.
 
 New settings default to players and interactions everywhere, normal boundary faces, and debug
-boxes off. Updating the mod preserves your saved settings.
+boxes off. When enabled, debug boxes outline every saved region, including inactive and hidden
+presets, plus temporary PlotSquared regions. Updating the mod preserves your saved settings.
 
 ## Implementation
 
@@ -196,6 +197,8 @@ boxes off. Updating the mod preserves your saved settings.
   renderer reload.
 - Flywheel/Create visualizations receive their own reset after visibility changes instead of forcing
   a full Minecraft terrain reload.
+- Black and Culled boundaries inspect final Fabric Renderer/Indium quad positions, including models
+  translated outside their owning block such as Conquest Reforged extension toggles.
 - With no render or hide regions active, hot render and lighting hooks immediately use their
   normal game paths; unrestricted player and interaction settings do the same.
 

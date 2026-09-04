@@ -17,17 +17,13 @@ abstract class TerrainRenderContextMixin {
     private void selectiverender$beginBlock(BlockRenderContext context, CallbackInfo ci) {
         if (SelectiveRenderState.filteringActive()
                 && SelectiveRenderSettings.boundaryMode()
-                == SelectiveRenderSettings.BoundaryMode.BLACK) {
+                != SelectiveRenderSettings.BoundaryMode.NORMAL) {
             IndiumRenderContext.begin(context.pos());
         }
     }
 
     @Inject(method = "tessellateBlock", at = @At("RETURN"), require = 0)
     private void selectiverender$endBlock(BlockRenderContext context, CallbackInfo ci) {
-        if (SelectiveRenderState.filteringActive()
-                && SelectiveRenderSettings.boundaryMode()
-                == SelectiveRenderSettings.BoundaryMode.BLACK) {
-            IndiumRenderContext.end();
-        }
+        IndiumRenderContext.end();
     }
 }
