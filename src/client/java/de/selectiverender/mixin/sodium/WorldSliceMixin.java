@@ -97,8 +97,7 @@ abstract class WorldSliceMixin {
             return -1;
         }
         if (!world.getDimension().hasSkyLight()) return -1;
-        if (!SelectiveRenderState.mayNeedVirtualSkyLight(
-                pos.getX(), pos.getZ(), selectiverender$lightRadius)) return -1;
+        if (!SelectiveRenderState.mayNeedVirtualSkyLight(pos.getX(), pos.getZ())) return -1;
         if (!SelectiveRenderState.shouldRender(pos)) return -1;
 
         if (!selectiverender$virtualSkyPrepared) selectiverender$prepareVirtualSkyLight();

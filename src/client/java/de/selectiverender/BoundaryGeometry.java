@@ -37,26 +37,27 @@ public final class BoundaryGeometry {
 
     private static SelectiveRenderSettings.BoundaryMode boundaryModeAtPlane(
             BlockPos position, Direction negative, Direction positive, float minimum, float maximum) {
-        int negativeStep = BoundaryPlane.negativeStep(minimum, maximum);
-        if (negativeStep > 0) {
-            SelectiveRenderSettings.BoundaryMode mode = boundaryModeAt(
-                    position, negative, negativeStep);
-            if (mode != SelectiveRenderSettings.BoundaryMode.NORMAL) return mode;
-        }
-        int positiveStep = BoundaryPlane.positiveStep(minimum, maximum);
-        return positiveStep > 0 ? boundaryModeAt(position, positive, positiveStep)
-                : SelectiveRenderSettings.BoundaryMode.NORMAL;
+        int plane = BoundaryPlane.integralPlane(minimum, maximum);
+        if (plane == BoundaryPlane.NO_PLANE) return SelectiveRenderSettings.BoundaryMode.NORMAL;
+        return plane <= 0 ? boundaryModeAt(position, negative, 1 - plane)
+                : boundaryModeAt(position, positive, plane);
     }
 
     private static SelectiveRenderSettings.BoundaryMode boundaryModeAt(
             BlockPos position, Direction direction, int step) {
-        BlockPos inside = position.offset(direction, step - 1);
-        BlockPos outside = position.offset(direction, step);
-        if (!SelectiveRenderState.shouldRender(inside)
-                || SelectiveRenderState.shouldRender(outside)
-                || SelectiveRenderState.isActivelyHidden(outside)) {
-            return SelectiveRenderSettings.BoundaryMode.NORMAL;
-        }
-        return SelectiveRenderSettings.boundaryMode();
+        int deltaX = direction.getOffsetX();
+        int deltaY = direction.getOffsetY();
+        int deltaZ = direction.getOffsetZ();
+        int insideStep = step - 1;
+        int insideX = position.getX() + deltaX * insideStep;
+        int insideY = position.getY() + deltaY * insideStep;
+        int insideZ = position.getZ() + deltaZ * insideStep;
+        int outsideX = insideX + deltaX;
+        int outsideY = insideY + deltaY;
+        int outsideZ = insideZ + deltaZ;
+        return BoundaryPolicy.mode(SelectiveRenderSettings.boundaryMode(),
+                SelectiveRenderState.shouldRender(insideX, insideY, insideZ),
+                SelectiveRenderState.shouldRender(outsideX, outsideY, outsideZ),
+                SelectiveRenderState.isActivelyHidden(outsideX, outsideY, outsideZ));
     }
 }

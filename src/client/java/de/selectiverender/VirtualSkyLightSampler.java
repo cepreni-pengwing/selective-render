@@ -34,7 +34,7 @@ public final class VirtualSkyLightSampler {
         if (!SelectiveRenderState.shouldRender(pos)) return 15;
         if (pos.getY() >= world.getTopY()) return 15;
         if (pos.getY() < world.getBottomY()) return 0;
-        if (!SelectiveRenderState.mayNeedVirtualSkyLight(pos.getX(), pos.getZ(), RADIUS)) return -1;
+        if (!SelectiveRenderState.mayNeedVirtualSkyLight(pos.getX(), pos.getZ())) return -1;
 
         int generation = SelectiveRenderState.visibilityGeneration();
         if (world != cachedWorld || generation != cachedGeneration) {

@@ -11,6 +11,8 @@ import java.io.Writer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.StandardCopyOption;
 
 public final class SelectiveRenderSettings {
     static final int DEFAULT_FULL_RELOAD_THRESHOLD = 8192;
@@ -34,24 +36,28 @@ public final class SelectiveRenderSettings {
 
     public static void load() {
         Path path = SettingsFile.PATH;
-        if (!Files.isRegularFile(path)) return;
-        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-            StoredSettings stored = SettingsFile.GSON.fromJson(reader, StoredSettings.class);
-            if (stored == null) return;
-            playerVisibility = stored.playerVisibility == null
-                    ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
-            interactionMode = stored.interactionMode == null
-                    ? InteractionMode.EVERYWHERE : stored.interactionMode;
-            boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
-            debugBoxes = stored.debugBoxes;
-            filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
-            fullReloadThreshold = clampReloadThreshold(stored.fullReloadThreshold == 0
-                    ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
-            defaultPlotMinY = stored.defaultPlotMinY == null
-                    ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
-        } catch (IOException | RuntimeException exception) {
-            SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", path, exception);
+        ConfigRecovery.Result<StoredSettings> recovery = ConfigRecovery.load(path,
+                SelectiveRenderSettings::read);
+        StoredSettings stored = recovery.value();
+        if (stored == null) {
+            if (recovery.primaryExisted()) {
+                SelectiveRenderClient.LOGGER.error(
+                        "Could not load selective render settings or backup for {}", path);
+            }
+            return;
         }
+        playerVisibility = stored.playerVisibility == null
+                ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
+        interactionMode = stored.interactionMode == null
+                ? InteractionMode.EVERYWHERE : stored.interactionMode;
+        boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
+        debugBoxes = stored.debugBoxes;
+        filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
+        fullReloadThreshold = clampReloadThreshold(stored.fullReloadThreshold == 0
+                ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
+        defaultPlotMinY = stored.defaultPlotMinY == null
+                ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
+        if (recovery.recoveredFromBackup()) save(false);
     }
 
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
@@ -110,6 +116,10 @@ public final class SelectiveRenderSettings {
     }
 
     private static void save() {
+        save(true);
+    }
+
+    private static void save(boolean backupExisting) {
         Path path = SettingsFile.PATH;
         try {
             Files.createDirectories(path.getParent());
@@ -121,11 +131,31 @@ public final class SelectiveRenderSettings {
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
             stored.fullReloadThreshold = fullReloadThreshold;
             stored.defaultPlotMinY = defaultPlotMinY;
-            try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
+            Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
+            try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                 SettingsFile.GSON.toJson(stored, writer);
+            }
+            if (backupExisting && Files.isRegularFile(path)) {
+                Files.copy(path, ConfigRecovery.backupPath(path),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+            try {
+                Files.move(temporary, path,
+                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not save selective render settings {}", path, exception);
+        }
+    }
+
+    private static StoredSettings read(Path path) {
+        if (!Files.isRegularFile(path)) return null;
+        try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+            return SettingsFile.GSON.fromJson(reader, StoredSettings.class);
+        } catch (IOException | RuntimeException exception) {
+            return null;
         }
     }
 

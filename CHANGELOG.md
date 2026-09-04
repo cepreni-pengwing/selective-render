@@ -2,6 +2,33 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.10
+
+### Performance
+
+- Added immediate Normal-mode fast paths so Vanilla, Sodium, and Indium skip transformed boundary
+  geometry analysis unless Black or Culled boundaries actually need it.
+- Reduced allocations and duplicate plane calculations in transformed boundary checks, cached the
+  black-boundary texture coordinates across frames, and refreshes that cache after resource reloads.
+- Increased the render-thread section-classification cache and avoids scanning very large flat
+  traversal indexes when a camera-local region walk is cheaper. This targets the Sodium collector
+  hotspot found in profiling on large modded worlds.
+- Removed the redundant virtual-skylight radius argument from its influence cache while preserving
+  vertically unbounded skylight checks required by hide regions.
+
+### Changed
+
+- Replaced boxed section de-duplication with a primitive long set when building traversal indexes.
+- Settings are now written through a temporary file and atomically replaced where supported, with
+  automatic backup recovery matching region configuration files.
+- Release validation now requires tagged commits to include the current `main` history as well as a
+  matching project version. The previously separate `main` documentation history is merged here.
+
+### Tests
+
+- Added explicit boundary-policy coverage for visible-to-filtered cuts, hidden boundaries, fully
+  visible neighbors, invisible owners, fractional geometry, and translated cut planes.
+
 ## 1.8.9
 
 ### Fixed

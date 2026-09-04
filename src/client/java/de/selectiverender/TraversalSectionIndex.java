@@ -1,6 +1,5 @@
 package de.selectiverender;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 
 public final class TraversalSectionIndex {
@@ -33,8 +32,8 @@ public final class TraversalSectionIndex {
 
         long[] keys = new long[(int) estimate];
         int size = 0;
-        LinkedHashSet<Long> seen = regions.size() > 1
-                ? new LinkedHashSet<>((int) estimate) : null;
+        PrimitiveLongSet seen = regions.size() > 1
+                ? new PrimitiveLongSet((int) estimate) : null;
         for (BlockRegion region : regions) {
             int minX = Math.floorDiv(region.minX(), 16);
             int maxX = Math.floorDiv(region.maxX(), 16);
@@ -62,5 +61,41 @@ public final class TraversalSectionIndex {
         return ((long) x & 0x3FFFFFL) << 42
                 | ((long) z & 0x3FFFFFL) << 20
                 | ((long) y & 0xFFFFFL);
+    }
+
+    private static final class PrimitiveLongSet {
+        private final long[] table;
+        private final int mask;
+        private boolean containsZero;
+
+        private PrimitiveLongSet(int expectedSize) {
+            int capacity = 2;
+            while (capacity < expectedSize * 2) capacity <<= 1;
+            table = new long[capacity];
+            mask = capacity - 1;
+        }
+
+        private boolean add(long value) {
+            if (value == 0L) {
+                if (containsZero) return false;
+                containsZero = true;
+                return true;
+            }
+            int index = mix(value) & mask;
+            while (table[index] != 0L) {
+                if (table[index] == value) return false;
+                index = (index + 1) & mask;
+            }
+            table[index] = value;
+            return true;
+        }
+
+        private static int mix(long value) {
+            value ^= value >>> 33;
+            value *= 0xff51afd7ed558ccdL;
+            value ^= value >>> 33;
+            value *= 0xc4ceb9fe1a85ec53L;
+            return (int) (value ^ value >>> 32);
+        }
     }
 }

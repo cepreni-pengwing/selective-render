@@ -77,7 +77,9 @@ abstract class BlockRendererMixin {
                                                         Material material, BakedQuadView quad,
                                                         int[] colors, QuadLightData light,
                                                         CallbackInfo ci) {
-        if (!SelectiveRenderState.filteringActive()) return;
+        if (!SelectiveRenderState.filteringActive()
+                || SelectiveRenderSettings.boundaryMode()
+                != SelectiveRenderSettings.BoundaryMode.CULLED) return;
         if (selectiverender$boundaryMode(context, quad)
                 == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
     }

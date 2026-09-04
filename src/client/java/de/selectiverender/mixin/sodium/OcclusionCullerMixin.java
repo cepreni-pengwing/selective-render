@@ -27,6 +27,7 @@ import java.util.Comparator;
 @Pseudo
 @Mixin(targets = "me.jellysquid.mods.sodium.client.render.chunk.occlusion.OcclusionCuller", remap = false)
 abstract class OcclusionCullerMixin {
+    @Unique private static final int selectiverender$directIndexScanLimit = 4096;
     @Shadow @Final private Long2ReferenceMap<RenderSection> sections;
     @Unique private LongOpenHashSet selectiverender$visitedSections;
     @Unique private ObjectArrayList<RenderSection> selectiverender$orderedSections;
@@ -107,7 +108,8 @@ abstract class OcclusionCullerMixin {
         java.util.List<BlockRegion> traversalRegions = SelectiveRenderState.traversalRegions();
         de.selectiverender.TraversalSectionIndex traversalIndex =
                 SelectiveRenderState.traversalSectionIndex();
-        if (!skipCameraRegion && !traversalIndex.isEmpty()) {
+        if (!skipCameraRegion && !traversalIndex.isEmpty()
+                && traversalIndex.size() <= selectiverender$directIndexScanLimit) {
             for (int index = 0; index < traversalIndex.size(); index++) {
                 long key = traversalIndex.keyAt(index);
                 int sectionX = ChunkSectionPos.unpackX(key);
@@ -168,7 +170,9 @@ abstract class OcclusionCullerMixin {
 
     @Unique
     private void selectiverender$visitOrdered(OcclusionCuller.Visitor visitor, int frame) {
-        selectiverender$orderedSections.unstableSort(selectiverender$distanceComparator);
+        if (selectiverender$orderedSections.size() > 1) {
+            selectiverender$orderedSections.unstableSort(selectiverender$distanceComparator);
+        }
         for (RenderSection section : selectiverender$orderedSections) {
             section.setLastVisibleFrame(frame);
             section.setIncomingDirections(0);
