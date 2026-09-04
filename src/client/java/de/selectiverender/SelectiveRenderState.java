@@ -9,7 +9,6 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Direction;
-import net.fabricmc.loader.api.FabricLoader;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -253,25 +252,31 @@ public final class SelectiveRenderState {
 
     public static boolean shouldInteract(BlockPos position) {
         SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
-        if (mode == SelectiveRenderSettings.InteractionMode.EVERYWHERE) return true;
-        if (mode == SelectiveRenderSettings.InteractionMode.NONE) return false;
-        return shouldInteract(mode, shouldRender(position));
+        if (!interactionFilteringActive(mode)) return true;
+        return InteractionPolicy.allows(mode,
+                interactionInside(position.getX(), position.getY(), position.getZ()));
     }
 
     public static boolean shouldInteract(Entity entity) {
         SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
-        if (mode == SelectiveRenderSettings.InteractionMode.EVERYWHERE) return true;
-        if (mode == SelectiveRenderSettings.InteractionMode.NONE) return false;
-        return shouldInteract(mode, shouldRender(entity.getX(), entity.getY(), entity.getZ()));
+        if (!interactionFilteringActive(mode)) return true;
+        return InteractionPolicy.allows(mode, interactionInside(MathHelper.floor(entity.getX()),
+                MathHelper.floor(entity.getY()), MathHelper.floor(entity.getZ())));
     }
 
-    private static boolean shouldInteract(SelectiveRenderSettings.InteractionMode mode,
-                                          boolean inside) {
-        return switch (mode) {
-            case INSIDE -> inside;
-            case OUTSIDE -> !inside;
-            default -> true;
-        };
+    private static boolean interactionFilteringActive(SelectiveRenderSettings.InteractionMode mode) {
+        VisibilitySnapshot snapshot = visibility;
+        return InteractionPolicy.active(mode, snapshot.enabled() || snapshot.hideEnabled(),
+                SelectiveRenderSettings.filterInteractionsWhenInactive(),
+                !snapshot.activeRegions().isEmpty());
+    }
+
+    private static boolean interactionInside(int blockX, int blockY, int blockZ) {
+        VisibilitySnapshot snapshot = visibility;
+        if (snapshot.enabled() || snapshot.hideEnabled()) {
+            return shouldRender(snapshot, blockX, blockY, blockZ);
+        }
+        return snapshot.activeRegionIndex().contains(blockX, blockY, blockZ);
     }
 
     public static boolean isBoundaryFace(BlockPos position, Direction direction) {
@@ -405,7 +410,8 @@ public final class SelectiveRenderState {
 
         int loadedEstimate = (viewDistance * 2 + 1) * (viewDistance * 2 + 1)
                 * (maxSectionY - minSectionY + 1);
-        if (RenderReloadPolicy.requiresFullReload(affected.size(), loadedEstimate)) {
+        if (RenderReloadPolicy.requiresFullReload(affected.size(), loadedEstimate,
+                SelectiveRenderSettings.fullReloadThreshold())) {
             refreshRenderer();
             return;
         }
@@ -416,14 +422,13 @@ public final class SelectiveRenderState {
     }
 
     public static void refreshOptionalVisuals() {
-        if (FabricLoader.getInstance().isModLoaded("flywheel")) refreshRenderer();
+        MinecraftClient client = MinecraftClient.getInstance();
+        FlywheelCompat.refresh(client.world);
     }
 
     public static void refreshVisibilityRegions(Collection<BlockRegion> regions) {
-        // Flywheel keeps long-lived GPU instances outside vanilla's regional rebuilds.
-        // Only visibility changes need to recreate them; ordinary block/light updates stay local.
-        if (FabricLoader.getInstance().isModLoaded("flywheel")) refreshRenderer();
-        else refreshRegions(regions);
+        refreshRegions(regions);
+        FlywheelCompat.refresh(MinecraftClient.getInstance().world);
     }
 
     private static int nextGeneration(VisibilitySnapshot current) {

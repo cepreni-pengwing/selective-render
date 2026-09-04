@@ -21,7 +21,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class PlotSquaredClient {
-    static final int DEFAULT_MIN_Y = -100;
     static final int DEFAULT_MAX_Y = 400;
     private static final Identifier REQUEST_CHANNEL = new Identifier("selectiverender", "plot_request");
     private static final Identifier RESPONSE_CHANNEL = new Identifier("selectiverender", "plot_response");
@@ -71,7 +70,7 @@ public final class PlotSquaredClient {
     }
 
     public static int toggle() {
-        return toggle(DEFAULT_MIN_Y, DEFAULT_MAX_Y, 0);
+        return toggle(SelectiveRenderSettings.defaultPlotMinY(), DEFAULT_MAX_Y, 0);
     }
 
     public static int toggle(int minY, int maxY, int xzMargin) {

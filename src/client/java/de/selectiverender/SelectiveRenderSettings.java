@@ -13,6 +13,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 public final class SelectiveRenderSettings {
+    static final int DEFAULT_FULL_RELOAD_THRESHOLD = 8192;
+    static final int MIN_FULL_RELOAD_THRESHOLD = 256;
+    static final int MAX_FULL_RELOAD_THRESHOLD = 65536;
+    static final int DEFAULT_PLOT_MIN_Y = -100;
     private static final class SettingsFile {
         private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
         private static final Path PATH = FabricLoader.getInstance().getConfigDir()
@@ -22,6 +26,9 @@ public final class SelectiveRenderSettings {
     private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean debugBoxes;
+    private static volatile boolean filterInteractionsWhenInactive;
+    private static volatile int fullReloadThreshold = DEFAULT_FULL_RELOAD_THRESHOLD;
+    private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
     private SelectiveRenderSettings() { }
 
@@ -37,6 +44,11 @@ public final class SelectiveRenderSettings {
                     ? InteractionMode.EVERYWHERE : stored.interactionMode;
             boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
             debugBoxes = stored.debugBoxes;
+            filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
+            fullReloadThreshold = clampReloadThreshold(stored.fullReloadThreshold == 0
+                    ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
+            defaultPlotMinY = stored.defaultPlotMinY == null
+                    ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
         } catch (IOException | RuntimeException exception) {
             SelectiveRenderClient.LOGGER.error("Could not load selective render settings {}", path, exception);
         }
@@ -46,6 +58,9 @@ public final class SelectiveRenderSettings {
     public static InteractionMode interactionMode() { return interactionMode; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
     public static boolean debugBoxes() { return debugBoxes; }
+    public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
+    public static int fullReloadThreshold() { return fullReloadThreshold; }
+    public static int defaultPlotMinY() { return defaultPlotMinY; }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
         if (playerVisibility == value) return;
@@ -71,6 +86,29 @@ public final class SelectiveRenderSettings {
         save();
     }
 
+    public static void setFilterInteractionsWhenInactive(boolean value) {
+        if (filterInteractionsWhenInactive == value) return;
+        filterInteractionsWhenInactive = value;
+        save();
+    }
+
+    public static void setFullReloadThreshold(int value) {
+        int next = clampReloadThreshold(value);
+        if (fullReloadThreshold == next) return;
+        fullReloadThreshold = next;
+        save();
+    }
+
+    public static void setDefaultPlotMinY(int value) {
+        if (defaultPlotMinY == value) return;
+        defaultPlotMinY = value;
+        save();
+    }
+
+    private static int clampReloadThreshold(int value) {
+        return Math.max(MIN_FULL_RELOAD_THRESHOLD, Math.min(MAX_FULL_RELOAD_THRESHOLD, value));
+    }
+
     private static void save() {
         Path path = SettingsFile.PATH;
         try {
@@ -80,6 +118,9 @@ public final class SelectiveRenderSettings {
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
             stored.debugBoxes = debugBoxes;
+            stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
+            stored.fullReloadThreshold = fullReloadThreshold;
+            stored.defaultPlotMinY = defaultPlotMinY;
             try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
                 SettingsFile.GSON.toJson(stored, writer);
             }
@@ -132,5 +173,8 @@ public final class SelectiveRenderSettings {
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
         boolean debugBoxes;
+        boolean filterInteractionsWhenInactive;
+        int fullReloadThreshold;
+        Integer defaultPlotMinY;
     }
 }

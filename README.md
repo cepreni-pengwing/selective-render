@@ -104,7 +104,7 @@ can provide their exact PlotSquared regions, including merged and non-rectangula
 Plot integration is part of the normal Selective Render command tree:
 
 - `/selectiverender plot` or `/sr plot` adds the plot under the player to temporary isolation using
-  the default Y range `-100` to `400`. Use it again on that plot to remove only that plot.
+  the configured minimum Y (initially `-100`) and maximum Y `400`. Use it again on that plot to remove only that plot.
 - `/sr p [minY] [maxY] [xzMargin]` does the same with inclusive vertical bounds. A positive margin
   expands the outline; a negative margin shrinks the complete plot shape.
 - `/sr p clear` clears all temporarily selected plots.
@@ -115,7 +115,8 @@ Plot integration is part of the normal Selective Render command tree:
   adjusts the complete PlotSquared shape without creating seams between merged parts.
 
 `p` is the short alias for `plot`, and `s` is the short alias for `save`, so
-`/sr p s NAME minY maxY xzMargin` is equivalent. Omitted Y values default to `-100` and `400`;
+`/sr p s NAME minY maxY xzMargin` is equivalent. Omitted Y values use the configured minimum
+(initially `-100`) and maximum `400`;
 omitting `xzMargin` preserves the exact PlotSquared X/Z bounds.
 
 Plot mode is temporary for the current Minecraft session and is remembered across reconnects and
@@ -157,6 +158,15 @@ block breaking and use, placement, entity attacks and use, pick block, and the m
 raycasts. Vanilla crosshair targets and outlines follow the same mode, and Axiom's Orbit Camera
 and brush raycasts are supported. Collision is unchanged.
 
+By default, switching all rendering off restores completely vanilla interaction behavior. Enable
+`Interactions while rendering is off: Filtered` to keep the selected Inside/Outside/None policy
+using the retained region selection while the world remains fully visible.
+
+The settings screen also provides the default `/sr p` minimum Y and the number of affected render
+sections that may be rebuilt locally before SR chooses a full renderer reload. Higher thresholds
+avoid visible full reloads but can schedule more localized work at once; lower values may suit
+weaker hardware. The default is 8,192 sections, with an additional 85% loaded-section safety limit.
+
 New settings default to players and interactions everywhere, normal boundary faces, and debug
 boxes off. Updating the mod preserves your saved settings.
 
@@ -184,6 +194,8 @@ boxes off. Updating the mod preserves your saved settings.
 - Region changes rebuild only intersecting 16 x 16 x 16 render sections plus the
   virtual-light influence area. Large updates automatically fall back to a full
   renderer reload.
+- Flywheel/Create visualizations receive their own reset after visibility changes instead of forcing
+  a full Minecraft terrain reload.
 - With no render or hide regions active, hot render and lighting hooks immediately use their
   normal game paths; unrestricted player and interaction settings do the same.
 

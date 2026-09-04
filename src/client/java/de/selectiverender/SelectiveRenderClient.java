@@ -176,7 +176,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .executes(context -> PlotSquaredClient.save(
                                 StringArgumentType.getString(context, "name"),
-                                PlotSquaredClient.DEFAULT_MIN_Y, PlotSquaredClient.DEFAULT_MAX_Y, 0))
+                                SelectiveRenderSettings.defaultPlotMinY(), PlotSquaredClient.DEFAULT_MAX_Y, 0))
                         .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
                                 .executes(context -> PlotSquaredClient.save(
                                         StringArgumentType.getString(context, "name"),

@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.BoundaryColorTexture;
+import de.selectiverender.BoundaryGeometry;
 import de.selectiverender.SelectiveRenderSettings;
 import de.selectiverender.SelectiveRenderState;
 import net.minecraft.block.BlockState;
@@ -23,7 +24,7 @@ abstract class BlockModelRendererMixin {
     @Unique private static final ThreadLocal<Boolean> selectiverender$coloredBoundary =
             ThreadLocal.withInitial(() -> false);
 
-    @Inject(method = "renderQuad", at = @At("HEAD"))
+    @Inject(method = "renderQuad", at = @At("HEAD"), cancellable = true)
     private void selectiverender$beginBoundaryQuad(BlockRenderView world, BlockState state,
                                                     BlockPos pos, VertexConsumer consumer,
                                                     MatrixStack.Entry entry, BakedQuad quad,
@@ -31,16 +32,27 @@ abstract class BlockModelRendererMixin {
                                                     float brightness2, float brightness3,
                                                     int light0, int light1, int light2, int light3,
                                                     int overlay, CallbackInfo ci) {
-        if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.BLACK) {
+        if (!SelectiveRenderState.filteringActive()) {
             if (selectiverender$coloredBoundary.get()) selectiverender$coloredBoundary.set(false);
             return;
         }
-        selectiverender$coloredBoundary.set(
-                SelectiveRenderState.boundaryModeForFace(pos, quad.getFace())
-                        == SelectiveRenderSettings.BoundaryMode.BLACK
-                        && SelectiveRenderState.isBoundaryFace(pos, quad.getFace()));
+        int extensionData = BoundaryGeometry.extensionData(quad);
+        SelectiveRenderSettings.BoundaryMode extensionMode =
+                BoundaryGeometry.extensionBoundaryMode(pos, extensionData);
+        boolean standardBoundary = SelectiveRenderState.isBoundaryFace(pos, quad.getFace());
+        if (extensionMode == SelectiveRenderSettings.BoundaryMode.NORMAL && !standardBoundary) {
+            selectiverender$coloredBoundary.set(false);
+            return;
+        }
+        SelectiveRenderSettings.BoundaryMode mode =
+                extensionMode != SelectiveRenderSettings.BoundaryMode.NORMAL ? extensionMode
+                        : SelectiveRenderState.boundaryModeForFace(pos, quad.getFace());
+        if (extensionMode == SelectiveRenderSettings.BoundaryMode.CULLED) {
+            selectiverender$coloredBoundary.set(false);
+            ci.cancel();
+            return;
+        }
+        selectiverender$coloredBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.BLACK);
     }
 
     @ModifyArgs(method = "renderQuad", at = @At(value = "INVOKE",

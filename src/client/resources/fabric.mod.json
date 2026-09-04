@@ -5,7 +5,6 @@
   "name": "Selective Render",
   "description": "Show only what matters. Isolate builds or hide selected areas with precise 3D regions.",
   "authors": ["cepreni-pengwing"],
-  "contributors": ["Codex"],
   "license": "GPL-3.0-only",
   "icon": "assets/selectiverender/icon.png",
   "contact": {

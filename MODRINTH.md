@@ -68,6 +68,11 @@ normal, black, and culled; hide-region boundaries always stay normal. New settin
 players and interactions everywhere, normal boundary faces, and debug boxes off. Saved settings
 are preserved when updating.
 
+Switching region rendering off restores vanilla interaction behavior by default. An optional
+setting can keep the selected interaction policy active for retained regions while rendering is
+off. The same screen controls the localized render-rebuild threshold; its default is 8,192
+affected sections, with an additional 85% loaded-section safety limit.
+
 ## PlotSquared integration
 
 With the compatible [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots)
@@ -85,8 +90,8 @@ This uses exact PlotSquared shapes, including merged or irregular plots. Visit m
 Only the first plot in an empty selection automatically enables isolation. Switch it off with
 `/sr t` to collect more plots while seeing the full world, then toggle it back on when ready.
 The selection lasts for the current Minecraft session, including reconnects and dimension changes.
-Omitted Y values default to `-100` and `400`; a positive margin expands X/Z and a negative one
-shrinks the complete outline.
+Omitted Y values use the configurable minimum (initially `-100`) and maximum `400`; a positive
+margin expands X/Z and a negative one shrinks the complete outline.
 
 When LuckPerms or another permission manager is installed, ensure every intended user or group has
 `selectiverender.plot.solo`. Grant it explicitly on Fabric or when a Paper permission policy

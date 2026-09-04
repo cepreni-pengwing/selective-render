@@ -2,6 +2,30 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.6
+
+### Added
+
+- Added settings for the full-renderer reload threshold, the default `/sr p` minimum Y value, and
+  whether interaction filtering remains active while region rendering is switched off.
+- Added boundary handling for model geometry extending beyond its owning block, including Conquest
+  Reforged extension toggles in Black and Culled modes on every axis.
+
+### Changed
+
+- Raised the default localized-rebuild threshold to 8,192 affected sections and the relative
+  fallback to 85%. The section limit can be set from 256 to 65,536 in the settings screen.
+- Replaced Flywheel/Create's unconditional full Minecraft renderer reload on every visibility
+  change with localized terrain rebuilds and a dedicated Flywheel visualization reset.
+- Replaced the bundled icon with the smaller, more tightly cropped version supplied by the maintainer.
+- Removed the Codex contributor credit from project metadata.
+
+### Performance
+
+- Preserved the render no-op path when no render or hide region is active. Interaction filtering
+  while rendering is inactive is opt-in and defaults to Vanilla behavior, so merely storing regions
+  does not add an active interaction policy.
+
 ## 1.8.5
 
 - Fixed multiplayer region files not loading in 1.8.4: server identity now comes directly from
@@ -386,7 +410,7 @@ All notable changes to Selective Render are documented here.
 
 ### Changed
 
-- Project metadata now identifies `cepreni-pengwing` as maintainer and Codex as contributor.
+- Project metadata now identifies `cepreni-pengwing` as maintainer.
 - Compatibility and known limitations are documented more precisely.
 - Loader metadata now matches the tested Minecraft 1.20.1 and Sodium 0.5.8+ baseline.
 - Licensing changed from MIT to GPL-3.0-only.

@@ -1,6 +1,7 @@
 package de.selectiverender.mixin.sodium;
 
 import de.selectiverender.BoundaryColorTexture;
+import de.selectiverender.BoundaryGeometry;
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.SelectiveRenderSettings;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
@@ -8,6 +9,7 @@ import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.BlockRende
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderer;
 import me.jellysquid.mods.sodium.client.model.color.ColorProvider;
 import me.jellysquid.mods.sodium.client.model.light.LightPipeline;
+import me.jellysquid.mods.sodium.client.model.light.data.QuadLightData;
 import me.jellysquid.mods.sodium.client.model.quad.BakedQuadView;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.buffers.ChunkModelBuilder;
 import me.jellysquid.mods.sodium.client.render.chunk.terrain.material.Material;
@@ -51,6 +53,13 @@ abstract class BlockRendererMixin {
         if (!SelectiveRenderState.filteringActive()
                 || SelectiveRenderSettings.boundaryMode()
                 != SelectiveRenderSettings.BoundaryMode.BLACK) return;
+        int extensionData = selectiverender$extensionData(quad);
+        SelectiveRenderSettings.BoundaryMode extensionMode =
+                BoundaryGeometry.extensionBoundaryMode(context.pos(), extensionData);
+        if (extensionMode == SelectiveRenderSettings.BoundaryMode.BLACK) {
+            Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
+            return;
+        }
         Direction direction = selectiverender$quadDirection.get();
         if (direction == null) {
             direction = quad.getLightFace();
@@ -61,6 +70,18 @@ abstract class BlockRendererMixin {
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
         selectiverender$solidColor.set(true);
         Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
+    }
+
+    @Inject(method = "writeGeometry", at = @At("HEAD"), cancellable = true)
+    private void selectiverender$cullBoundaryExtension(BlockRenderContext context,
+                                                        ChunkModelBuilder builder, Vec3d offset,
+                                                        Material material, BakedQuadView quad,
+                                                        int[] colors, QuadLightData light,
+                                                        CallbackInfo ci) {
+        if (!SelectiveRenderState.filteringActive()) return;
+        int extensionData = selectiverender$extensionData(quad);
+        if (BoundaryGeometry.extensionBoundaryMode(context.pos(), extensionData)
+                == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
     }
 
     @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
@@ -110,5 +131,19 @@ abstract class BlockRendererMixin {
             if (Math.abs(coordinate - plane) > 0.0001f) return false;
         }
         return true;
+    }
+
+    @Unique
+    private static int selectiverender$extensionData(BakedQuadView quad) {
+        float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
+        float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
+        for (int vertex = 0; vertex < 4; vertex++) {
+            float x = quad.getX(vertex);
+            float y = quad.getY(vertex);
+            float z = quad.getZ(vertex);
+            minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
+            maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
+        }
+        return BoundaryGeometry.extensionData(minX, maxX, minY, maxY, minZ, maxZ);
     }
 }

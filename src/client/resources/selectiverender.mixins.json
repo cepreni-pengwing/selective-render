@@ -23,6 +23,7 @@
     "canvasblocks.WorldPaintingRendererMixin",
     "flywheel.BlockEntityStorageMixin",
     "flywheel.EntityStorageMixin",
+    "flywheel.VisualizationManagerInvoker",
     "indium.AbstractBlockRenderContextMixin",
     "indium.TerrainRenderContextMixin",
     "sodium.BlockRendererMixin",

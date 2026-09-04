@@ -12,6 +12,9 @@ class SettingsDefaultsTest {
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
                 SelectiveRenderSettings.boundaryMode());
         assertFalse(SelectiveRenderSettings.debugBoxes());
+        assertFalse(SelectiveRenderSettings.filterInteractionsWhenInactive());
+        assertEquals(8192, SelectiveRenderSettings.fullReloadThreshold());
+        assertEquals(-100, SelectiveRenderSettings.defaultPlotMinY());
     }
 
     @Test void modesCycleThroughEveryValueAndWrap() {
