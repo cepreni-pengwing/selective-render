@@ -29,7 +29,7 @@ abstract class AbstractBlockRenderContextMixin {
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
-        if (BoundaryGeometry.extensionBoundaryMode(position, selectiverender$extensionData(quad))
+        if (selectiverender$boundaryMode(position, quad)
                 == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
     }
 
@@ -40,7 +40,7 @@ abstract class AbstractBlockRenderContextMixin {
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
-        if (BoundaryGeometry.extensionBoundaryMode(position, selectiverender$extensionData(quad))
+        if (selectiverender$boundaryMode(position, quad)
                 == SelectiveRenderSettings.BoundaryMode.BLACK) {
             selectiverender$makeBlack(quad);
             return;
@@ -56,7 +56,8 @@ abstract class AbstractBlockRenderContextMixin {
         selectiverender$makeBlack(quad);
     }
 
-    private static int selectiverender$extensionData(MutableQuadView quad) {
+    private static SelectiveRenderSettings.BoundaryMode selectiverender$boundaryMode(
+            BlockPos position, MutableQuadView quad) {
         float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
         float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
         for (int vertex = 0; vertex < 4; vertex++) {
@@ -64,7 +65,8 @@ abstract class AbstractBlockRenderContextMixin {
             minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
             maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
         }
-        return BoundaryGeometry.extensionData(minX, maxX, minY, maxY, minZ, maxZ);
+        return BoundaryGeometry.boundaryModeForQuad(
+                position, minX, maxX, minY, maxY, minZ, maxZ);
     }
 
     private static void selectiverender$makeBlack(MutableQuadView quad) {

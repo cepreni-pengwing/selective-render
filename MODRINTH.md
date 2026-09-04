@@ -64,7 +64,8 @@ cycle interaction and boundary modes, and open settings. Change bindings under C
 Selective Render; existing custom bindings are preserved.
 
 Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through
-normal, black, and culled; hide-region boundaries always stay normal. New settings default to
+normal, black, and culled; transformed model extensions are affected only on the actual cut plane,
+and hide-region boundaries always stay normal. New settings default to
 players and interactions everywhere, normal boundary faces, and debug boxes off. Saved settings
 are preserved when updating. Enabled debug boxes outline every saved region, including inactive and
 hidden presets, plus temporary PlotSquared regions.

@@ -2,6 +2,14 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.9
+
+### Fixed
+
+- Restricted transformed-model boundary handling to quads lying exactly on the region cut plane.
+  Conquest Reforged extension toggles now affect only the relevant two-dimensional boundary face
+  instead of coloring or culling the complete duplicated three-dimensional extension.
+
 ## 1.8.8
 
 ### Fixed

@@ -7,7 +7,8 @@ import net.minecraft.util.math.Direction;
 public final class BoundaryGeometry {
     private BoundaryGeometry() { }
 
-    public static int extensionData(BakedQuad quad) {
+    public static SelectiveRenderSettings.BoundaryMode boundaryModeForQuad(
+            BlockPos position, BakedQuad quad) {
         int[] data = quad.getVertexData();
         int stride = data.length / 4;
         float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
@@ -20,56 +21,42 @@ public final class BoundaryGeometry {
             minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
             maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
         }
-        return extensionData(minX, maxX, minY, maxY, minZ, maxZ);
+        return boundaryModeForQuad(position, minX, maxX, minY, maxY, minZ, maxZ);
     }
 
-    public static int extensionMask(float minX, float maxX, float minY, float maxY,
-                                    float minZ, float maxZ) {
-        return ExtensionBounds.mask(minX, maxX, minY, maxY, minZ, maxZ);
+    public static SelectiveRenderSettings.BoundaryMode boundaryModeForQuad(
+            BlockPos position, float minX, float maxX, float minY, float maxY,
+            float minZ, float maxZ) {
+        SelectiveRenderSettings.BoundaryMode mode = boundaryModeAtPlane(position,
+                Direction.WEST, Direction.EAST, minX, maxX);
+        if (mode != SelectiveRenderSettings.BoundaryMode.NORMAL) return mode;
+        mode = boundaryModeAtPlane(position, Direction.DOWN, Direction.UP, minY, maxY);
+        if (mode != SelectiveRenderSettings.BoundaryMode.NORMAL) return mode;
+        return boundaryModeAtPlane(position, Direction.NORTH, Direction.SOUTH, minZ, maxZ);
     }
 
-    public static int extensionData(float minX, float maxX, float minY, float maxY,
-                                    float minZ, float maxZ) {
-        int data = 0;
-        data = withReach(data, Direction.DOWN, negativeReach(minY));
-        data = withReach(data, Direction.UP, positiveReach(maxY));
-        data = withReach(data, Direction.NORTH, negativeReach(minZ));
-        data = withReach(data, Direction.SOUTH, positiveReach(maxZ));
-        data = withReach(data, Direction.WEST, negativeReach(minX));
-        return withReach(data, Direction.EAST, positiveReach(maxX));
-    }
-
-    public static SelectiveRenderSettings.BoundaryMode extensionBoundaryMode(
-            BlockPos position, int extensionData) {
-        for (Direction direction : Direction.values()) {
-            int reach = reach(extensionData, direction);
-            for (int step = 1; step <= reach; step++) {
-                BlockPos sample = position.offset(direction, step);
-                if (!SelectiveRenderState.shouldRender(sample)) {
-                    if (!SelectiveRenderState.isActivelyHidden(sample)) {
-                        return SelectiveRenderSettings.boundaryMode();
-                    }
-                    break;
-                }
-            }
+    private static SelectiveRenderSettings.BoundaryMode boundaryModeAtPlane(
+            BlockPos position, Direction negative, Direction positive, float minimum, float maximum) {
+        int negativeStep = BoundaryPlane.negativeStep(minimum, maximum);
+        if (negativeStep > 0) {
+            SelectiveRenderSettings.BoundaryMode mode = boundaryModeAt(
+                    position, negative, negativeStep);
+            if (mode != SelectiveRenderSettings.BoundaryMode.NORMAL) return mode;
         }
-        return SelectiveRenderSettings.BoundaryMode.NORMAL;
+        int positiveStep = BoundaryPlane.positiveStep(minimum, maximum);
+        return positiveStep > 0 ? boundaryModeAt(position, positive, positiveStep)
+                : SelectiveRenderSettings.BoundaryMode.NORMAL;
     }
 
-    private static int positiveReach(float maximum) {
-        return maximum > 1.0001f ? Math.min(31, (int) Math.ceil(maximum - 1.0f)) : 0;
+    private static SelectiveRenderSettings.BoundaryMode boundaryModeAt(
+            BlockPos position, Direction direction, int step) {
+        BlockPos inside = position.offset(direction, step - 1);
+        BlockPos outside = position.offset(direction, step);
+        if (!SelectiveRenderState.shouldRender(inside)
+                || SelectiveRenderState.shouldRender(outside)
+                || SelectiveRenderState.isActivelyHidden(outside)) {
+            return SelectiveRenderSettings.BoundaryMode.NORMAL;
+        }
+        return SelectiveRenderSettings.boundaryMode();
     }
-
-    private static int negativeReach(float minimum) {
-        return minimum < -0.0001f ? Math.min(31, (int) Math.ceil(-minimum)) : 0;
-    }
-
-    private static int withReach(int data, Direction direction, int reach) {
-        return data | reach << (direction.ordinal() * 5);
-    }
-
-    private static int reach(int data, Direction direction) {
-        return data >>> (direction.ordinal() * 5) & 31;
-    }
-
 }

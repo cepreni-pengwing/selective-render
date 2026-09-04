@@ -53,9 +53,8 @@ abstract class BlockRendererMixin {
         if (!SelectiveRenderState.filteringActive()
                 || SelectiveRenderSettings.boundaryMode()
                 != SelectiveRenderSettings.BoundaryMode.BLACK) return;
-        int extensionData = selectiverender$extensionData(quad);
         SelectiveRenderSettings.BoundaryMode extensionMode =
-                BoundaryGeometry.extensionBoundaryMode(context.pos(), extensionData);
+                selectiverender$boundaryMode(context, quad);
         if (extensionMode == SelectiveRenderSettings.BoundaryMode.BLACK) {
             Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
             return;
@@ -79,8 +78,7 @@ abstract class BlockRendererMixin {
                                                         int[] colors, QuadLightData light,
                                                         CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
-        int extensionData = selectiverender$extensionData(quad);
-        if (BoundaryGeometry.extensionBoundaryMode(context.pos(), extensionData)
+        if (selectiverender$boundaryMode(context, quad)
                 == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
     }
 
@@ -134,7 +132,8 @@ abstract class BlockRendererMixin {
     }
 
     @Unique
-    private static int selectiverender$extensionData(BakedQuadView quad) {
+    private static SelectiveRenderSettings.BoundaryMode selectiverender$boundaryMode(
+            BlockRenderContext context, BakedQuadView quad) {
         float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
         float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
         for (int vertex = 0; vertex < 4; vertex++) {
@@ -144,6 +143,7 @@ abstract class BlockRendererMixin {
             minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
             maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
         }
-        return BoundaryGeometry.extensionData(minX, maxX, minY, maxY, minZ, maxZ);
+        return BoundaryGeometry.boundaryModeForQuad(
+                context.pos(), minX, maxX, minY, maxY, minZ, maxZ);
     }
 }

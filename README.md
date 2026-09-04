@@ -198,7 +198,8 @@ presets, plus temporary PlotSquared regions. Updating the mod preserves your sav
 - Flywheel/Create visualizations receive their own reset after visibility changes instead of forcing
   a full Minecraft terrain reload.
 - Black and Culled boundaries inspect final Fabric Renderer/Indium quad positions, including models
-  translated outside their owning block such as Conquest Reforged extension toggles.
+  translated outside their owning block such as Conquest Reforged extension toggles. Only flat
+  quads lying on the actual region cut plane receive the boundary treatment.
 - With no render or hide regions active, hot render and lighting hooks immediately use their
   normal game paths; unrestricted player and interaction settings do the same.
 
