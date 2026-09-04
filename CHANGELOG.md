@@ -2,6 +2,16 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.7
+
+### Fixed
+
+- Fixed a startup crash with Create/Flywheel caused by an incompatible internal reset-method
+  parameter in 1.8.6.
+- Made the optional Flywheel reset compatibility path fail safely. If a future Flywheel version
+  changes the method again, SR falls back to a full renderer reload instead of preventing the game
+  from starting.
+
 ## 1.8.6
 
 ### Added

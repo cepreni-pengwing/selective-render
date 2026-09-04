@@ -423,12 +423,12 @@ public final class SelectiveRenderState {
 
     public static void refreshOptionalVisuals() {
         MinecraftClient client = MinecraftClient.getInstance();
-        FlywheelCompat.refresh(client.world);
+        if (!FlywheelCompat.refresh(client.world)) refreshRenderer();
     }
 
     public static void refreshVisibilityRegions(Collection<BlockRegion> regions) {
         refreshRegions(regions);
-        FlywheelCompat.refresh(MinecraftClient.getInstance().world);
+        if (!FlywheelCompat.refresh(MinecraftClient.getInstance().world)) refreshRenderer();
     }
 
     private static int nextGeneration(VisibilitySnapshot current) {
