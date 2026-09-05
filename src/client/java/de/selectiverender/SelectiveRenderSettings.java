@@ -84,7 +84,9 @@ public final class SelectiveRenderSettings {
         if (boundaryMode == value) return;
         boundaryMode = value;
         save();
-        SelectiveRenderState.refreshRenderer();
+        if (SelectiveRenderState.enabled()) {
+            SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
+        }
     }
 
     public static void setDebugBoxes(boolean value) {

@@ -165,7 +165,10 @@ using the retained region selection while the world remains fully visible.
 The settings screen also provides the default `/sr p` minimum Y and the number of affected render
 sections that may be rebuilt locally before SR chooses a full renderer reload. Higher thresholds
 avoid visible full reloads but can schedule more localized work at once; lower values may suit
-weaker hardware. The default is 8,192 sections, with an additional 85% loaded-section safety limit.
+weaker hardware. The default is 8,192 sections; there is no additional percentage-based limit.
+This also applies when switching rendering off: previously hidden loaded sections may need rebuilding,
+so the affected area can be much larger than the selected region. An unavailable Flywheel refresh API
+still requires a full-reload compatibility fallback. Resource reloads remain controlled by Minecraft.
 
 New settings default to players and interactions everywhere, normal boundary faces, and debug
 boxes off. When enabled, debug boxes outline every saved region, including inactive and hidden
@@ -192,19 +195,20 @@ presets, plus temporary PlotSquared regions. Updating the mod preserves your sav
   Player, entity, and block-entity lightmaps use the same shape-aware virtual skylight as terrain,
   preventing mismatched brightness below filtered roofs and around partial blocks. Compact cached
   section results are invalidated only where block or chunk changes can affect them.
-- Region changes rebuild only intersecting 16 x 16 x 16 render sections plus the
-  virtual-light influence area. Large updates automatically fall back to a full
+- Region edits rebuild intersecting 16 x 16 x 16 render sections plus the
+  virtual-light influence area; whitelist on/off transitions also rebuild the changed complement.
+  Large updates automatically fall back to a full
   renderer reload.
 - Flywheel/Create visualizations receive their own reset after visibility changes instead of forcing
   a full Minecraft terrain reload.
-- Black and Culled boundaries inspect final Fabric Renderer/Indium quad positions, including models
-  translated outside their owning block such as Conquest Reforged extension toggles. Only flat
-  quads lying on the actual region cut plane receive the boundary treatment.
+- Black and Culled boundaries inspect final Fabric Renderer/Indium quad positions for flat cut-plane
+  faces. Conquest Reforged extension toggles are not reliably supported yet; this compatibility work
+  is deferred.
 - With no render or hide regions active, hot render and lighting hooks immediately use their
   normal game paths; unrestricted player and interaction settings do the same.
 
 The mod does not change render distance, server packets, chunk loading, game
-logic, or collision. The implementation does not use reflection.
+logic, or collision. Optional Flywheel integration uses a cached reflective API lookup.
 
 The selected regions must still be within the normal Minecraft render distance.
 All region boundaries use inclusive whole-block coordinates. Existing horizontal

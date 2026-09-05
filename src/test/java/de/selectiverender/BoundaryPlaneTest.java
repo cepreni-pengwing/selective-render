@@ -5,6 +5,10 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BoundaryPlaneTest {
+    @Test void rejectsNonFiniteCoordinates() {
+        assertEquals(BoundaryPlane.NO_PLANE, BoundaryPlane.integralPlane(Float.NaN, Float.NaN));
+        assertEquals(BoundaryPlane.NO_PLANE, BoundaryPlane.integralPlane(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY));
+    }
     @Test void findsNormalAndTranslatedNegativeCutPlanes() {
         assertEquals(0, BoundaryPlane.integralPlane(0, 0));
         assertEquals(-1, BoundaryPlane.integralPlane(-1, -1));

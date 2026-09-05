@@ -64,8 +64,8 @@ cycle interaction and boundary modes, and open settings. Change bindings under C
 Selective Render; existing custom bindings are preserved.
 
 Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through
-normal, black, and culled; transformed model extensions are affected only on the actual cut plane,
-and hide-region boundaries always stay normal. New settings default to
+normal, black, and culled; hide-region boundaries always stay normal. Conquest Reforged extension
+toggles are not reliably supported by black/culled mode yet. New settings default to
 players and interactions everywhere, normal boundary faces, and debug boxes off. Saved settings
 are preserved when updating. Enabled debug boxes outline every saved region, including inactive and
 hidden presets, plus temporary PlotSquared regions.
@@ -73,7 +73,9 @@ hidden presets, plus temporary PlotSquared regions.
 Switching region rendering off restores vanilla interaction behavior by default. An optional
 setting can keep the selected interaction policy active for retained regions while rendering is
 off. The same screen controls the localized render-rebuild threshold; its default is 8,192
-affected sections, with an additional 85% loaded-section safety limit.
+affected sections, including visibility toggles. Switching rendering off can affect sections outside
+your selection too. A full reload remains a fallback if the installed Flywheel version cannot refresh
+its visuals separately.
 
 ## PlotSquared integration
 

@@ -7,12 +7,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LightVolumeInfluenceTest {
     @Test
-    void blockInvalidationIncludesTheCompleteHaloOnly() {
+    void blockInvalidationIncludesTheHaloAndSkylightColumnAbove() {
         assertTrue(LightVolumeInfluence.blockAffectsSection(0, 0, 0, -14, -14, -14, 14));
         assertTrue(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 29, 29, 29, 14));
         assertFalse(LightVolumeInfluence.blockAffectsSection(0, 0, 0, -15, 0, 0, 14));
         assertFalse(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 30, 0, 0, 14));
-        assertFalse(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 0, 30, 0, 14));
+        assertTrue(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 0, 30, 0, 14));
+        assertTrue(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 0, 300, 0, 14));
+        assertFalse(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 0, -15, 0, 14));
+        assertFalse(LightVolumeInfluence.blockAffectsSection(0, 0, 0, 30, 300, 0, 14));
     }
 
     @Test

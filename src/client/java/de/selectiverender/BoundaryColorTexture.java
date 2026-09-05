@@ -7,34 +7,33 @@ import net.minecraft.util.Identifier;
 
 public final class BoundaryColorTexture {
     private static final Identifier SOLID_SOURCE = new Identifier("minecraft", "block/snow");
-    private static volatile float cachedU = Float.NaN;
-    private static volatile float cachedV = Float.NaN;
+    private static volatile Coordinates cached;
+    private record Coordinates(float u, float v) { }
 
     private BoundaryColorTexture() { }
 
     public static float u() {
-        ensureCached();
-        return cachedU;
+        return coordinates().u();
     }
 
     public static float v() {
-        ensureCached();
-        return cachedV;
+        return coordinates().v();
     }
 
-    public static void invalidate() {
-        cachedU = Float.NaN;
-        cachedV = Float.NaN;
+    public static synchronized void invalidate() {
+        cached = null;
     }
 
-    private static void ensureCached() {
-        if (!Float.isNaN(cachedU)) return;
+    private static Coordinates coordinates() {
+        Coordinates value = cached;
+        if (value != null) return value;
         synchronized (BoundaryColorTexture.class) {
-            if (!Float.isNaN(cachedU)) return;
+            if (cached != null) return cached;
             Sprite sprite = MinecraftClient.getInstance().getBakedModelManager()
                 .getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getSprite(SOLID_SOURCE);
-            cachedV = (sprite.getMinV() + sprite.getMaxV()) * 0.5f;
-            cachedU = (sprite.getMinU() + sprite.getMaxU()) * 0.5f;
+            cached = new Coordinates((sprite.getMinU() + sprite.getMaxU()) * 0.5f,
+                    (sprite.getMinV() + sprite.getMaxV()) * 0.5f);
+            return cached;
         }
     }
 }

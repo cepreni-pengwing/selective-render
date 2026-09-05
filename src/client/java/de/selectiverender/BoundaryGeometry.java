@@ -55,9 +55,11 @@ public final class BoundaryGeometry {
         int outsideX = insideX + deltaX;
         int outsideY = insideY + deltaY;
         int outsideZ = insideZ + deltaZ;
-        return BoundaryPolicy.mode(SelectiveRenderSettings.boundaryMode(),
-                SelectiveRenderState.shouldRender(insideX, insideY, insideZ),
-                SelectiveRenderState.shouldRender(outsideX, outsideY, outsideZ),
-                SelectiveRenderState.isActivelyHidden(outsideX, outsideY, outsideZ));
+        if (!SelectiveRenderState.shouldRender(insideX, insideY, insideZ)
+                || SelectiveRenderState.shouldRender(outsideX, outsideY, outsideZ)
+                || SelectiveRenderState.isActivelyHidden(outsideX, outsideY, outsideZ)) {
+            return SelectiveRenderSettings.BoundaryMode.NORMAL;
+        }
+        return SelectiveRenderSettings.boundaryMode();
     }
 }

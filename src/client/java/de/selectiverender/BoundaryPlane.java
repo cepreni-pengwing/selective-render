@@ -8,6 +8,7 @@ final class BoundaryPlane {
     private BoundaryPlane() { }
 
     static int integralPlane(float minimum, float maximum) {
+        if (!Float.isFinite(minimum) || !Float.isFinite(maximum)) return NO_PLANE;
         if (Math.abs(maximum - minimum) > EPSILON) return NO_PLANE;
         float plane = (minimum + maximum) * 0.5f;
         int rounded = Math.round(plane);

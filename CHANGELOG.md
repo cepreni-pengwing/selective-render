@@ -2,6 +2,37 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.8.11
+
+### Fixed
+
+- Rendering and plot toggles now use the configured rebuild threshold instead of forcing a full
+  renderer reload. Removed the additional 85% cutoff; transitions rebuild previously hidden loaded
+  sections too, including when the last active preset is removed. Flywheel compatibility fallback
+  and Minecraft resource reloads remain exceptions.
+- Clearing temporary plots also cancels a pending plot request.
+- Region-file recovery validates region contents before accepting a primary file, allowing recovery
+  from backups when JSON parses but contains invalid region data.
+- Scoped general interaction ray filtering to client-thread player/camera outline raycasts rather
+  than affecting unrelated collision and integrated-server raycasts.
+- Virtual entity skylight caches are invalidated by roof changes above their local section halo.
+- Sodium Black boundary faces consistently use opaque texture coordinates. Cached UV pairs are
+  published together and invalidated after model resource reloads.
+
+### Performance and cleanup
+
+- Stop collecting rebuild sections as soon as the configured threshold is exceeded; skip unloaded
+  chunks and keep unchanged whitelist regions out of hidden-region-only updates.
+- Skip inactive block-update lighting checks and classify collector sections only after cheaper
+  loaded, distance, already-visited, and frustum checks.
+- Reject non-finite boundary geometry and restore short-circuit boundary visibility checks.
+- Conquest Reforged extension-toggle compatibility remains incomplete and is deferred.
+
+### Tests
+
+- Added regression coverage for whitelist/plot transitions, hidden-only updates, inactive selections,
+  invalid backup candidates, non-finite planes, and the revised skylight/reload policies.
+
 ## 1.8.10
 
 ### Performance

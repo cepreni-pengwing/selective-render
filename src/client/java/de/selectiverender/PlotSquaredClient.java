@@ -87,6 +87,7 @@ public final class PlotSquaredClient {
     }
 
     public static int clear() {
+        clearPending();
         PlotSession session = currentSession(false);
         if (session == null || session.plots.isEmpty()) {
             overlay(white("No temporary plots to clear"));

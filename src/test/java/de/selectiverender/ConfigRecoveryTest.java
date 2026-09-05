@@ -14,6 +14,20 @@ class ConfigRecoveryTest {
     @TempDir Path directory;
 
     @Test
+    void validationFailureAlsoRecoversTheBackup() throws IOException {
+        Path primary = directory.resolve("invalid-bounds.json");
+        Files.writeString(primary, "syntactically valid but invalid region");
+        Files.writeString(ConfigRecovery.backupPath(primary), "valid region");
+        var result = ConfigRecovery.load(primary, path -> {
+            if (path.equals(primary)) throw new IllegalArgumentException("Region bounds are not normalized");
+            return "valid region";
+        });
+        assertTrue(result.recoveredFromBackup());
+        assertEquals("valid region", result.value());
+        assertEquals("valid region", Files.readString(ConfigRecovery.backupPath(primary)));
+    }
+
+    @Test
     void fallsBackToBackupWhenThePrimaryCannotBeRead() throws IOException {
         Path primary = directory.resolve("world.json");
         Files.writeString(primary, "broken");

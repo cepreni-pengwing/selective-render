@@ -90,6 +90,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     public void reload(ResourceManager manager) {
                         BoundaryColorTexture.invalidate();
                     }
+
+                    @Override
+                    public java.util.Collection<Identifier> getFabricDependencies() {
+                        return java.util.List.of(net.fabricmc.fabric.api.resource.ResourceReloadListenerKeys.MODELS);
+                    }
                 });
         RegionBorderRenderer.initialize();
         PlotSquaredClient.initialize();

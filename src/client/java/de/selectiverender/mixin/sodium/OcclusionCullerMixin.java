@@ -160,11 +160,11 @@ abstract class OcclusionCullerMixin {
     private void selectiverender$addSection(long key, int sectionX, int sectionY, int sectionZ,
                                              CameraTransform camera, Viewport viewport,
                                              float searchDistance, int frame) {
-        if (!SelectiveRenderState.shouldRenderSection(sectionX, sectionY, sectionZ)) return;
         RenderSection section = sections.get(key);
         if (section == null || !isWithinRenderDistance(camera, section, searchDistance)
                 || section.getLastVisibleFrame() == frame
                 || !OcclusionCuller.isWithinFrustum(viewport, section)) return;
+        if (!SelectiveRenderState.shouldRenderSection(sectionX, sectionY, sectionZ)) return;
         selectiverender$orderedSections.add(section);
     }
 

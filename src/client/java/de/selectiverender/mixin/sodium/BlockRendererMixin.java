@@ -56,6 +56,7 @@ abstract class BlockRendererMixin {
         SelectiveRenderSettings.BoundaryMode extensionMode =
                 selectiverender$boundaryMode(context, quad);
         if (extensionMode == SelectiveRenderSettings.BoundaryMode.BLACK) {
+            selectiverender$solidColor.set(true);
             Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
             return;
         }

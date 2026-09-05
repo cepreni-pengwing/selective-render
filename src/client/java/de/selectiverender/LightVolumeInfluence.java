@@ -6,7 +6,8 @@ final class LightVolumeInfluence {
     static boolean blockAffectsSection(int sectionX, int sectionY, int sectionZ,
                                        int blockX, int blockY, int blockZ, int radius) {
         return inside(blockX, sectionX, radius)
-                && inside(blockY, sectionY, radius)
+                // Direct skylight can depend on a roof arbitrarily far above this volume.
+                && blockY >= ((long) sectionY << 4) - radius
                 && inside(blockZ, sectionZ, radius);
     }
 

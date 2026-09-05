@@ -50,6 +50,15 @@ public final class SelectiveRenderState {
         return snapshot.enabled() || snapshot.hideEnabled();
     }
 
+    static VisibilitySnapshot snapshot() { return visibility; }
+
+    static void refreshChange(VisibilitySnapshot previous) {
+        VisibilityRefreshPlan plan = VisibilityRefreshPlan.between(previous, visibility);
+        if (plan.isEmpty()) return;
+        refreshRegions(plan.changedRegions(), plan.scanComplement() ? previous : null);
+        if (!FlywheelCompat.refresh(MinecraftClient.getInstance().world)) refreshRenderer();
+    }
+
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
                                      Collection<BlockRegion> hidden, boolean newHideEnabled,
                                      Collection<BlockRegion> overrides) {
@@ -71,7 +80,7 @@ public final class SelectiveRenderState {
         if (current.configuredRegions().isEmpty()) return false;
         visibility = current.toggleConfiguredState(nextGeneration(current));
         visibleOccluderCache.clear();
-        refreshRenderer();
+        refreshChange(current);
         return true;
     }
 
@@ -85,7 +94,7 @@ public final class SelectiveRenderState {
         visibleOccluderCache.clear();
         VisibilitySnapshot current = visibility;
         visibility = current.withPlotState(next, true, renderingEnabled, nextGeneration(current));
-        refreshRenderer();
+        refreshChange(current);
     }
 
     public static void updatePlotMode(Collection<BlockRegion> regions, boolean renderingEnabled,
@@ -100,18 +109,17 @@ public final class SelectiveRenderState {
         visibleOccluderCache.clear();
         visibility = current.withPlotState(next, true, renderingEnabled, nextGeneration(current));
         if (PlotSelectionPolicy.needsMeshUpdate(current.plotRenderingEnabled(), renderingEnabled)) {
-            refreshVisibilityRegions(changedRegions);
+            refreshChange(current);
         }
     }
 
     public static boolean togglePlotRendering() {
         VisibilitySnapshot current = visibility;
         if (!current.plotModeActive() || current.plotRegions().isEmpty()) return false;
-        boolean wasEnabled = current.plotRenderingEnabled();
         visibleOccluderCache.clear();
         visibility = current.withPlotState(current.plotRegions(), true,
                 !current.plotRenderingEnabled(), nextGeneration(current));
-        if (wasEnabled) refreshRenderer(); else refreshVisibilityRegions(current.plotRegions());
+        refreshChange(current);
         return true;
     }
 
@@ -120,7 +128,7 @@ public final class SelectiveRenderState {
         if (!current.plotModeActive()) return false;
         visibleOccluderCache.clear();
         visibility = current.withPlotState(List.of(), false, false, nextGeneration(current));
-        refreshRenderer();
+        refreshChange(current);
         return true;
     }
 
@@ -384,8 +392,12 @@ public final class SelectiveRenderState {
     }
 
     public static void refreshRegions(Collection<BlockRegion> regions) {
+        refreshRegions(regions, null);
+    }
+
+    private static void refreshRegions(Collection<BlockRegion> regions, VisibilitySnapshot previous) {
         MinecraftClient client = MinecraftClient.getInstance();
-        if (client.worldRenderer == null || client.world == null || regions.isEmpty()) return;
+        if (client.worldRenderer == null || client.world == null || (regions.isEmpty() && previous == null)) return;
 
         BlockPos camera = client.gameRenderer.getCamera().getBlockPos();
         int viewDistance = client.options.getViewDistance().getValue() + 1;
@@ -396,6 +408,25 @@ public final class SelectiveRenderState {
         int minSectionY = Math.floorDiv(client.world.getBottomY(), 16);
         int maxSectionY = Math.floorDiv(client.world.getTopY() - 1, 16);
         Set<SectionCoordinate> affected = new HashSet<>();
+        int threshold = SelectiveRenderSettings.fullReloadThreshold();
+
+        // Whitelist transitions also change sections outside the selected region.
+        if (previous != null) {
+            for (int x = minSectionX; x <= maxSectionX; x++) {
+                for (int z = minSectionZ; z <= maxSectionZ; z++) {
+                    var chunk = client.world.getChunkManager().getWorldChunk(x, z);
+                    if (chunk == null) continue;
+                    for (int y = minSectionY; y <= maxSectionY; y++) {
+                        if (chunk.getSection(y - minSectionY).isEmpty()) continue;
+                        SectionVisibility before = sectionVisibility(previous, x, y, z);
+                        SectionVisibility after = sectionVisibility(visibility, x, y, z);
+                        if (!VisibilityRefreshPlan.sectionChanged(before, after)) continue;
+                        affected.add(new SectionCoordinate(x, y, z));
+                        if (RenderReloadPolicy.requiresFullReload(affected.size(), threshold)) { refreshRenderer(); return; }
+                    }
+                }
+            }
+        }
 
         for (BlockRegion region : regions) {
             int fromX = Math.max(minSectionX, Math.floorDiv(LightRebuildRange.expandMin(region.minX(), VIRTUAL_LIGHT_RADIUS), 16));
@@ -405,20 +436,16 @@ public final class SelectiveRenderState {
             int fromZ = Math.max(minSectionZ, Math.floorDiv(LightRebuildRange.expandMin(region.minZ(), VIRTUAL_LIGHT_RADIUS), 16));
             int toZ = Math.min(maxSectionZ, Math.floorDiv(LightRebuildRange.expandMax(region.maxZ(), VIRTUAL_LIGHT_RADIUS), 16));
             for (int sectionX = fromX; sectionX <= toX; sectionX++) {
-                for (int sectionY = fromY; sectionY <= toY; sectionY++) {
-                    for (int sectionZ = fromZ; sectionZ <= toZ; sectionZ++) {
+                for (int sectionZ = fromZ; sectionZ <= toZ; sectionZ++) {
+                    var chunk = client.world.getChunkManager().getWorldChunk(sectionX, sectionZ);
+                    if (chunk == null) continue;
+                    for (int sectionY = fromY; sectionY <= toY; sectionY++) {
+                        if (chunk.getSection(sectionY - minSectionY).isEmpty()) continue;
                         affected.add(new SectionCoordinate(sectionX, sectionY, sectionZ));
+                        if (RenderReloadPolicy.requiresFullReload(affected.size(), threshold)) { refreshRenderer(); return; }
                     }
                 }
             }
-        }
-
-        int loadedEstimate = (viewDistance * 2 + 1) * (viewDistance * 2 + 1)
-                * (maxSectionY - minSectionY + 1);
-        if (RenderReloadPolicy.requiresFullReload(affected.size(), loadedEstimate,
-                SelectiveRenderSettings.fullReloadThreshold())) {
-            refreshRenderer();
-            return;
         }
 
         affected.forEach(section -> client.worldRenderer.scheduleBlockRender(
