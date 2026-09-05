@@ -2,6 +2,19 @@
 
 All notable changes to Selective Render are documented here.
 
+## 1.9.0
+
+Stable release of the 1.8.11 implementation, with no additional gameplay or rendering changes.
+
+- Includes the compatibility, interaction, region-loading, and configurable render-rebuild improvements
+  developed across 1.8.1–1.8.11.
+- Includes rendering hot-path optimizations, improved backup recovery, and boundary/light-cache fixes.
+- Conquest Reforged extension-toggle boundaries remain a known limitation. Flywheel compatibility
+  fallback can still require a full renderer reload independently of the configured threshold.
+- Requires Minecraft 1.20.1, Fabric API, and Sodium. Existing settings and region files are preserved.
+
+See the version entries below for the detailed changes.
+
 ## 1.8.11
 
 ### Fixed

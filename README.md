@@ -2,6 +2,8 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
+Current stable version: **1.9.0**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+
 <p align="center">
   <img src="docs/images/selective-render-on.png" width="49%" alt="Selective Render ON">
   <img src="docs/images/selective-render-off.png" width="49%" alt="Selective Render OFF">
@@ -9,7 +11,7 @@
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
-everything outside selected three-dimensional block regions from the render lists.
+supported content outside selected three-dimensional block regions from the render lists.
 This prevents hidden buildings and terrain from contributing geometry, lighting,
 or shader shadows outside the selected area. Player visibility is configurable;
 other entities, block entities, particles, block models, and fluids are
@@ -247,6 +249,8 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 - Very large or numerous simultaneous region changes can still increase section
   rebuild and virtual-light work while the new visibility state is applied.
 - Distant Horizons LOD geometry is not filtered outside selected regions.
+- Custom mod renderers may require dedicated compatibility support; not every mod is covered.
+- Conquest Reforged extension-toggle boundaries are not reliably supported by Black/Culled modes.
 
 ## Support and contributing
 
