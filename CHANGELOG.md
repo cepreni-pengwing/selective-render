@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.1
+
+- Added a separate Minecraft 26.2 client build using Java 25, Fabric API 0.159.0, and Sodium 0.9.1.
+- GitHub builds and prereleases now provide clearly labelled JARs for both Minecraft 1.20.1 and 26.2.
+- Ported region filtering, boundary modes, virtual lighting, entity and particle visibility,
+  interactions, settings, debug boxes, and the existing PlotSquared bridge protocol to 26.2.
+- Preserved the established Minecraft 1.20.1 implementation and its compatibility checks.
+
 All notable changes to Selective Render are documented here.
 
 ## 1.9.0

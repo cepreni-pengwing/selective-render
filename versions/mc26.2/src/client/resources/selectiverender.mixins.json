@@ -1,0 +1,33 @@
+{
+  "required": true,
+  "package": "de.selectiverender.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "WorldRendererMixin",
+    "LightCoordsMixin",
+    "ClientChunkManagerMixin",
+    "ClientWorldNetworkAccess",
+    "MinecraftClientMixin",
+    "ClientPlayerInteractionManagerMixin",
+    "RaycastContextMixin",
+    "EntityRendererMixin",
+    "GameRendererMixin",
+    "LocalPlayerTargetMixin",
+    "BlockRenderManagerMixin",
+    "BlockModelRendererMixin",
+    "BlockEntityRenderDispatcherMixin",
+    "ParticleManagerMixin",
+    "ParticlePositionView",
+    "SpecialParticleGroupMixin",
+    "sodium.BlockRendererMixin",
+    "sodium.BlockOcclusionCacheMixin",
+    "sodium.FluidRendererMixin",
+    "sodium.OcclusionCullerMixin",
+    "sodium.VisibleChunkCollectorMixin",
+    "sodium.WorldSliceMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}

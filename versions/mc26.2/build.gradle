@@ -1,0 +1,59 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.20'
+}
+
+def releaseProperties = new Properties()
+file('../../gradle.properties').withInputStream { releaseProperties.load(it) }
+version = releaseProperties.getProperty('mod_version')
+group = releaseProperties.getProperty('maven_group')
+base { archivesName = 'selective-render-mc26.2' }
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://api.modrinth.com/maven' }
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    implementation "maven.modrinth:sodium:${sodium_version}"
+    compileOnly 'maven.modrinth:modmenu:20.0.1'
+    compileOnly 'io.github.llamalad7:mixinextras-fabric:0.5.5'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        selectiverender { sourceSet sourceSets.client }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    withSourcesJar()
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xmaxerrs', '1000']
+}
+tasks.withType(ProcessResources).configureEach {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+tasks.named('processClientResources', ProcessResources) {
+    from('../../docs/images/icon.png') { into 'assets/selectiverender' }
+    from('../../src/client/resources/assets') { into 'assets' }
+}
+sourceSets.test {
+    java.srcDir '../../src/test/java'
+    compileClasspath += sourceSets.client.output
+    runtimeClasspath += sourceSets.client.output
+}
+tasks.test { useJUnitPlatform() }

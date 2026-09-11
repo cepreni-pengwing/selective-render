@@ -34,9 +34,17 @@ jobs:
             exit 1
           fi
       - run: ./gradlew clean build --stacktrace
-      - name: Publish tagged JAR
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+      - run: chmod +x versions/mc26.2/gradlew
+      - run: ./versions/mc26.2/gradlew -p versions/mc26.2 clean build --stacktrace
+      - name: Publish versioned JARs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          jar=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-          gh release create "$GITHUB_REF_NAME" "$jar" --generate-notes --verify-tag --prerelease
+          jar_1201=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+          jar_262=$(find versions/mc26.2/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+          test -n "$jar_1201" && test -n "$jar_262"
+          gh release create "$GITHUB_REF_NAME" "$jar_1201" "$jar_262" --generate-notes --verify-tag --prerelease

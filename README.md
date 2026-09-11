@@ -9,7 +9,8 @@ Current stable version: **1.9.0**. See [CHANGELOG.md](CHANGELOG.md) for release 
   <img src="docs/images/selective-render-off.png" width="49%" alt="Selective Render OFF">
 </p>
 
-Selective Render is a client-side Fabric mod for Minecraft 1.20.1. It keeps loaded
+Selective Render is a client-side Fabric mod for Minecraft 1.20.1 and 26.2. Each
+Minecraft version has its own clearly labelled JAR. It keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
 supported content outside selected three-dimensional block regions from the render lists.
 This prevents hidden buildings and terrain from contributing geometry, lighting,
@@ -17,7 +18,7 @@ or shader shadows outside the selected area. Player visibility is configurable;
 other entities, block entities, particles, block models, and fluids are
 restricted to the active regions.
 
-For requests regarding support for other Minecraft versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
+For requests regarding additional Minecraft versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 ## Usage
 
@@ -231,7 +232,8 @@ On Windows:
 ```
 
 The installable file is generated in `build/libs`.
-Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
+Fabric Loader, Fabric API, and Sodium are required. Iris is optional. Download the JAR whose
+file name matches your Minecraft version; the two JARs are not interchangeable.
 
 ## Target versions
 
@@ -240,6 +242,8 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional.
 - Sodium 0.5.13: build-compatible and tested in game
 - Sodium 0.5.8 and 0.5.11: compile-checked by CI, but not claimed as fully tested in game
 - Iris for Minecraft 1.20.1
+- Minecraft 26.2 with Java 25
+- Fabric API 0.159.0+26.2 and Sodium 0.9.1 for Minecraft 26.2
 
 ## Known limitations
 
