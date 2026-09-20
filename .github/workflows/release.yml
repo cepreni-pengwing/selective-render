@@ -34,17 +34,31 @@ jobs:
             exit 1
           fi
       - run: ./gradlew clean build --stacktrace
+      - name: Read optional release targets
+        id: targets
+        shell: bash
+        run: |
+          mc26_2=$(sed -n 's/^release_mc26_2=//p' gradle.properties | tr -d '\r')
+          echo "mc26_2=${mc26_2:-false}" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-java@v4
+        if: steps.targets.outputs.mc26_2 == 'true'
         with:
           distribution: temurin
           java-version: '25'
       - run: chmod +x versions/mc26.2/gradlew
+        if: steps.targets.outputs.mc26_2 == 'true'
       - run: ./versions/mc26.2/gradlew -p versions/mc26.2 clean build --stacktrace
+        if: steps.targets.outputs.mc26_2 == 'true'
       - name: Publish versioned JARs
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           jar_1201=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-          jar_262=$(find versions/mc26.2/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-          test -n "$jar_1201" && test -n "$jar_262"
-          gh release create "$GITHUB_REF_NAME" "$jar_1201" "$jar_262" --generate-notes --verify-tag --prerelease
+          test -n "$jar_1201"
+          assets=("$jar_1201")
+          if [[ '${{ steps.targets.outputs.mc26_2 }}' == 'true' ]]; then
+            jar_262=$(find versions/mc26.2/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+            test -n "$jar_262"
+            assets+=("$jar_262")
+          fi
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" --generate-notes --verify-tag --prerelease

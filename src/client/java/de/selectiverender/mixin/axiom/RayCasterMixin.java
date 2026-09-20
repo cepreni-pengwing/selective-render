@@ -26,7 +26,9 @@ public abstract class RayCasterMixin {
     private static VoxelShape selectiverender$filterBlockShape(BlockState state, BlockView world,
                                                                 BlockPos pos, ShapeContext context) {
         if (!SelectiveRenderState.shouldInteract(pos)) return VoxelShapes.empty();
-        return state.getCollisionShape(world, pos, context);
+        // Preserve the exact shape Axiom requested. Returning the collision shape here made
+        // non-colliding or differently shaped decorative blocks impossible to target in Axiom.
+        return state.getOutlineShape(world, pos, context);
     }
 
     @Redirect(method = RAYCAST, at = @At(value = "INVOKE",

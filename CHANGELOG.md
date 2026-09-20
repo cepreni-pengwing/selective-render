@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.2
+
+- Fixed Axiom targeting for decorative blocks whose outline shape differs from their collision
+  shape. Allowed blocks now retain Axiom's original outline hitbox instead of being replaced by
+  their collision hitbox.
+- This patch targets the Minecraft 1.20.1 Fabric build; the experimental 26.2 port is unchanged.
+
 ## 1.9.1
 
 - Added a separate Minecraft 26.2 client build using Java 25, Fabric API 0.159.0, and Sodium 0.9.1.
