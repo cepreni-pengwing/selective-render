@@ -5,6 +5,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.ChunkData;
 import net.minecraft.client.world.ClientChunkManager;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.chunk.WorldChunk;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -17,8 +18,8 @@ import java.util.function.Consumer;
 @Mixin(ClientChunkManager.class)
 abstract class ClientChunkManagerMixin {
     @Inject(method = "unload", at = @At("HEAD"))
-    private void selectiverender$removeLightCacheChunk(int chunkX, int chunkZ, CallbackInfo ci) {
-        SelectiveRenderState.invalidateLightCacheChunk(chunkX, chunkZ);
+    private void selectiverender$removeLightCacheChunk(ChunkPos chunkPos, CallbackInfo ci) {
+        SelectiveRenderState.invalidateLightCacheChunk(chunkPos.x, chunkPos.z);
     }
 
     @Inject(method = "loadChunkFromPacket", at = @At("RETURN"))

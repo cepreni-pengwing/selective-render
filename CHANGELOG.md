@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.6
+
+- Fixed Minecraft 1.21.1 worlds disconnecting during login because the client chunk unload hook still used the Minecraft 1.20.1 method signature.
+
 ## 1.9.5
 
 - Added a separate Minecraft 1.21.1 Fabric build using Java 21, Fabric API 0.116.17, and Sodium
