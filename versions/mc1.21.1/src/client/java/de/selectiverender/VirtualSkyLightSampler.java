@@ -2,6 +2,7 @@ package de.selectiverender;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientWorld;
@@ -19,12 +20,15 @@ public final class VirtualSkyLightSampler {
     private static final int CORE_SIZE = 16;
     private static final int CORE_CELLS = CORE_SIZE * CORE_SIZE * CORE_SIZE;
     private static final int MAX_VOLUMES = 128;
+    private static final int REBUILD_DELAY_TICKS = 4;
     private static final Direction[] DIRECTIONS = Direction.values();
     private static final Long2ObjectLinkedOpenHashMap<CoreVolume> VOLUMES =
             new Long2ObjectLinkedOpenHashMap<>();
+    private static final LongLinkedOpenHashSet DIRTY_VOLUMES = new LongLinkedOpenHashSet();
     private static final Scratch SCRATCH = new Scratch();
     private static ClientWorld cachedWorld;
     private static int cachedGeneration = Integer.MIN_VALUE;
+    private static int rebuildDelay;
 
     private VirtualSkyLightSampler() { }
 
@@ -39,6 +43,8 @@ public final class VirtualSkyLightSampler {
         int generation = SelectiveRenderState.visibilityGeneration();
         if (world != cachedWorld || generation != cachedGeneration) {
             VOLUMES.clear();
+            DIRTY_VOLUMES.clear();
+            rebuildDelay = 0;
             cachedWorld = world;
             cachedGeneration = generation;
         }
@@ -50,16 +56,45 @@ public final class VirtualSkyLightSampler {
         if (volume == null) {
             volume = build(world, sectionX, sectionY, sectionZ);
             VOLUMES.putAndMoveToLast(key, volume);
-            if (VOLUMES.size() > MAX_VOLUMES) VOLUMES.removeFirst();
+            if (VOLUMES.size() > MAX_VOLUMES) {
+                long evicted = VOLUMES.firstLongKey();
+                VOLUMES.removeFirst();
+                DIRTY_VOLUMES.remove(evicted);
+            }
         }
         return volume.sample(pos);
     }
 
+    /** Rebuilds at most one stale volume per client tick to avoid block-update frame spikes. */
+    public static void tick(ClientWorld world) {
+        if (world == null || world != cachedWorld || DIRTY_VOLUMES.isEmpty()) return;
+        if (rebuildDelay > 0) {
+            rebuildDelay--;
+            return;
+        }
+        int generation = SelectiveRenderState.visibilityGeneration();
+        if (generation != cachedGeneration) {
+            VOLUMES.clear();
+            DIRTY_VOLUMES.clear();
+            rebuildDelay = 0;
+            cachedGeneration = generation;
+            return;
+        }
+        long key = DIRTY_VOLUMES.removeFirstLong();
+        if (!VOLUMES.containsKey(key)) return;
+        CoreVolume volume = build(world, ChunkSectionPos.unpackX(key),
+                ChunkSectionPos.unpackY(key), ChunkSectionPos.unpackZ(key));
+        VOLUMES.putAndMoveToLast(key, volume);
+    }
+
     public static void invalidate() {
         VOLUMES.clear();
+        DIRTY_VOLUMES.clear();
+        rebuildDelay = 0;
     }
 
     public static void invalidateBlock(int blockX, int blockY, int blockZ) {
+        boolean affected = false;
         var iterator = VOLUMES.long2ObjectEntrySet().fastIterator();
         while (iterator.hasNext()) {
             Long2ObjectMap.Entry<CoreVolume> entry = iterator.next();
@@ -67,9 +102,11 @@ public final class VirtualSkyLightSampler {
             if (LightVolumeInfluence.blockAffectsSection(
                     ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key),
                     ChunkSectionPos.unpackZ(key), blockX, blockY, blockZ, RADIUS)) {
-                iterator.remove();
+                DIRTY_VOLUMES.add(key);
+                affected = true;
             }
         }
+        if (affected) rebuildDelay = REBUILD_DELAY_TICKS;
     }
 
     public static void invalidateChunk(int chunkX, int chunkZ) {
@@ -79,7 +116,10 @@ public final class VirtualSkyLightSampler {
             long key = entry.getLongKey();
             if (LightVolumeInfluence.chunkAffectsSection(
                     ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key),
-                    chunkX, chunkZ, RADIUS)) iterator.remove();
+                    chunkX, chunkZ, RADIUS)) {
+                iterator.remove();
+                DIRTY_VOLUMES.remove(key);
+            }
         }
     }
 

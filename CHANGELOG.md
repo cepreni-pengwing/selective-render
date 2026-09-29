@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.8
+
+- Reduced block placement and breaking frame spikes while virtual lighting is enabled by keeping stale entity-light volumes usable and rebuilding at most one affected volume per client tick.
+
 ## 1.9.7
 
 - Fixed a second Minecraft 1.21.1 world-entry crash caused by an outdated Sodium visible-section collector method signature.

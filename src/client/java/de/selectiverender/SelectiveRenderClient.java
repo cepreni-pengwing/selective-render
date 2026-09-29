@@ -109,6 +109,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(BOUNDARY_KEY);
         KeyBindingHelper.registerKeyBinding(CLEAR_PLOTS_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            VirtualSkyLightSampler.tick(client.world);
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);
