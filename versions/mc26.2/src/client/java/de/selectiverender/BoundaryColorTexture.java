@@ -1,8 +1,8 @@
 package de.selectiverender;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.resources.Identifier;
 
 public final class BoundaryColorTexture {
@@ -30,7 +30,7 @@ public final class BoundaryColorTexture {
         synchronized (BoundaryColorTexture.class) {
             if (cached != null) return cached;
             TextureAtlasSprite sprite = Minecraft.getInstance().getAtlasManager()
-                .getAtlasOrThrow(TextureAtlas.LOCATION_BLOCKS).getSprite(SOLID_SOURCE);
+                .getAtlasOrThrow(AtlasIds.BLOCKS).getSprite(SOLID_SOURCE);
             cached = new Coordinates((sprite.getU0() + sprite.getU1()) * 0.5f,
                     (sprite.getV0() + sprite.getV1()) * 0.5f);
             return cached;

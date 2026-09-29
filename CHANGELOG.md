@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.12
+
+- Fixed Black boundary faces crashing Minecraft 26.2 chunk workers by using the registered block-atlas identifier.
+
 ## 1.9.11
 
 - Fixed the settings screen crashing on Minecraft 26.2 because its background blur was requested twice per frame.
