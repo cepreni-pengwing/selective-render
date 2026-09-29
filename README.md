@@ -88,9 +88,8 @@ Default keybinds:
 - `F10`: toggle the hide group
 - `Backspace`: toggle the current PlotSquared region
 - `#`: open settings (the non-US key next to Enter on German layouts)
-- `K`: cycle all six player visibility modes
-- Unassigned: set Pos1, set Pos2, clear temporary plots (`/sr p clear`), cycle interactions,
-  and cycle boundary faces
+- Unassigned: set Pos1, set Pos2, cycle all six player visibility modes, clear temporary plots
+  (`/sr p clear`), cycle interactions, and cycle boundary faces
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.

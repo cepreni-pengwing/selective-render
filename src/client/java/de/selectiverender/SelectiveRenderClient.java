@@ -49,19 +49,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "category.selectiverender");
     private static final KeyBinding POS2_KEY = new KeyBinding(
             "key.selectiverender.pos2",
-            GLFW.GLFW_KEY_BACKSPACE,
+            GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
     private static final KeyBinding PLOT_TOGGLE_KEY = new KeyBinding(
             "key.selectiverender.toggle_plot",
-            GLFW.GLFW_KEY_WORLD_2,
+            GLFW.GLFW_KEY_BACKSPACE,
             "category.selectiverender");
     private static final KeyBinding SETTINGS_KEY = new KeyBinding(
             "key.selectiverender.settings",
-            GLFW.GLFW_KEY_UNKNOWN,
+            GLFW.GLFW_KEY_APOSTROPHE,
             "category.selectiverender");
     private static final KeyBinding PLAYER_VISIBILITY_KEY = new KeyBinding(
             "key.selectiverender.toggle_players",
-            GLFW.GLFW_KEY_K,
+            GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
     private static final KeyBinding INTERACTION_KEY = new KeyBinding(
             "key.selectiverender.cycle_interactions",

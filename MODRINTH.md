@@ -62,9 +62,9 @@ outside regions, or everywhere. Crosshair targets and outlines follow interactio
 Axiom Orbit Camera and brush targeting. Player hitboxes follow player visibility; collision is unchanged.
 
 Default keybinds are F9 for the render group, F10 for the hide group, Backspace for the current
-PlotSquared region, the physical `#` key for settings, and K to cycle all player
-visibility modes. Optional unassigned bindings select positions, clear temporary plots, and cycle
-interaction and boundary modes. Change bindings under Controls >
+PlotSquared region, and the physical `#`/apostrophe key for settings. Optional unassigned bindings
+select positions, cycle all player visibility modes, clear temporary plots, and cycle interaction
+and boundary modes. Change bindings under Controls >
 Selective Render; existing custom bindings are preserved.
 
 Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through

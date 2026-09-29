@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.4
+
+- Corrected the fresh-install keybind defaults: F9 toggles the render group, F10 toggles the hide
+  group, Backspace toggles the current PlotSquared region, and the German `#`/apostrophe key opens
+  settings. Selection positions and player visibility remain unassigned.
+- This prerelease targets Minecraft 1.20.1 Fabric; the experimental 26.2 port is unchanged.
+
 ## 1.9.3
 
 - Changed fresh-install defaults to F9 for the render group, F10 for the hide group, Backspace for
