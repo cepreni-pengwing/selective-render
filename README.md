@@ -9,9 +9,8 @@ Current stable version: **1.9.0**. See [CHANGELOG.md](CHANGELOG.md) for release 
   <img src="docs/images/selective-render-off.png" width="49%" alt="Selective Render OFF">
 </p>
 
-Selective Render is a client-side Fabric mod for Minecraft 1.20.1 and 1.21.1. Each
-Minecraft version has its own clearly labelled JAR. An experimental Minecraft 26.2
-port remains in the repository but is not included in releases. Selective Render keeps loaded
+Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2. Each
+Minecraft version has its own clearly labelled JAR in the same release. Selective Render keeps loaded
 chunks, network traffic, world state, and collision unchanged while removing
 supported content outside selected three-dimensional block regions from the render lists.
 This prevents hidden buildings and terrain from contributing geometry, lighting,

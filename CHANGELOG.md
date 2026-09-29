@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.9.9
+
+- Restored the Minecraft 26.2 Fabric build and brought it up to date with the current settings,
+  interaction, player-visibility, virtual-skylight, keybind, and lighting-performance behavior.
+- GitHub prereleases now publish clearly labelled JARs for Minecraft 1.20.1, 1.21.1, and 26.2
+  together.
+
 ## 1.9.8
 
 - Reduced block placement and breaking frame spikes while virtual lighting is enabled by keeping stale entity-light volumes usable and rebuilding at most one affected volume per client tick.

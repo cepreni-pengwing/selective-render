@@ -38,11 +38,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     public static final Logger LOGGER = LoggerFactory.getLogger("selectiverender");
     private static final KeyMapping TOGGLE_KEY = new KeyMapping(
             "key.selectiverender.toggle",
-            GLFW.GLFW_KEY_F8,
+            GLFW.GLFW_KEY_F9,
             KEY_CATEGORY);
     private static final KeyMapping HIDE_TOGGLE_KEY = new KeyMapping(
             "key.selectiverender.toggle_hide",
-            GLFW.GLFW_KEY_F9,
+            GLFW.GLFW_KEY_F10,
             KEY_CATEGORY);
     private static final KeyMapping POS1_KEY = new KeyMapping(
             "key.selectiverender.pos1",
@@ -54,15 +54,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             KEY_CATEGORY);
     private static final KeyMapping PLOT_TOGGLE_KEY = new KeyMapping(
             "key.selectiverender.toggle_plot",
-            GLFW.GLFW_KEY_UNKNOWN,
+            GLFW.GLFW_KEY_BACKSPACE,
             KEY_CATEGORY);
     private static final KeyMapping SETTINGS_KEY = new KeyMapping(
             "key.selectiverender.settings",
-            GLFW.GLFW_KEY_UNKNOWN,
+            GLFW.GLFW_KEY_APOSTROPHE,
             KEY_CATEGORY);
     private static final KeyMapping PLAYER_VISIBILITY_KEY = new KeyMapping(
             "key.selectiverender.toggle_players",
-            GLFW.GLFW_KEY_K,
+            GLFW.GLFW_KEY_UNKNOWN,
             KEY_CATEGORY);
     private static final KeyMapping INTERACTION_KEY = new KeyMapping(
             "key.selectiverender.cycle_interactions",
@@ -110,6 +110,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(BOUNDARY_KEY);
         KeyMappingHelper.registerKeyMapping(CLEAR_PLOTS_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            VirtualSkyLightSampler.tick(client.level);
             PlotSquaredClient.tick();
             while (TOGGLE_KEY.consumeClick()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.consumeClick()) toggleHideFromKey(client);

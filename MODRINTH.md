@@ -2,7 +2,7 @@
 
 Current stable version: **1.9.0**.
 
-Selective Render is a client-side Fabric mod for Minecraft 1.20.1 and 1.21.1 that renders
+Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and
 PlotSquared users who want to isolate builds, hide palettes, reduce distracting
 geometry, and prevent filtered terrain from contributing shader shadows.
@@ -15,6 +15,7 @@ it changes only what the client renders and can interact with.
 
 - Minecraft 1.20.1 with Fabric Loader 0.15.11+, Fabric API 0.92.2+, and Sodium 0.5.x; or
 - Minecraft 1.21.1 with Java 21, Fabric API 0.116.17+, and Sodium 0.6.13
+- Minecraft 26.2 with Java 25, Fabric API 0.159.0+, and Sodium 0.9.1
 
 Download the clearly labelled JAR matching your Minecraft version. The JARs are not interchangeable.
 
@@ -124,8 +125,7 @@ is closed.
 - Custom mod renderers may require dedicated compatibility support.
 - Selective filtering can change occlusion-culling behavior at region boundaries.
 
-Minecraft 1.20.1 and 1.21.1 are currently supported. An experimental Minecraft 26.2 port remains
-in the repository but is not included in releases. For requests regarding other Minecraft versions,
+Minecraft 1.20.1, 1.21.1, and 26.2 are currently supported. For requests regarding other Minecraft versions,
 contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only.

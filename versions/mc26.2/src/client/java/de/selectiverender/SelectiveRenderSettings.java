@@ -15,10 +15,11 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 
 public final class SelectiveRenderSettings {
+    private static final int SETTINGS_FORMAT_VERSION = 2;
     static final int DEFAULT_FULL_RELOAD_THRESHOLD = 8192;
     static final int MIN_FULL_RELOAD_THRESHOLD = 256;
     static final int MAX_FULL_RELOAD_THRESHOLD = 65536;
-    static final int DEFAULT_PLOT_MIN_Y = -100;
+    static final int DEFAULT_PLOT_MIN_Y = -64;
     private static final class SettingsFile {
         private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
         private static final Path PATH = FabricLoader.getInstance().getConfigDir()
@@ -29,6 +30,8 @@ public final class SelectiveRenderSettings {
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean debugBoxes;
     private static volatile boolean filterInteractionsWhenInactive;
+    private static volatile boolean interactWithHiddenRegions;
+    private static volatile VirtualLightMode virtualLightMode = VirtualLightMode.BOTH;
     private static volatile int fullReloadThreshold = DEFAULT_FULL_RELOAD_THRESHOLD;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
@@ -53,11 +56,15 @@ public final class SelectiveRenderSettings {
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
         debugBoxes = stored.debugBoxes;
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
+        interactWithHiddenRegions = stored.interactWithHiddenRegions;
+        virtualLightMode = stored.virtualLightMode == null ? VirtualLightMode.BOTH : stored.virtualLightMode;
         fullReloadThreshold = clampReloadThreshold(stored.fullReloadThreshold == 0
                 ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
-        defaultPlotMinY = stored.defaultPlotMinY == null
+        boolean migrateLegacyPlotMinimum = stored.formatVersion < SETTINGS_FORMAT_VERSION
+                && stored.defaultPlotMinY != null && stored.defaultPlotMinY == -100;
+        defaultPlotMinY = stored.defaultPlotMinY == null || migrateLegacyPlotMinimum
                 ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
-        if (recovery.recoveredFromBackup()) save(false);
+        if (recovery.recoveredFromBackup() || stored.formatVersion < SETTINGS_FORMAT_VERSION) save(false);
     }
 
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
@@ -65,6 +72,8 @@ public final class SelectiveRenderSettings {
     public static BoundaryMode boundaryMode() { return boundaryMode; }
     public static boolean debugBoxes() { return debugBoxes; }
     public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
+    public static boolean interactWithHiddenRegions() { return interactWithHiddenRegions; }
+    public static VirtualLightMode virtualLightMode() { return virtualLightMode; }
     public static int fullReloadThreshold() { return fullReloadThreshold; }
     public static int defaultPlotMinY() { return defaultPlotMinY; }
 
@@ -100,6 +109,22 @@ public final class SelectiveRenderSettings {
         save();
     }
 
+    public static void setInteractWithHiddenRegions(boolean value) {
+        if (interactWithHiddenRegions == value) return;
+        interactWithHiddenRegions = value;
+        save();
+    }
+
+    public static void setVirtualLightMode(VirtualLightMode value) {
+        if (virtualLightMode == value) return;
+        virtualLightMode = value;
+        save();
+        VirtualSkyLightSampler.invalidate();
+        if (SelectiveRenderState.filteringActive()) {
+            SelectiveRenderState.refreshRenderer();
+        }
+    }
+
     public static void setFullReloadThreshold(int value) {
         int next = clampReloadThreshold(value);
         if (fullReloadThreshold == next) return;
@@ -126,11 +151,14 @@ public final class SelectiveRenderSettings {
         try {
             Files.createDirectories(path.getParent());
             StoredSettings stored = new StoredSettings();
+            stored.formatVersion = SETTINGS_FORMAT_VERSION;
             stored.playerVisibility = playerVisibility;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
             stored.debugBoxes = debugBoxes;
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
+            stored.interactWithHiddenRegions = interactWithHiddenRegions;
+            stored.virtualLightMode = virtualLightMode;
             stored.fullReloadThreshold = fullReloadThreshold;
             stored.defaultPlotMinY = defaultPlotMinY;
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
@@ -165,7 +193,9 @@ public final class SelectiveRenderSettings {
         NONE("None"),
         INSIDE("Inside regions"),
         OUTSIDE("Outside regions"),
-        EVERYWHERE("Everywhere");
+        EVERYWHERE("Everywhere"),
+        OWN_ONLY("Only own player"),
+        EXCEPT_OWN("All except own player");
 
         private final String label;
 
@@ -200,12 +230,44 @@ public final class SelectiveRenderSettings {
         public InteractionMode next() { return values()[(ordinal() + 1) % values().length]; }
     }
 
+    public enum VirtualLightMode {
+        BOTH("Top and sides", true, true),
+        TOP("Top only", true, false),
+        SIDES("Sides only", false, true),
+        NONE("None", false, false);
+
+        private final String label;
+        private final boolean top;
+        private final boolean sides;
+
+        VirtualLightMode(String label, boolean top, boolean sides) {
+            this.label = label;
+            this.top = top;
+            this.sides = sides;
+        }
+
+        public String label() { return label; }
+        public boolean seedsColumn(boolean visibleColumn) {
+            return visibleColumn ? top : sides;
+        }
+        public boolean allowsPropagation(boolean fromVisible, boolean toVisible) {
+            if (this == BOTH) return true;
+            if (this == TOP) return fromVisible && toVisible;
+            if (this == SIDES) return !fromVisible || toVisible;
+            return false;
+        }
+        public VirtualLightMode next() { return values()[(ordinal() + 1) % values().length]; }
+    }
+
     private static final class StoredSettings {
+        int formatVersion;
         PlayerVisibility playerVisibility;
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
         boolean debugBoxes;
         boolean filterInteractionsWhenInactive;
+        boolean interactWithHiddenRegions;
+        VirtualLightMode virtualLightMode;
         int fullReloadThreshold;
         Integer defaultPlotMinY;
     }

@@ -1,13 +1,13 @@
-# Minecraft 26.2 port — work in progress
+# Minecraft 26.2 port
 
-This is a compilable 26.2 prerelease candidate. It still needs real-world region testing before
-being promoted to a stable release.
+This is the Minecraft 26.2 target shipped with Selective Render 1.9.9. It remains a prerelease
+target pending broader real-world region and mod-compatibility testing.
 
 ## Scope
 
 - SR only; keep SRP unchanged.
 - Preserve the existing 1.20.1 implementation and eventually build two version-labelled JARs in CI.
-- Base: SR 1.9.0. This directory is a separate Gradle build using the root release version.
+- Base: SR 1.9.9. This directory is a separate Gradle build using the root release version.
 
 ## Saved progress
 
@@ -29,7 +29,9 @@ being promoted to a stable release.
 - Target selection is now Minecraft.pick; final validation is migrated, but skipping disallowed
   entities before raycast selection still needs a hook in the new Player targeting path.
 - The 26.2 manifest/resources and dedicated Gradle 9.5.1 wrapper are present. CI and tagged
-  prereleases build/upload distinct 1.20.1 and 26.2 JARs. No new release has been created yet.
+  prereleases build/upload distinct 1.20.1, 1.21.1, and 26.2 JARs.
+- SR 1.9.3 through 1.9.8 settings, interaction, keybind, player visibility, configurable virtual
+  skylight, and amortized entity-light cache behavior are included.
 
 ## Continue here
 

@@ -34,6 +34,8 @@ public final class SelectiveRenderConfig {
     private static final LinkedHashSet<String> ACTIVE_HIDDEN_PRESETS = new LinkedHashSet<>();
     private static boolean groupEnabled;
     private static boolean hideGroupEnabled = true;
+    private static volatile RegionIndex allNormalRegionIndex = RegionIndex.empty();
+    private static volatile RegionIndex allHiddenRegionIndex = RegionIndex.empty();
     private static String sessionOwner;
 
     private SelectiveRenderConfig() { }
@@ -254,6 +256,15 @@ public final class SelectiveRenderConfig {
         return regionsFor(PRESETS.keySet());
     }
 
+    public static boolean containsSavedRegion(int x, int y, int z, boolean includeHidden) {
+        return allNormalRegionIndex.contains(x, y, z)
+                || (includeHidden && allHiddenRegionIndex.contains(x, y, z));
+    }
+
+    public static boolean hasSavedRegions() {
+        return !PRESETS.isEmpty();
+    }
+
     public static boolean presetExists(String name) {
         return PRESETS.containsKey(normalize(name));
     }
@@ -275,6 +286,8 @@ public final class SelectiveRenderConfig {
         ACTIVE_HIDDEN_PRESETS.clear();
         groupEnabled = false;
         hideGroupEnabled = true;
+        allNormalRegionIndex = RegionIndex.empty();
+        allHiddenRegionIndex = RegionIndex.empty();
         SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of());
     }
 
@@ -338,6 +351,10 @@ public final class SelectiveRenderConfig {
         VisibilitySnapshot previous = SelectiveRenderState.snapshot();
         LinkedHashSet<String> visibleOverrides = new LinkedHashSet<>(HIDDEN_PRESETS);
         if (hideGroupEnabled) visibleOverrides.removeAll(ACTIVE_HIDDEN_PRESETS);
+        LinkedHashSet<String> normalPresets = new LinkedHashSet<>(PRESETS.keySet());
+        normalPresets.removeAll(HIDDEN_PRESETS);
+        allNormalRegionIndex = RegionIndex.of(regionsFor(normalPresets));
+        allHiddenRegionIndex = RegionIndex.of(regionsFor(HIDDEN_PRESETS));
         SelectiveRenderState.setSavedState(
                 regionsFor(ACTIVE_PRESETS), groupEnabled,
                 regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled,

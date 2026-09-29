@@ -185,6 +185,8 @@ public final class SelectiveRenderState {
     }
 
     public static boolean mayNeedVirtualSkyLight(int blockX, int blockZ) {
+        if (SelectiveRenderSettings.virtualLightMode()
+                == SelectiveRenderSettings.VirtualLightMode.NONE) return false;
         VisibilitySnapshot snapshot = visibility;
         return lightInfluenceCache.get().get(snapshot.generation(),
                 blockX >> 4, blockZ >> 4,
@@ -250,6 +252,9 @@ public final class SelectiveRenderState {
         SelectiveRenderSettings.PlayerVisibility playerVisibility =
                 SelectiveRenderSettings.playerVisibility();
         if (entity instanceof Player) {
+            boolean ownPlayer = entity == Minecraft.getInstance().player;
+            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.OWN_ONLY) return ownPlayer;
+            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.EXCEPT_OWN) return !ownPlayer;
             if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE) return true;
             if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.NONE) return false;
         }
@@ -263,6 +268,8 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldInteract(BlockPos position) {
+        if (isActivelyHidden(position)
+                && !SelectiveRenderSettings.interactWithHiddenRegions()) return false;
         SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
         if (!interactionFilteringActive(mode)) return true;
         return InteractionPolicy.allows(mode,
@@ -270,6 +277,10 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldInteract(Entity entity) {
+        VisibilitySnapshot snapshot = visibility;
+        if (snapshot.hideEnabled() && snapshot.hiddenRegionIndex().contains(
+                Mth.floor(entity.getX()), Mth.floor(entity.getY()), Mth.floor(entity.getZ()))
+                && !SelectiveRenderSettings.interactWithHiddenRegions()) return false;
         SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
         if (!interactionFilteringActive(mode)) return true;
         return InteractionPolicy.allows(mode, interactionInside(Mth.floor(entity.getX()),
@@ -280,15 +291,31 @@ public final class SelectiveRenderState {
         VisibilitySnapshot snapshot = visibility;
         return InteractionPolicy.active(mode, snapshot.enabled() || snapshot.hideEnabled(),
                 SelectiveRenderSettings.filterInteractionsWhenInactive(),
-                !snapshot.activeRegions().isEmpty());
+                snapshot.plotModeActive() ? !snapshot.plotRegions().isEmpty()
+                        : SelectiveRenderConfig.hasSavedRegions());
     }
 
     private static boolean interactionInside(int blockX, int blockY, int blockZ) {
         VisibilitySnapshot snapshot = visibility;
         if (snapshot.enabled() || snapshot.hideEnabled()) {
-            return shouldRender(snapshot, blockX, blockY, blockZ);
+            return shouldRender(snapshot, blockX, blockY, blockZ)
+                    || (SelectiveRenderSettings.interactWithHiddenRegions()
+                    && snapshot.hiddenRegionIndex().contains(blockX, blockY, blockZ));
         }
-        return snapshot.activeRegionIndex().contains(blockX, blockY, blockZ);
+        if (snapshot.plotModeActive()) {
+            return snapshot.activeRegionIndex().contains(blockX, blockY, blockZ);
+        }
+        return SelectiveRenderConfig.containsSavedRegion(blockX, blockY, blockZ,
+                SelectiveRenderSettings.interactWithHiddenRegions());
+    }
+
+    public static boolean shouldSeedVirtualSkyColumn(boolean visibleColumn) {
+        return SelectiveRenderSettings.virtualLightMode().seedsColumn(visibleColumn);
+    }
+
+    public static boolean shouldPropagateVirtualSkyLight(boolean fromVisible, boolean toVisible) {
+        return SelectiveRenderSettings.virtualLightMode()
+                .allowsPropagation(fromVisible, toVisible);
     }
 
     public static boolean isBoundaryFace(BlockPos position, Direction direction) {
