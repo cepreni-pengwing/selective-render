@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.11
+
+- Fixed the settings screen crashing on Minecraft 26.2 because its background blur was requested twice per frame.
+
 ## 1.9.10
 
 - Fixed the Minecraft 26.2 build disconnecting or crashing when entering a world with Sodium 0.9.2.

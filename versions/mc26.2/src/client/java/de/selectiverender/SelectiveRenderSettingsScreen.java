@@ -71,7 +71,6 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        extractBackground(context, mouseX, mouseY, delta);
         context.centeredText(font, title, width / 2, 24, 0xFFFFFF);
         context.text(font, Component.literal("Full reload after affected sections"),
                 width / 2 - 100, reloadThresholdField.getY() - 11, 0xA0A0A0);
