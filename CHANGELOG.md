@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.10
+
+- Fixed the Minecraft 26.2 build disconnecting or crashing when entering a world with Sodium 0.9.2.
+- Made the 26.2 Sodium boundary hook less dependent on Sodium's internal field layout.
+
 ## 1.9.9
 
 - Restored the Minecraft 26.2 Fabric build and brought it up to date with the current settings,

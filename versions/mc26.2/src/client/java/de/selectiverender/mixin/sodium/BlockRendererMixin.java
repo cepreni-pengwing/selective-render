@@ -11,7 +11,6 @@ import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.block.state.BlockState;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -19,11 +18,15 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = BlockRenderer.class, remap = false)
 abstract class BlockRendererMixin {
-    @Shadow protected BlockPos pos;
+    // Sodium 0.9.2 moved its current block position into a superclass. Keep the
+    // renderModel argument instead of shadowing that internal field so minor Sodium
+    // layout changes do not prevent the mixin from applying at world load.
+    @Unique private BlockPos selectiverender$currentPos;
 
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlock(BlockStateModel model, BlockState state,
             BlockPos position, BlockPos origin, CallbackInfo ci) {
+        selectiverender$currentPos = position;
         if (!SelectiveRenderState.shouldRender(position)) ci.cancel();
     }
 
@@ -56,6 +59,7 @@ abstract class BlockRendererMixin {
             minX = Math.min(minX, x); minY = Math.min(minY, y); minZ = Math.min(minZ, z);
             maxX = Math.max(maxX, x); maxY = Math.max(maxY, y); maxZ = Math.max(maxZ, z);
         }
-        return BoundaryGeometry.boundaryModeForQuad(pos, minX, maxX, minY, maxY, minZ, maxZ);
+        return BoundaryGeometry.boundaryModeForQuad(selectiverender$currentPos,
+                minX, maxX, minY, maxY, minZ, maxZ);
     }
 }

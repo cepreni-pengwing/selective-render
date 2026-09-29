@@ -1,13 +1,14 @@
 # Minecraft 26.2 port
 
-This is the Minecraft 26.2 target shipped with Selective Render 1.9.9. It remains a prerelease
+This is the Minecraft 26.2 target shipped with Selective Render 1.9.10. It remains a prerelease
 target pending broader real-world region and mod-compatibility testing.
 
 ## Scope
 
 - SR only; keep SRP unchanged.
-- Preserve the existing 1.20.1 implementation and eventually build two version-labelled JARs in CI.
-- Base: SR 1.9.9. This directory is a separate Gradle build using the root release version.
+- Preserve the existing 1.20.1 and 1.21.1 implementations while publishing a separate,
+  version-labelled 26.2 JAR in CI.
+- Base: SR 1.9.10. This directory is a separate Gradle build using the root release version.
 
 ## Saved progress
 
@@ -15,11 +16,11 @@ target pending broader real-world region and mod-compatibility testing.
   `migrateMappings --input src/client/java --output versions/mc26.2/src/client/java
   --mappings net.minecraft:mappings:1.20.1`. Original sources unchanged.
 - Resolved Minecraft 26.2 / Java 25, Loom 1.17.20 / Gradle 9.5.1, Fabric Loader 0.19.5,
-  Fabric API 0.159.0+26.2, Sodium mc26.2-0.9.1-fabric, Mod Menu 20.0.1.
+  Fabric API 0.159.0+26.2, Sodium mc26.2-0.9.2-fabric, Mod Menu 20.0.1.
 - Updated many names, GUI extraction entry points, key categories, height access (26.2 maximum Y
   is inclusive), reload APIs, boundary vertex access, and light dampening calls.
 - Full build and all 24 inherited regression tests pass on September 11.
-- A development client reaches the main menu with Sodium 0.9.1 without mixin application errors.
+- The Sodium boundary hook no longer shadows the block-position field moved by Sodium 0.9.2.
 - Rewritten vanilla/Sodium boundary geometry, block/fluid filtering, block-entity extraction,
   level extraction, lighting coordinates and debug gizmos against actual 26.2 bytecode.
 - Typed plot networking compiles and preserves the protocol-2 wire format; SRP is untouched.
