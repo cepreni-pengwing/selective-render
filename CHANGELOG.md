@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.7
+
+- Fixed a second Minecraft 1.21.1 world-entry crash caused by an outdated Sodium visible-section collector method signature.
+
 ## 1.9.6
 
 - Fixed Minecraft 1.21.1 worlds disconnecting during login because the client chunk unload hook still used the Minecraft 1.20.1 method signature.

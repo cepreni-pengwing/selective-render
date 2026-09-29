@@ -12,7 +12,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(targets = "net.caffeinemc.mods.sodium.client.render.chunk.lists.VisibleChunkCollector", remap = false)
 abstract class VisibleChunkCollectorMixin {
     @Inject(method = "visit", at = @At("HEAD"), cancellable = true)
-    private void selectiverender$filterSection(RenderSection section, boolean visible, CallbackInfo ci) {
+    private void selectiverender$filterSection(RenderSection section, CallbackInfo ci) {
         if (!SelectiveRenderState.shouldRenderSection(
                 section.getChunkX(), section.getChunkY(), section.getChunkZ())) ci.cancel();
     }
