@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.9.5
+
+- Added a separate Minecraft 1.21.1 Fabric build using Java 21, Fabric API 0.116.17, and Sodium
+  0.6.13. The established Minecraft 1.20.1 build remains unchanged.
+- Ported rendering filters, boundary modes, virtual lighting, interactions, settings, keybinds,
+  region persistence, and the PlotSquared client protocol to Minecraft 1.21.1.
+- GitHub builds and prereleases now produce clearly versioned JARs for Minecraft 1.20.1 and 1.21.1.
+  The older experimental 26.2 target remains excluded from releases.
+
 ## 1.9.4
 
 - Corrected the fresh-install keybind defaults: F9 toggles the render group, F10 toggles the hide

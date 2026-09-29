@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "id": "selectiverender",
+  "version": "${version}",
+  "name": "Selective Render",
+  "description": "Show only what matters. Isolate builds or hide selected areas with precise 3D regions.",
+  "authors": ["cepreni-pengwing"],
+  "license": "GPL-3.0-only",
+  "icon": "assets/selectiverender/icon.png",
+  "contact": {
+    "email": "pengwing.ac@gmail.com",
+    "homepage": "https://modrinth.com/mod/selective-render",
+    "issues": "https://github.com/cepreni-pengwing/selective-render/issues",
+    "sources": "https://github.com/cepreni-pengwing/selective-render"
+  },
+  "environment": "client",
+  "entrypoints": {
+    "client": ["de.selectiverender.SelectiveRenderClient"],
+    "modmenu": ["de.selectiverender.compat.SelectiveRenderModMenu"]
+  },
+  "mixins": [
+    "selectiverender.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.14.21",
+    "minecraft": "1.21.1",
+    "java": ">=21",
+    "fabric-api": ">=0.116.17",
+    "sodium": ">=0.6.13 <0.7.0",
+    "mixinextras": ">=0.3.5"
+  },
+  "suggests": {
+    "iris": "*"
+  }
+}

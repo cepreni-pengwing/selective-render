@@ -24,9 +24,10 @@ jobs:
         shell: bash
         run: |
           project_version=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
+          project_version_1211=$(sed -n 's/^mod_version=//p' versions/mc1.21.1/gradle.properties | tr -d '\r')
           tag_version=${GITHUB_REF_NAME#v}
-          if [[ -z "$project_version" || "$tag_version" != "$project_version" ]]; then
-            echo "Tag version '$tag_version' does not match mod_version '$project_version'." >&2
+          if [[ -z "$project_version" || "$tag_version" != "$project_version" || "$tag_version" != "$project_version_1211" ]]; then
+            echo "Tag version '$tag_version' does not match build versions '$project_version' and '$project_version_1211'." >&2
             exit 1
           fi
           if ! git merge-base --is-ancestor origin/main "$GITHUB_SHA"; then
@@ -39,7 +40,16 @@ jobs:
         shell: bash
         run: |
           mc26_2=$(sed -n 's/^release_mc26_2=//p' gradle.properties | tr -d '\r')
+          mc1_21_1=$(sed -n 's/^release_mc1_21_1=//p' gradle.properties | tr -d '\r')
           echo "mc26_2=${mc26_2:-false}" >> "$GITHUB_OUTPUT"
+          echo "mc1_21_1=${mc1_21_1:-false}" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@v4
+        if: steps.targets.outputs.mc1_21_1 == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: ./gradlew -p versions/mc1.21.1 clean build --stacktrace
+        if: steps.targets.outputs.mc1_21_1 == 'true'
       - uses: actions/setup-java@v4
         if: steps.targets.outputs.mc26_2 == 'true'
         with:
@@ -56,6 +66,11 @@ jobs:
           jar_1201=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
           test -n "$jar_1201"
           assets=("$jar_1201")
+          if [[ '${{ steps.targets.outputs.mc1_21_1 }}' == 'true' ]]; then
+            jar_1211=$(find versions/mc1.21.1/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+            test -n "$jar_1211"
+            assets+=("$jar_1211")
+          fi
           if [[ '${{ steps.targets.outputs.mc26_2 }}' == 'true' ]]; then
             jar_262=$(find versions/mc26.2/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
             test -n "$jar_262"
