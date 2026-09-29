@@ -13,15 +13,30 @@ class SettingsDefaultsTest {
                 SelectiveRenderSettings.boundaryMode());
         assertFalse(SelectiveRenderSettings.debugBoxes());
         assertFalse(SelectiveRenderSettings.filterInteractionsWhenInactive());
+        assertFalse(SelectiveRenderSettings.interactWithHiddenRegions());
+        assertEquals(SelectiveRenderSettings.VirtualLightMode.BOTH,
+                SelectiveRenderSettings.virtualLightMode());
         assertEquals(8192, SelectiveRenderSettings.fullReloadThreshold());
-        assertEquals(-100, SelectiveRenderSettings.defaultPlotMinY());
+        assertEquals(-64, SelectiveRenderSettings.defaultPlotMinY());
     }
 
     @Test void modesCycleThroughEveryValueAndWrap() {
         for (var value : SelectiveRenderSettings.PlayerVisibility.values()) {
-            assertEquals(value, value.next().next().next().next());
-            assertNotEquals(value, value.next().next());
+            var cycled = value;
+            for (int i = 0; i < SelectiveRenderSettings.PlayerVisibility.values().length; i++) {
+                cycled = cycled.next();
+            }
+            assertEquals(value, cycled);
         }
+        for (var value : SelectiveRenderSettings.VirtualLightMode.values()) {
+            assertEquals(value, value.next().next().next().next());
+        }
+        assertTrue(SelectiveRenderSettings.VirtualLightMode.TOP.seedsColumn(true));
+        assertFalse(SelectiveRenderSettings.VirtualLightMode.TOP.seedsColumn(false));
+        assertFalse(SelectiveRenderSettings.VirtualLightMode.TOP.allowsPropagation(true, false));
+        assertTrue(SelectiveRenderSettings.VirtualLightMode.SIDES.seedsColumn(false));
+        assertTrue(SelectiveRenderSettings.VirtualLightMode.SIDES.allowsPropagation(false, true));
+        assertFalse(SelectiveRenderSettings.VirtualLightMode.SIDES.allowsPropagation(true, false));
         for (var value : SelectiveRenderSettings.InteractionMode.values()) {
             assertEquals(value, value.next().next().next().next());
             assertNotEquals(value, value.next().next());

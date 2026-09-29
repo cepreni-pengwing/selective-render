@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.9.3
+
+- Changed fresh-install defaults to F9 for the render group, F10 for the hide group, Backspace for
+  PlotSquared region toggling, the keyboard's `#` key for settings, and `-64` for the default
+  PlotSquared minimum Y. Existing custom bindings and non-default saved heights remain untouched.
+- Added own-player-only and all-players-except-own visibility modes.
+- Added independent hidden-region interaction control. Inactive filtered interactions now use every
+  saved region rather than only currently selected presets; Vanilla mode remains a true no-op.
+- Added virtual-skylight entry modes for top and sides, top only, sides only, or none. Both remains
+  the default.
+- Fixed normal render toggles unexpectedly re-enabling a disabled hide group.
+- This prerelease targets Minecraft 1.20.1 Fabric; the experimental 26.2 port is unchanged.
+
 ## 1.9.2
 
 - Fixed Axiom targeting for decorative blocks whose outline shape differs from their collision

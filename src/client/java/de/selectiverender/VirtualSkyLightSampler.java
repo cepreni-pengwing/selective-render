@@ -106,6 +106,7 @@ public final class VirtualSkyLightSampler {
                     int index = SCRATCH.index(x - minX, y - minY, z - minZ);
                     BlockState state = sourceState(world, cursor, x, y, z);
                     SCRATCH.states[index] = state;
+                    SCRATCH.visible[index] = (byte) (SelectiveRenderState.shouldRender(x, y, z) ? 1 : 0);
                     SCRATCH.opacity[index] = (byte) opacity(world, state, cursor);
                 }
             }
@@ -122,6 +123,8 @@ public final class VirtualSkyLightSampler {
                 int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
                 int visibleTop = SelectiveRenderState.visibleColumnTop(x, z,
                         Math.min(world.getTopY() - 1, worldSurface));
+                if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
+                        visibleTop != Integer.MIN_VALUE)) continue;
                 int scanTop = visibleTop == Integer.MIN_VALUE ? maxY : Math.max(maxY, visibleTop);
                 int directLight = 15;
                 BlockState aboveState = sourceState(world, above, x, scanTop + 1, z);
@@ -145,6 +148,8 @@ public final class VirtualSkyLightSampler {
                     if (directLight <= 0) break;
                     if (y > maxY) continue;
                     int index = SCRATCH.index(localX, y - minY, localZ);
+                    if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
+                            SCRATCH.visible[index] != 0)) continue;
                     SCRATCH.light[index] = (byte) directLight;
                     SCRATCH.queue[queueTail] = index;
                     queueTail = (queueTail + 1) % cells;
@@ -176,6 +181,8 @@ public final class VirtualSkyLightSampler {
                 if (nextX < 0 || nextX >= sizeX || nextY < 0 || nextY >= sizeY
                         || nextZ < 0 || nextZ >= sizeZ) continue;
                 int nextIndex = SCRATCH.index(nextX, nextY, nextZ);
+                if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
+                        SCRATCH.visible[currentIndex] != 0, SCRATCH.visible[nextIndex] != 0)) continue;
                 int existingLight = Byte.toUnsignedInt(SCRATCH.light[nextIndex]);
                 if (!VirtualLightPropagation.canImprove(currentLight, existingLight)) continue;
                 nextPos.set(minX + nextX, minY + nextY, minZ + nextZ);
@@ -234,6 +241,7 @@ public final class VirtualSkyLightSampler {
         private byte[] light = new byte[0];
         private byte[] queued = new byte[0];
         private byte[] opacity = new byte[0];
+        private byte[] visible = new byte[0];
         private BlockState[] states = new BlockState[0];
         private int[] queue = new int[0];
         private int sizeX;
@@ -246,6 +254,7 @@ public final class VirtualSkyLightSampler {
                 light = new byte[cells];
                 queued = new byte[cells];
                 opacity = new byte[cells];
+                visible = new byte[cells];
                 states = new BlockState[cells];
                 queue = new int[cells];
             } else {

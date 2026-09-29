@@ -56,13 +56,15 @@ The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
 
 Hide presets remove selected cuboids while leaving the rest of the world visible.
 They are useful for temporary block palettes, scaffolding, or unwanted structures.
-Player visibility and interactions can independently be set to none, inside regions, outside
-regions, or everywhere. Crosshair targets and outlines follow interaction visibility, including
+Player visibility includes none, inside regions, outside regions, everywhere, only your own player,
+and every player except your own. Interactions can independently be set to none, inside regions,
+outside regions, or everywhere. Crosshair targets and outlines follow interaction visibility, including
 Axiom Orbit Camera and brush targeting. Player hitboxes follow player visibility; collision is unchanged.
 
-Default keybinds are F8 for the render group, F9 for the hide group, and K to cycle all player
-visibility modes. Optional unassigned bindings select positions, toggle or clear temporary plots,
-cycle interaction and boundary modes, and open settings. Change bindings under Controls >
+Default keybinds are F9 for the render group, F10 for the hide group, Backspace for the current
+PlotSquared region, the physical `#` key for settings, and K to cycle all player
+visibility modes. Optional unassigned bindings select positions, clear temporary plots, and cycle
+interaction and boundary modes. Change bindings under Controls >
 Selective Render; existing custom bindings are preserved.
 
 Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through
@@ -74,7 +76,9 @@ hidden presets, plus temporary PlotSquared regions.
 
 Switching region rendering off restores vanilla interaction behavior by default. An optional
 setting can keep the selected interaction policy active for retained regions while rendering is
-off. The same screen controls the localized render-rebuild threshold; its default is 8,192
+off. Filtered mode uses all saved regions, while another toggle controls interaction with hidden
+regions. Virtual skylight can enter from both top and sides, only one of them, or neither. The same
+screen controls the localized render-rebuild threshold; its default is 8,192
 affected sections, including visibility toggles. Switching rendering off can affect sections outside
 your selection too. A full reload remains a fallback if the installed Flywheel version cannot refresh
 its visuals separately.
@@ -96,7 +100,7 @@ This uses exact PlotSquared shapes, including merged or irregular plots. Visit m
 Only the first plot in an empty selection automatically enables isolation. Switch it off with
 `/sr t` to collect more plots while seeing the full world, then toggle it back on when ready.
 The selection lasts for the current Minecraft session, including reconnects and dimension changes.
-Omitted Y values use the configurable minimum (initially `-100`) and maximum `400`; a positive
+Omitted Y values use the configurable minimum (initially `-64`) and maximum `400`; a positive
 margin expands X/Z and a negative one shrinks the complete outline.
 
 When LuckPerms or another permission manager is installed, ensure every intended user or group has

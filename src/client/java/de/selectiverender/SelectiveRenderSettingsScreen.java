@@ -13,6 +13,8 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private ButtonWidget boundaryButton;
     private ButtonWidget debugButton;
     private ButtonWidget inactiveInteractionsButton;
+    private ButtonWidget hiddenInteractionsButton;
+    private ButtonWidget virtualLightButton;
     private TextFieldWidget reloadThresholdField;
     private TextFieldWidget plotMinYField;
 
@@ -24,7 +26,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     @Override
     protected void init() {
         int left = width / 2 - 100;
-        int y = Math.max(36, height / 2 - 105);
+        int y = Math.max(30, height / 2 - 132);
         playerButton = addDrawableChild(ButtonWidget.builder(playerText(), button -> {
             SelectiveRenderSettings.setPlayerVisibility(
                     SelectiveRenderSettings.playerVisibility().next());
@@ -48,13 +50,23 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     !SelectiveRenderSettings.filterInteractionsWhenInactive());
             button.setMessage(inactiveInteractionsText());
         }).dimensions(left, y + 88, 200, 20).build());
+        hiddenInteractionsButton = addDrawableChild(ButtonWidget.builder(hiddenInteractionsText(), button -> {
+            SelectiveRenderSettings.setInteractWithHiddenRegions(
+                    !SelectiveRenderSettings.interactWithHiddenRegions());
+            button.setMessage(hiddenInteractionsText());
+        }).dimensions(left, y + 110, 200, 20).build());
+        virtualLightButton = addDrawableChild(ButtonWidget.builder(virtualLightText(), button -> {
+            SelectiveRenderSettings.setVirtualLightMode(
+                    SelectiveRenderSettings.virtualLightMode().next());
+            button.setMessage(virtualLightText());
+        }).dimensions(left, y + 132, 200, 20).build());
 
-        reloadThresholdField = integerField(left, y + 121,
+        reloadThresholdField = integerField(left, y + 165,
                 Integer.toString(SelectiveRenderSettings.fullReloadThreshold()), false);
-        plotMinYField = integerField(left, y + 157,
+        plotMinYField = integerField(left, y + 201,
                 Integer.toString(SelectiveRenderSettings.defaultPlotMinY()), true);
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-                .dimensions(left, y + 183, 200, 20).build());
+                .dimensions(left, y + 227, 200, 20).build());
     }
 
     @Override
@@ -111,6 +123,15 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private Text inactiveInteractionsText() {
         return Text.literal("Interactions while rendering is off: "
                 + (SelectiveRenderSettings.filterInteractionsWhenInactive() ? "Filtered" : "Vanilla"));
+    }
+
+    private Text hiddenInteractionsText() {
+        return Text.literal("Interactions with hidden regions: "
+                + (SelectiveRenderSettings.interactWithHiddenRegions() ? "On" : "Off"));
+    }
+
+    private Text virtualLightText() {
+        return Text.literal("Virtual skylight: " + SelectiveRenderSettings.virtualLightMode().label());
     }
 
     private Text debugText() {

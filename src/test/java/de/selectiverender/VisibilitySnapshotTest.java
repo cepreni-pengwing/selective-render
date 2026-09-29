@@ -44,12 +44,28 @@ class VisibilitySnapshotTest {
     @Test
     void configuredToggleCreatesANewSnapshot() {
         VisibilitySnapshot enabled = VisibilitySnapshot.create(
-                List.of(NORMAL), true, List.of(), false, List.of(),
+                List.of(NORMAL), true, List.of(OVERRIDE), false, List.of(),
                 List.of(), false, false, 9);
         VisibilitySnapshot disabled = enabled.toggleConfiguredState(10);
 
         assertTrue(enabled.enabled());
         assertFalse(disabled.enabled());
+        assertFalse(enabled.hideEnabled());
+        assertFalse(disabled.hideEnabled());
         assertEquals(10, disabled.generation());
+    }
+
+    @Test
+    void configuredToggleNeverChangesTheHiddenGroupState() {
+        VisibilitySnapshot snapshot = VisibilitySnapshot.create(
+                List.of(NORMAL), true, List.of(OVERRIDE), true, List.of(),
+                List.of(), false, false, 11);
+
+        VisibilitySnapshot disabled = snapshot.toggleConfiguredState(12);
+        VisibilitySnapshot enabledAgain = disabled.toggleConfiguredState(13);
+
+        assertTrue(snapshot.hideEnabled());
+        assertTrue(disabled.hideEnabled());
+        assertTrue(enabledAgain.hideEnabled());
     }
 }

@@ -84,11 +84,13 @@ render group is disabled, the hide group can remove regions from the full world.
 
 Default keybinds:
 
-- `F8`: toggle the render group
-- `F9`: toggle the hide group
-- `K`: cycle player visibility through everywhere, none, inside regions, and outside regions
-- Unassigned: set Pos1, set Pos2, toggle the current PlotSquared region, clear temporary plots
-  (`/sr p clear`), cycle interactions, cycle boundary faces, and open settings
+- `F9`: toggle the render group
+- `F10`: toggle the hide group
+- `Backspace`: toggle the current PlotSquared region
+- `#`: open settings (the non-US key next to Enter on German layouts)
+- `K`: cycle all six player visibility modes
+- Unassigned: set Pos1, set Pos2, clear temporary plots (`/sr p clear`), cycle interactions,
+  and cycle boundary faces
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.
@@ -107,7 +109,7 @@ can provide their exact PlotSquared regions, including merged and non-rectangula
 Plot integration is part of the normal Selective Render command tree:
 
 - `/selectiverender plot` or `/sr plot` adds the plot under the player to temporary isolation using
-  the configured minimum Y (initially `-100`) and maximum Y `400`. Use it again on that plot to remove only that plot.
+  the configured minimum Y (initially `-64`) and maximum Y `400`. Use it again on that plot to remove only that plot.
 - `/sr p [minY] [maxY] [xzMargin]` does the same with inclusive vertical bounds. A positive margin
   expands the outline; a negative margin shrinks the complete plot shape.
 - `/sr p clear` clears all temporarily selected plots.
@@ -119,7 +121,7 @@ Plot integration is part of the normal Selective Render command tree:
 
 `p` is the short alias for `plot`, and `s` is the short alias for `save`, so
 `/sr p s NAME minY maxY xzMargin` is equivalent. Omitted Y values use the configured minimum
-(initially `-100`) and maximum `400`;
+(initially `-64`) and maximum `400`;
 omitting `xzMargin` preserves the exact PlotSquared X/Z bounds.
 
 Plot mode is temporary for the current Minecraft session and is remembered across reconnects and
@@ -148,8 +150,8 @@ Writes are atomic and preserve the previous file as a `.json.bak` backup. If the
 primary file is damaged, Selective Render attempts to recover the latest valid
 backup automatically.
 
-Players can be rendered nowhere, inside regions, outside regions, or everywhere. Their debug
-hitboxes follow the same setting. Every other entity, block entity, and particle is hidden outside
+Players can be rendered nowhere, inside regions, outside regions, everywhere, only for the local
+player, or for every player except the local player. Their debug hitboxes follow the same setting. Every other entity, block entity, and particle is hidden outside
 the combined active regions.
 
 The settings screen cycles block faces directly adjacent to invisible space through normal exposed
@@ -164,6 +166,13 @@ and brush raycasts are supported. Collision is unchanged.
 By default, switching all rendering off restores completely vanilla interaction behavior. Enable
 `Interactions while rendering is off: Filtered` to keep the selected Inside/Outside/None policy
 using the retained region selection while the world remains fully visible.
+Filtered mode uses every saved region, including presets that are not currently selected. A separate
+toggle controls whether hidden regions remain interactable; disabling it also blocks them in the
+otherwise unrestricted Everywhere mode.
+
+Virtual skylight can enter cut regions from the top and sides, only the top, only the sides, or
+nowhere. Top and sides is the default; this option does not alter vanilla lighting while filtering
+is inactive.
 
 The settings screen also provides the default `/sr p` minimum Y and the number of affected render
 sections that may be rebuilt locally before SR chooses a full renderer reload. Higher thresholds
