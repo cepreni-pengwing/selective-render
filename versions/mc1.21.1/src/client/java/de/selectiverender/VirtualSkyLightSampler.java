@@ -106,7 +106,9 @@ public final class VirtualSkyLightSampler {
                 affected = true;
             }
         }
-        if (affected) rebuildDelay = REBUILD_DELAY_TICKS;
+        // Do not restart an active countdown for every block update. Continuous mining
+        // would otherwise starve dirty volumes indefinitely.
+        if (affected && rebuildDelay == 0) rebuildDelay = REBUILD_DELAY_TICKS;
     }
 
     public static void invalidateChunk(int chunkX, int chunkZ) {

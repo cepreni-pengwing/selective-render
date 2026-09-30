@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.20
+
+- Prevented continuous block updates from indefinitely postponing virtual-light cache rebuilds, fixing intermittent dark underground particles and items without restoring synchronous rebuild spikes.
+
 ## 1.9.19
 
 - Added rate-limited virtual-light diagnostics while debug boxes are enabled to isolate intermittent underground particle and item lighting.
