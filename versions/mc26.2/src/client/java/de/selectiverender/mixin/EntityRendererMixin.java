@@ -21,6 +21,11 @@ abstract class EntityRendererMixin<T extends Entity> {
         }
         if (entity.level() instanceof net.minecraft.client.multiplayer.ClientLevel clientWorld) {
             int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);
+            if (SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
+                    && SelectiveRenderState.highestVisibleOccluder(
+                    clientWorld, pos.getX(), pos.getZ()) <= pos.getY()) {
+                virtualLight = 15;
+            }
             if (virtualLight >= 0) cir.setReturnValue(Math.max(cir.getReturnValueI(), virtualLight));
         }
     }

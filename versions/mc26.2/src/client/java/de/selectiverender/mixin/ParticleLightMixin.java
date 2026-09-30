@@ -38,11 +38,9 @@ abstract class ParticleLightMixin {
                 level, pos.getX(), pos.getZ()) <= pos.getY()) {
             virtual = 15;
         }
-        if (virtual <= sky) {
-            for (Direction direction : Direction.values()) {
-                virtual = Math.max(virtual,
-                        VirtualSkyLightSampler.sample(level, pos.relative(direction)));
-            }
+        for (Direction direction : Direction.values()) {
+            virtual = Math.max(virtual,
+                    VirtualSkyLightSampler.sample(level, pos.relative(direction)));
         }
 
         BlockState state = level.getBlockState(pos);

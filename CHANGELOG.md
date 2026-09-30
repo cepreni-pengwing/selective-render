@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.18
+
+- Stabilized virtual lighting for fast breaking particles and briefly dark dropped items across every supported Minecraft version.
+
 ## 1.9.17
 
 - Matched breaking-particle lighting to the filtered world across every supported Minecraft version, ignoring hidden roofs while preserving visible indoor shadows.
