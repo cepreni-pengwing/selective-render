@@ -123,6 +123,13 @@ public final class VirtualSkyLightSampler {
         }
     }
 
+    public static CacheStatus cacheStatus(BlockPos pos) {
+        long key = ChunkSectionPos.asLong(pos.getX() >> 4, pos.getY() >> 4, pos.getZ() >> 4);
+        return new CacheStatus(VOLUMES.containsKey(key), DIRTY_VOLUMES.contains(key), rebuildDelay);
+    }
+
+    public record CacheStatus(boolean present, boolean dirty, int rebuildDelay) { }
+
     private static CoreVolume build(ClientWorld world, int sectionX, int sectionY, int sectionZ) {
         int coreMinX = sectionX << 4;
         int coreMinY = sectionY << 4;

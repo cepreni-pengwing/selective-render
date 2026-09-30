@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.19
+
+- Added rate-limited virtual-light diagnostics while debug boxes are enabled to isolate intermittent underground particle and item lighting.
+
 ## 1.9.18
 
 - Stabilized virtual lighting for fast breaking particles and briefly dark dropped items across every supported Minecraft version.

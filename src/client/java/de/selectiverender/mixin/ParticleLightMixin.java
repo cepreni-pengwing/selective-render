@@ -2,6 +2,7 @@ package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.VirtualSkyLightSampler;
+import de.selectiverender.LightingDiagnostics;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.particle.Particle;
 import net.minecraft.client.render.LightmapTextureManager;
@@ -33,9 +34,11 @@ abstract class ParticleLightMixin {
         int packed = cir.getReturnValueI();
         int sky = LightmapTextureManager.getSkyLightCoordinates(packed);
         int virtual = VirtualSkyLightSampler.sample(world, pos);
-        if (SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
+        int centerVirtual = virtual;
+        boolean directSky = SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
                 && SelectiveRenderState.highestVisibleOccluder(
-                world, pos.getX(), pos.getZ()) <= pos.getY()) {
+                world, pos.getX(), pos.getZ()) <= pos.getY();
+        if (directSky) {
             virtual = 15;
         }
         for (Direction direction : Direction.values()) {
@@ -45,6 +48,9 @@ abstract class ParticleLightMixin {
 
         BlockState state = world.getBlockState(pos);
         int block = Math.max(world.getLightLevel(LightType.BLOCK, pos), state.getLuminance());
-        cir.setReturnValue(LightmapTextureManager.pack(Math.max(sky, virtual), block));
+        int finalSky = Math.max(sky, virtual);
+        LightingDiagnostics.record("particle", pos, sky, centerVirtual, virtual,
+                directSky, finalSky);
+        cir.setReturnValue(LightmapTextureManager.pack(finalSky, block));
     }
 }

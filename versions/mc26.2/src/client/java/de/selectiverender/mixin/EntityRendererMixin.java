@@ -2,6 +2,7 @@ package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.VirtualSkyLightSampler;
+import de.selectiverender.LightingDiagnostics;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
@@ -20,13 +21,19 @@ abstract class EntityRendererMixin<T extends Entity> {
             return;
         }
         if (entity.level() instanceof net.minecraft.client.multiplayer.ClientLevel clientWorld) {
+            int vanillaSky = cir.getReturnValueI();
             int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);
-            if (SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
+            int centerVirtual = virtualLight;
+            boolean directSky = SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
                     && SelectiveRenderState.highestVisibleOccluder(
-                    clientWorld, pos.getX(), pos.getZ()) <= pos.getY()) {
+                    clientWorld, pos.getX(), pos.getZ()) <= pos.getY();
+            if (directSky) {
                 virtualLight = 15;
             }
-            if (virtualLight >= 0) cir.setReturnValue(Math.max(cir.getReturnValueI(), virtualLight));
+            int finalSky = virtualLight < 0 ? vanillaSky : Math.max(vanillaSky, virtualLight);
+            LightingDiagnostics.record(entity.getClass().getSimpleName(), pos, vanillaSky,
+                    centerVirtual, virtualLight, directSky, finalSky);
+            cir.setReturnValue(finalSky);
         }
     }
 }
