@@ -17,6 +17,7 @@
     "BlockModelRendererMixin",
     "BlockEntityRenderDispatcherMixin",
     "ParticleManagerMixin",
+    "ParticleLightMixin",
     "ParticlePositionView",
     "SpecialParticleGroupMixin",
     "axiom.RayCasterMixin",

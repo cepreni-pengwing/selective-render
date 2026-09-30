@@ -9,6 +9,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.function.Predicate;
 import net.minecraft.client.Minecraft;
@@ -22,6 +23,16 @@ import net.minecraft.world.phys.HitResult;
 
 @Mixin(Minecraft.class)
 abstract class GameRendererMixin {
+    @Shadow protected int missTime;
+
+    @Inject(method = "startAttack", at = @At("HEAD"))
+    private void selectiverender$clearFilteredMissDelay(CallbackInfoReturnable<Boolean> cir) {
+        Minecraft client = (Minecraft) (Object) this;
+        if (client.hitResult instanceof BlockHitResult blockHit
+                && SelectiveRenderState.shouldInteract(blockHit.getBlockPos())) {
+            missTime = 0;
+        }
+    }
 
 
     @Inject(method = "pick", at = @At("RETURN"))

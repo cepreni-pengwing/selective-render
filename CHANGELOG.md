@@ -3,6 +3,8 @@
 ## 1.9.14
 
 - Fixed the Minecraft 26.2 render-group toggle re-enabling the hide group after two F9 presses.
+- Prevented filtered misses from swallowing the next valid creative-mode block click on Minecraft 26.2.
+- Improved Minecraft 26.2 breaking-particle lighting immediately after block changes.
 
 ## 1.9.13
 
