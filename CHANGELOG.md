@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.21
+
+- Fixed Minecraft 1.21.1 worlds crashing on join with Sodium 0.8.13 because the visible-section collector hook used an outdated method signature.
+
 ## 1.9.20
 
 - Prevented continuous block updates from indefinitely postponing virtual-light cache rebuilds, fixing intermittent dark underground particles and items without restoring synchronous rebuild spikes.
