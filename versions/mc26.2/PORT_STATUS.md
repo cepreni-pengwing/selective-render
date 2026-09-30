@@ -1,6 +1,6 @@
 # Minecraft 26.2 port
 
-This is the Minecraft 26.2 target shipped with Selective Render 1.9.12. It remains a prerelease
+This is the Minecraft 26.2 target shipped with Selective Render 1.9.13. It remains a prerelease
 target pending broader real-world region and mod-compatibility testing.
 
 ## Scope
@@ -8,7 +8,7 @@ target pending broader real-world region and mod-compatibility testing.
 - SR only; keep SRP unchanged.
 - Preserve the existing 1.20.1 and 1.21.1 implementations while publishing a separate,
   version-labelled 26.2 JAR in CI.
-- Base: SR 1.9.12. This directory is a separate Gradle build using the root release version.
+- Base: SR 1.9.13. This directory is a separate Gradle build using the root release version.
 
 ## Saved progress
 
@@ -33,6 +33,8 @@ target pending broader real-world region and mod-compatibility testing.
   prereleases build/upload distinct 1.20.1, 1.21.1, and 26.2 JARs.
 - SR 1.9.3 through 1.9.8 settings, interaction, keybind, player visibility, configurable virtual
   skylight, and amortized entity-light cache behavior are included.
+- Axiom 5.5.0 block and fluid raycasts use the same interaction policy as vanilla targeting.
+- Debug region boxes use Minecraft's always-on-top gizmo path and remain visible through terrain.
 
 ## Continue here
 
@@ -41,7 +43,7 @@ target pending broader real-world region and mod-compatibility testing.
    entities, fluids, particles, player visibility, and interaction modes.
 3. Profile the conservative active-filtering Sodium occlusion path. Inactive/no-op rendering retains
    Sodium's original path.
-4. Optional integrations that do not yet have verified 26.2 builds (Axiom, CanvasBlocks, BelieveMod,
+4. Optional integrations that do not yet have verified 26.2 builds (CanvasBlocks, BelieveMod,
    Flywheel) are intentionally not claimed by the 26.2 artifact.
 
 ## Local tooling

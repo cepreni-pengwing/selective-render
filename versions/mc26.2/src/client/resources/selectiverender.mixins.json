@@ -19,6 +19,7 @@
     "ParticleManagerMixin",
     "ParticlePositionView",
     "SpecialParticleGroupMixin",
+    "axiom.RayCasterMixin",
     "sodium.BlockRendererMixin",
     "sodium.BlockOcclusionCacheMixin",
     "sodium.FluidRendererMixin",

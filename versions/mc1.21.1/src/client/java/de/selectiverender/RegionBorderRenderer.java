@@ -1,5 +1,6 @@
 package de.selectiverender;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.render.RenderLayer;
@@ -9,7 +10,19 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 
 public final class RegionBorderRenderer {
+    private static final RenderLayer OVERLAY_LINES = overlayLines();
+
     private RegionBorderRenderer() { }
+
+    private static RenderLayer overlayLines() {
+        RenderLayer lines = RenderLayer.getLines();
+        return new RenderLayer("selectiverender_debug_overlay", lines.getVertexFormat(),
+                lines.getDrawMode(), lines.getExpectedBufferSize(), lines.hasCrumbling(),
+                false, () -> {
+                    lines.startDrawing();
+                    RenderSystem.disableDepthTest();
+                }, lines::endDrawing) { };
+    }
 
     public static void initialize() {
         WorldRenderEvents.AFTER_ENTITIES.register(RegionBorderRenderer::render);
@@ -17,7 +30,7 @@ public final class RegionBorderRenderer {
 
     private static void render(WorldRenderContext context) {
         if (!SelectiveRenderSettings.debugBoxes() || context.consumers() == null) return;
-        VertexConsumer consumer = context.consumers().getBuffer(RenderLayer.getLines());
+        VertexConsumer consumer = context.consumers().getBuffer(OVERLAY_LINES);
         Vec3d camera = context.camera().getPos();
         for (BlockRegion region : SelectiveRenderState.borderRegions()) {
             Box box = new Box(region.minX(), region.minY(), region.minZ(),

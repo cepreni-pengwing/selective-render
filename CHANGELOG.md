@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.13
+
+- Updated the Minecraft 1.21.1 build for the maintained Sodium 0.8.x branch, starting with Sodium 0.8.13.
+- Added Minecraft 26.2 Axiom raycast filtering so Orbit Camera and Infinite Reach follow the same interaction-region rules as vanilla targeting.
+- Rendered debug region boxes as unobstructed overlays on every supported Minecraft version.
+
 ## 1.9.12
 
 - Fixed Black boundary faces crashing Minecraft 26.2 chunk workers by using the registered block-atlas identifier.

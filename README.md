@@ -251,7 +251,7 @@ file name matches your Minecraft version; the two JARs are not interchangeable.
 - Sodium 0.5.8 and 0.5.11: compile-checked by CI, but not claimed as fully tested in game
 - Iris for Minecraft 1.20.1
 - Minecraft 1.21.1 with Java 21
-- Fabric API 0.116.17+1.21.1 and Sodium 0.6.13 for Minecraft 1.21.1
+- Fabric API 0.116.17+1.21.1 and Sodium 0.8.13+ for Minecraft 1.21.1
 - Minecraft 26.2 with Java 25
 - Fabric API 0.159.0+26.2 and Sodium 0.9.2 for Minecraft 26.2
 

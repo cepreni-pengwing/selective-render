@@ -16,7 +16,7 @@ public final class RegionBorderRenderer {
                 for (BlockRegion region : SelectiveRenderState.borderRegions()) {
                     Gizmos.cuboid(new AABB(region.minX(), region.minY(), region.minZ(),
                             region.maxX() + 1.0, region.maxY() + 1.0, region.maxZ() + 1.0),
-                            GizmoStyle.stroke(0xFFFFFFFF));
+                            GizmoStyle.stroke(0xFFFFFFFF)).setAlwaysOnTop();
                 }
             }
         });

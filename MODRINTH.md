@@ -14,7 +14,7 @@ it changes only what the client renders and can interact with.
 ## Requirements
 
 - Minecraft 1.20.1 with Fabric Loader 0.15.11+, Fabric API 0.92.2+, and Sodium 0.5.x; or
-- Minecraft 1.21.1 with Java 21, Fabric API 0.116.17+, and Sodium 0.6.13
+- Minecraft 1.21.1 with Java 21, Fabric API 0.116.17+, and Sodium 0.8.13+
 - Minecraft 26.2 with Java 25, Fabric API 0.159.0+, and Sodium 0.9.2
 
 Download the clearly labelled JAR matching your Minecraft version. The JARs are not interchangeable.

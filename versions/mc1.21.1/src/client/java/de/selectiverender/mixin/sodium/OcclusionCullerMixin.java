@@ -6,6 +6,7 @@ import it.unimi.dsi.fastutil.longs.Long2ReferenceMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
+import net.caffeinemc.mods.sodium.client.render.chunk.lists.RenderSectionVisitor;
 import net.caffeinemc.mods.sodium.client.render.chunk.occlusion.OcclusionCuller;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
@@ -44,7 +45,7 @@ abstract class OcclusionCullerMixin {
     }
 
     @Inject(method = "findVisible", at = @At("HEAD"), cancellable = true)
-    private void selectiverender$collectRegionSectionsDirectly(OcclusionCuller.Visitor visitor,
+    private void selectiverender$collectRegionSectionsDirectly(RenderSectionVisitor visitor,
                                                                 Viewport viewport,
                                                                 float searchDistance,
                                                                 boolean useOcclusionCulling,
@@ -69,7 +70,7 @@ abstract class OcclusionCullerMixin {
     }
 
     @Inject(method = "findVisible", at = @At("RETURN"))
-    private void selectiverender$appendDisconnectedRegions(OcclusionCuller.Visitor visitor,
+    private void selectiverender$appendDisconnectedRegions(RenderSectionVisitor visitor,
                                                             Viewport viewport,
                                                             float searchDistance,
                                                             boolean useOcclusionCulling,
@@ -83,7 +84,7 @@ abstract class OcclusionCullerMixin {
     }
 
     @Unique
-    private void selectiverender$collectDirectly(OcclusionCuller.Visitor visitor,
+    private void selectiverender$collectDirectly(RenderSectionVisitor visitor,
                                                   Viewport viewport,
                                                   float searchDistance,
                                                   int frame,
@@ -169,7 +170,7 @@ abstract class OcclusionCullerMixin {
     }
 
     @Unique
-    private void selectiverender$visitOrdered(OcclusionCuller.Visitor visitor, int frame) {
+    private void selectiverender$visitOrdered(RenderSectionVisitor visitor, int frame) {
         if (selectiverender$orderedSections.size() > 1) {
             selectiverender$orderedSections.unstableSort(selectiverender$distanceComparator);
         }
