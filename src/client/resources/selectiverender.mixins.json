@@ -16,6 +16,7 @@
     "BlockModelRendererMixin",
     "BlockEntityRenderDispatcherMixin",
     "ParticleManagerMixin",
+    "ParticleLightMixin",
     "ParticlePositionView",
     "axiom.RayCasterMixin",
     "believemod.RopeBatchRendererMixin",

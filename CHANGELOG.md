@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.16
+
+- Kept breaking particles on current vanilla light values instead of stale virtual-skylight cache data across every supported Minecraft version.
+
 ## 1.9.15
 
 - Kept Minecraft 26.2 breaking particles on current vanilla light values instead of stale virtual-skylight cache data.

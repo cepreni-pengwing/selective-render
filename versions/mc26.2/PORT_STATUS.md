@@ -1,6 +1,6 @@
 # Minecraft 26.2 port
 
-This is the Minecraft 26.2 target shipped with Selective Render 1.9.15. It remains a prerelease
+This is the Minecraft 26.2 target shipped with Selective Render 1.9.16. It remains a prerelease
 target pending broader real-world region and mod-compatibility testing.
 
 ## Scope
@@ -8,7 +8,7 @@ target pending broader real-world region and mod-compatibility testing.
 - SR only; keep SRP unchanged.
 - Preserve the existing 1.20.1 and 1.21.1 implementations while publishing a separate,
   version-labelled 26.2 JAR in CI.
-- Base: SR 1.9.15. This directory is a separate Gradle build using the root release version.
+- Base: SR 1.9.16. This directory is a separate Gradle build using the root release version.
 
 ## Saved progress
 
