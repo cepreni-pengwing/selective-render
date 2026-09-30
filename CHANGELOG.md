@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.17
+
+- Matched breaking-particle lighting to the filtered world across every supported Minecraft version, ignoring hidden roofs while preserving visible indoor shadows.
+
 ## 1.9.16
 
 - Kept breaking particles on current vanilla light values instead of stale virtual-skylight cache data across every supported Minecraft version.
