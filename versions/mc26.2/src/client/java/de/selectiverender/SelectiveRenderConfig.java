@@ -126,7 +126,6 @@ public final class SelectiveRenderConfig {
     public static boolean toggleCurrent(Minecraft client) {
         if (ACTIVE_PRESETS.isEmpty()) return false;
         groupEnabled = !groupEnabled;
-        if (groupEnabled && !ACTIVE_HIDDEN_PRESETS.isEmpty()) hideGroupEnabled = true;
         applyState();
 
         write(client);

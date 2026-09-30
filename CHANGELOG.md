@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.9.14
+
+- Fixed the Minecraft 26.2 render-group toggle re-enabling the hide group after two F9 presses.
+
 ## 1.9.13
 
 - Updated the Minecraft 1.21.1 build for the maintained Sodium 0.8.x branch, starting with Sodium 0.8.13.
