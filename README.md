@@ -2,7 +2,8 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.0**. See [CHANGELOG.md](CHANGELOG.md) for release notes.
+Current stable version: **1.9.4**. Latest test version: **1.9.20**. See
+[CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
   <img src="docs/images/selective-render-on.png" width="49%" alt="Selective Render ON">
@@ -241,7 +242,7 @@ On Windows:
 
 The installable file is generated in `build/libs`.
 Fabric Loader, Fabric API, and Sodium are required. Iris is optional. Download the JAR whose
-file name matches your Minecraft version; the two JARs are not interchangeable.
+file name matches your Minecraft version; the three JARs are not interchangeable.
 
 ## Target versions
 
@@ -265,6 +266,8 @@ file name matches your Minecraft version; the two JARs are not interchangeable.
 - Distant Horizons LOD geometry is not filtered outside selected regions.
 - Custom mod renderers may require dedicated compatibility support; not every mod is covered.
 - Conquest Reforged extension-toggle boundaries are not reliably supported by Black/Culled modes.
+- Breaking particles and newly dropped items can occasionally remain too dark for a short time
+  under filtered roofs while virtual skylight updates.
 
 ## Support and contributing
 

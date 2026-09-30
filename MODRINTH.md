@@ -1,6 +1,6 @@
 # Selective Render
 
-Current stable version: **1.9.0**.
+Current stable version: **1.9.4**. Latest test version: **1.9.20**.
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and
@@ -19,8 +19,7 @@ it changes only what the client renders and can interact with.
 
 Download the clearly labelled JAR matching your Minecraft version. The JARs are not interchangeable.
 
-Iris is optional and supported. Sodium `mc1.20.1-0.5.13-fabric` is tested in
-game; 0.5.8 and 0.5.11 are compile-checked by CI.
+Iris is optional and supported.
 
 ## Basic usage
 
@@ -57,10 +56,8 @@ The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
 
 Hide presets remove selected cuboids while leaving the rest of the world visible.
 They are useful for temporary block palettes, scaffolding, or unwanted structures.
-Player visibility includes none, inside regions, outside regions, everywhere, only your own player,
-and every player except your own. Interactions can independently be set to none, inside regions,
-outside regions, or everywhere. Crosshair targets and outlines follow interaction visibility, including
-Axiom Orbit Camera and brush targeting. Player hitboxes follow player visibility; collision is unchanged.
+Player visibility and interactions can be controlled independently. Crosshair targets, outlines,
+player hitboxes, Axiom Orbit Camera, and brush targeting follow the selected modes; collision is unchanged.
 
 Default keybinds are F9 for the render group, F10 for the hide group, Backspace for the current
 PlotSquared region, and the physical `#`/apostrophe key for settings. Optional unassigned bindings
@@ -68,21 +65,12 @@ select positions, cycle all player visibility modes, clear temporary plots, and 
 and boundary modes. Change bindings under Controls >
 Selective Render; existing custom bindings are preserved.
 
-Settings are also accessible through Mod Menu when installed. Region-boundary faces cycle through
-normal, black, and culled; hide-region boundaries always stay normal. Conquest Reforged extension
-toggles are not reliably supported by black/culled mode yet. New settings default to
-players and interactions everywhere, normal boundary faces, and debug boxes off. Saved settings
-are preserved when updating. Enabled debug boxes outline every saved region, including inactive and
-hidden presets, plus temporary PlotSquared regions.
+Settings are also accessible through Mod Menu when installed. Boundary faces can be normal, black,
+or hidden, and optional debug boxes show saved and temporary regions. Settings are preserved when updating.
 
-Switching region rendering off restores vanilla interaction behavior by default. An optional
-setting can keep the selected interaction policy active for retained regions while rendering is
-off. Filtered mode uses all saved regions, while another toggle controls interaction with hidden
-regions. Virtual skylight can enter from both top and sides, only one of them, or neither. The same
-screen controls the localized render-rebuild threshold; its default is 8,192
-affected sections, including visibility toggles. Switching rendering off can affect sections outside
-your selection too. A full reload remains a fallback if the installed Flywheel version cannot refresh
-its visuals separately.
+Switching region rendering off restores normal interaction behavior by default, or interactions can
+continue following saved regions. Virtual skylight can enter from the top, sides, both, or neither.
+The settings screen also controls how aggressively affected sections are refreshed.
 
 ## PlotSquared integration
 
@@ -123,7 +111,9 @@ is closed.
 - The mod does not reduce server-sent chunks or network traffic.
 - Distant Horizons LOD geometry is not filtered.
 - Custom mod renderers may require dedicated compatibility support.
-- Selective filtering can change occlusion-culling behavior at region boundaries.
+- Conquest Reforged extension-toggle faces are not fully supported by black or culled boundaries.
+- Breaking particles and newly dropped items can occasionally appear too dark for a short time
+  beneath filtered roofs while virtual skylight updates.
 
 Minecraft 1.20.1, 1.21.1, and 26.2 are currently supported. For requests regarding other Minecraft versions,
 contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
