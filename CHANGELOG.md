@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.9.15
+
+- Kept Minecraft 26.2 breaking particles on current vanilla light values instead of stale virtual-skylight cache data.
+- Removed the unnecessary creative-click cooldown workaround after isolating that behavior to noclip.
+
 ## 1.9.14
 
 - Fixed the Minecraft 26.2 render-group toggle re-enabling the hide group after two F9 presses.
