@@ -1,6 +1,6 @@
 # Minecraft 26.2 port
 
-This is the Minecraft 26.2 target shipped with Selective Render 1.9.20. It remains a prerelease
+This is the Minecraft 26.2 target shipped with Selective Render 1.9.21. It remains a prerelease
 target pending broader real-world region and mod-compatibility testing.
 
 ## Scope
@@ -8,7 +8,7 @@ target pending broader real-world region and mod-compatibility testing.
 - SR only; keep SRP unchanged.
 - Preserve the existing 1.20.1 and 1.21.1 implementations while publishing a separate,
   version-labelled 26.2 JAR in CI.
-- Base: SR 1.9.20. This directory is a separate Gradle build using the root release version.
+- Base: SR 1.9.21. This directory is a separate Gradle build using the root release version.
 
 ## Saved progress
 
@@ -35,6 +35,8 @@ target pending broader real-world region and mod-compatibility testing.
   skylight, and amortized entity-light cache behavior are included.
 - Axiom 5.5.0 block and fluid raycasts use the same interaction policy as vanilla targeting.
 - Debug region boxes use Minecraft's always-on-top gizmo path and remain visible through terrain.
+- GitHub CI launches the production JAR with Fabric API and Sodium, joins a singleplayer world,
+  and retains logs, crash reports, and screenshots for every run.
 
 ## Continue here
 
@@ -48,10 +50,10 @@ target pending broader real-world region and mod-compatibility testing.
 
 ## Local tooling
 
-- JAVA_HOME: C:/Program Files/Java/jdk-25.0.3
-- GRADLE_USER_HOME: C:/Users/nicol/.gradle
-- Gradle: root build/port-tooling/gradle-9.5.1/bin/gradle.bat -p versions/mc26.2 compileClientJava
-- Minecraft JAR: C:/Users/nicol/.gradle/caches/fabric-loom/26.2/minecraft-client.jar
-- Cached dependencies are under C:/Users/nicol/.gradle/caches/modules-2/files-2.1.
-- The root clean task removes build/port-tooling; generate a dedicated wrapper before relying on it.
-- Preserve unrelated deleted docs/images/selective-render-preview.png and local PROJECT_HANDOFF.md.
+Use Java 25 and the dedicated wrapper from this directory:
+
+```bash
+./versions/mc26.2/gradlew -p versions/mc26.2 build
+```
+
+Keep machine-specific cache paths and hand-off notes outside the public repository.
