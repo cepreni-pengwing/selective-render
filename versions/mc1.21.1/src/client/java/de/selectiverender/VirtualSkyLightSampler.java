@@ -200,13 +200,14 @@ public final class VirtualSkyLightSampler {
                     if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
                             SCRATCH.visible[index] != 0, x, y, z)) continue;
                     SCRATCH.light[index] = (byte) directLight;
-                    SCRATCH.queue[queueTail] = index;
-                    queueTail = (queueTail + 1) % cells;
-                    SCRATCH.queued[index] = 1;
-                    queueSize++;
+                    // Queue only useful sources after all direct columns are populated.
                 }
             }
         }
+
+        queueSize = VirtualLightPropagation.seedFrontier(
+                SCRATCH.light, SCRATCH.queued, SCRATCH.queue, sizeX, sizeY, sizeZ);
+        queueTail = queueSize % cells;
 
         BlockPos.Mutable currentPos = above;
         BlockPos.Mutable nextPos = cursor;
@@ -230,12 +231,12 @@ public final class VirtualSkyLightSampler {
                 if (nextX < 0 || nextX >= sizeX || nextY < 0 || nextY >= sizeY
                         || nextZ < 0 || nextZ >= sizeZ) continue;
                 int nextIndex = SCRATCH.index(nextX, nextY, nextZ);
+                int existingLight = Byte.toUnsignedInt(SCRATCH.light[nextIndex]);
+                if (!VirtualLightPropagation.canImprove(currentLight, existingLight)) continue;
                 if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
                         SCRATCH.visible[currentIndex] != 0, SCRATCH.visible[nextIndex] != 0,
                         currentPos.getX(), currentPos.getY(), currentPos.getZ(),
                         minX + nextX, minY + nextY, minZ + nextZ)) continue;
-                int existingLight = Byte.toUnsignedInt(SCRATCH.light[nextIndex]);
-                if (!VirtualLightPropagation.canImprove(currentLight, existingLight)) continue;
                 nextPos.set(minX + nextX, minY + nextY, minZ + nextZ);
                 int realisticOpacity = ChunkLightProvider.getRealisticOpacity(
                         world, currentState, currentPos, SCRATCH.states[nextIndex], nextPos,

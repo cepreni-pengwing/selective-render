@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.23
+
+- Reduced virtual skylight propagation work by queuing only direct-light cells that can
+  brighten a neighbor, and checking brightness before spatial region policies.
+- Skipped spatial policy lookups when render and hidden skylight modes are identical.
+- Applied the optimization to terrain and entity lighting on all three Minecraft builds.
+- Added reference-comparison tests for propagation with directional barriers and attenuation.
+
 ## 1.9.22
 
 - Added one-command cuboid creation with render/hidden context, preset redefinition, and clearer

@@ -206,13 +206,16 @@ abstract class WorldSliceMixin {
                     if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
                             selectiverender$lightVisible[index] != 0, x, y, z)) continue;
                     selectiverender$virtualSkyLight[index] = (byte) directLight;
-                    selectiverender$lightQueue[queueTail] = index;
-                    queueTail = (queueTail + 1) % cellCount;
-                    selectiverender$queuedLight[index] = 1;
-                    queueSize++;
+                    // Queue only useful sources after all direct columns are populated.
                 }
             }
         }
+
+        queueSize = de.selectiverender.VirtualLightPropagation.seedFrontier(
+                selectiverender$virtualSkyLight, selectiverender$queuedLight,
+                selectiverender$lightQueue, selectiverender$lightSizeX,
+                selectiverender$lightSizeY, selectiverender$lightSizeZ);
+        queueTail = queueSize % cellCount;
 
         BlockPos.Mutable currentPos = above;
         BlockPos.Mutable nextPos = cursor;
@@ -239,6 +242,9 @@ abstract class WorldSliceMixin {
                         || nextY < 0 || nextY >= selectiverender$lightSizeY
                         || nextZ < 0 || nextZ >= selectiverender$lightSizeZ) continue;
                 int nextIndex = selectiverender$lightIndex(nextX, nextY, nextZ);
+                int existingLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]);
+                if (!de.selectiverender.VirtualLightPropagation.canImprove(
+                        currentLight, existingLight)) continue;
                 if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
                         selectiverender$lightVisible[currentIndex] != 0,
                         selectiverender$lightVisible[nextIndex] != 0,
@@ -246,9 +252,6 @@ abstract class WorldSliceMixin {
                         selectiverender$lightMinX + nextX,
                         selectiverender$lightMinY + nextY,
                         selectiverender$lightMinZ + nextZ)) continue;
-                int existingLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]);
-                if (!de.selectiverender.VirtualLightPropagation.canImprove(
-                        currentLight, existingLight)) continue;
                 int opacity = Byte.toUnsignedInt(selectiverender$lightOpacity[nextIndex]);
                 nextPos.set(selectiverender$lightMinX + nextX,
                         selectiverender$lightMinY + nextY,

@@ -333,18 +333,21 @@ public final class SelectiveRenderState {
     public static boolean shouldPropagateVirtualSkyLight(boolean fromVisible, boolean toVisible,
                                                           int fromX, int fromY, int fromZ,
                                                           int toX, int toY, int toZ) {
+        SelectiveRenderSettings.VirtualLightMode renderMode = SelectiveRenderSettings.virtualLightMode();
+        SelectiveRenderSettings.VirtualLightMode hiddenMode = SelectiveRenderSettings.hiddenVirtualLightMode();
+        // Identical policies need no spatial classification, including the default BOTH/BOTH.
+        if (renderMode == hiddenMode) return renderMode.allowsPropagation(fromVisible, toVisible);
         SelectiveRenderSettings.VirtualLightMode mode = isActivelyHidden(fromX, fromY, fromZ)
-                || isActivelyHidden(toX, toY, toZ)
-                ? SelectiveRenderSettings.hiddenVirtualLightMode()
-                : SelectiveRenderSettings.virtualLightMode();
+                || isActivelyHidden(toX, toY, toZ) ? hiddenMode : renderMode;
         return mode.allowsPropagation(fromVisible, toVisible);
     }
 
     private static SelectiveRenderSettings.VirtualLightMode virtualLightModeAt(
             int blockX, int blockY, int blockZ) {
-        return isActivelyHidden(blockX, blockY, blockZ)
-                ? SelectiveRenderSettings.hiddenVirtualLightMode()
-                : SelectiveRenderSettings.virtualLightMode();
+        SelectiveRenderSettings.VirtualLightMode renderMode = SelectiveRenderSettings.virtualLightMode();
+        SelectiveRenderSettings.VirtualLightMode hiddenMode = SelectiveRenderSettings.hiddenVirtualLightMode();
+        if (renderMode == hiddenMode) return renderMode;
+        return isActivelyHidden(blockX, blockY, blockZ) ? hiddenMode : renderMode;
     }
 
     public static boolean isBoundaryFace(BlockPos position, Direction direction) {
