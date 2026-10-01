@@ -42,12 +42,14 @@ abstract class WorldSliceMixin {
     @Unique private int selectiverender$lightSizeY;
     @Unique private int selectiverender$lightSizeZ;
     @Unique private boolean selectiverender$virtualSkyPrepared;
+    @Unique private boolean selectiverender$vanillaSkyUnchanged;
     @Unique private boolean selectiverender$sourceRead;
     @Unique private static final Direction[] selectiverender$directions = Direction.values();
 
     @Inject(method = "copyData", at = @At("HEAD"))
     private void selectiverender$clearLightCache(CallbackInfo ci) {
         selectiverender$virtualSkyPrepared = false;
+        selectiverender$vanillaSkyUnchanged = false;
     }
 
     @Inject(method = "getBlockState(III)Lnet/minecraft/block/BlockState;", at = @At("HEAD"), cancellable = true, remap = true)
@@ -102,6 +104,7 @@ abstract class WorldSliceMixin {
         if (!SelectiveRenderState.shouldRender(pos)) return -1;
 
         if (!selectiverender$virtualSkyPrepared) selectiverender$prepareVirtualSkyLight();
+        if (selectiverender$vanillaSkyUnchanged) return -1;
         int localX = pos.getX() - selectiverender$lightMinX;
         int localY = pos.getY() - selectiverender$lightMinY;
         int localZ = pos.getZ() - selectiverender$lightMinZ;
@@ -121,6 +124,10 @@ abstract class WorldSliceMixin {
         int maxY = Math.min(level.getTopY() - 1, volume.getMaxY() + selectiverender$lightRadius);
         int minZ = volume.getMinZ() - selectiverender$lightRadius;
         int maxZ = volume.getMaxZ() + selectiverender$lightRadius;
+        if (selectiverender$canUseVanillaSky(minX, minY, minZ, maxX, maxZ)) {
+            selectiverender$vanillaSkyUnchanged = true;
+            return;
+        }
         selectiverender$lightMinX = minX;
         selectiverender$lightMinY = minY;
         selectiverender$lightMinZ = minZ;
@@ -271,6 +278,22 @@ abstract class WorldSliceMixin {
                 }
             }
         }
+    }
+
+    @Unique
+    private boolean selectiverender$canUseVanillaSky(int minX, int minY, int minZ, int maxX, int maxZ) {
+        int ceiling = SelectiveRenderState.unfilteredLightCeiling(minX, minY, minZ, maxX, maxZ);
+        if (ceiling == Integer.MIN_VALUE) return false;
+        if (ceiling == Integer.MAX_VALUE) return true;
+        // WORLD_SURFACE includes every non-air block, including slabs, leaves and fluids.
+        // A column extending beyond the enclosing region may hide an occluder: retain
+        // the full solver in that case, even when the queried section is deep underground.
+        for (int z = minZ; z <= maxZ; z++) {
+            for (int x = minX; x <= maxX; x++) {
+                if (level.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1 > ceiling) return false;
+            }
+        }
+        return true;
     }
 
     @Unique

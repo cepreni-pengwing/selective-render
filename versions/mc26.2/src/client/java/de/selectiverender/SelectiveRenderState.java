@@ -184,6 +184,13 @@ public final class SelectiveRenderState {
                 blockX, blockY, blockZ);
     }
 
+    public static int unfilteredLightCeiling(int minX, int minY, int minZ, int maxX, int maxZ) {
+        VisibilitySnapshot snapshot = visibility;
+        return VirtualLightBounds.visibleCeiling(snapshot.enabled(), snapshot.visibleRegions(),
+                snapshot.hideEnabled() ? snapshot.hiddenRegions() : List.of(),
+                minX, minY, minZ, maxX, maxZ);
+    }
+
     public static boolean mayNeedVirtualSkyLight(int blockX, int blockZ) {
         if (SelectiveRenderSettings.virtualLightMode()
                 == SelectiveRenderSettings.VirtualLightMode.NONE) return false;

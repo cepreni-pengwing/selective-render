@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.24
+
+- Avoided building Sodium virtual-skylight volumes inside regions when the entire light halo
+  and every non-air block above it remain visible. This targets unnecessary chunk-build work
+  in large, mostly unobstructed render regions.
+- Retained the full lighting solver near cuts, hidden regions and potentially hidden roofs.
+- Applied the fast path to all three Minecraft builds and added conservative boundary tests.
+
 ## 1.9.23
 
 - Reduced virtual skylight propagation work by queuing only direct-light cells that can
