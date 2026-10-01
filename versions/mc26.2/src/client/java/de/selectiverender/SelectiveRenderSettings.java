@@ -15,7 +15,7 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 
 public final class SelectiveRenderSettings {
-    private static final int SETTINGS_FORMAT_VERSION = 2;
+    private static final int SETTINGS_FORMAT_VERSION = 3;
     static final int DEFAULT_FULL_RELOAD_THRESHOLD = 8192;
     static final int MIN_FULL_RELOAD_THRESHOLD = 256;
     static final int MAX_FULL_RELOAD_THRESHOLD = 65536;
@@ -32,6 +32,7 @@ public final class SelectiveRenderSettings {
     private static volatile boolean filterInteractionsWhenInactive;
     private static volatile boolean interactWithHiddenRegions;
     private static volatile VirtualLightMode virtualLightMode = VirtualLightMode.BOTH;
+    private static volatile VirtualLightMode hiddenVirtualLightMode = VirtualLightMode.BOTH;
     private static volatile int fullReloadThreshold = DEFAULT_FULL_RELOAD_THRESHOLD;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
@@ -58,6 +59,8 @@ public final class SelectiveRenderSettings {
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
         interactWithHiddenRegions = stored.interactWithHiddenRegions;
         virtualLightMode = stored.virtualLightMode == null ? VirtualLightMode.BOTH : stored.virtualLightMode;
+        hiddenVirtualLightMode = stored.hiddenVirtualLightMode == null
+                ? VirtualLightMode.BOTH : stored.hiddenVirtualLightMode;
         fullReloadThreshold = clampReloadThreshold(stored.fullReloadThreshold == 0
                 ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
         boolean migrateLegacyPlotMinimum = stored.formatVersion < SETTINGS_FORMAT_VERSION
@@ -74,6 +77,7 @@ public final class SelectiveRenderSettings {
     public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
     public static boolean interactWithHiddenRegions() { return interactWithHiddenRegions; }
     public static VirtualLightMode virtualLightMode() { return virtualLightMode; }
+    public static VirtualLightMode hiddenVirtualLightMode() { return hiddenVirtualLightMode; }
     public static int fullReloadThreshold() { return fullReloadThreshold; }
     public static int defaultPlotMinY() { return defaultPlotMinY; }
 
@@ -125,6 +129,14 @@ public final class SelectiveRenderSettings {
         }
     }
 
+    public static void setHiddenVirtualLightMode(VirtualLightMode value) {
+        if (hiddenVirtualLightMode == value) return;
+        hiddenVirtualLightMode = value;
+        save();
+        VirtualSkyLightSampler.invalidate();
+        if (SelectiveRenderState.filteringActive()) SelectiveRenderState.refreshRenderer();
+    }
+
     public static void setFullReloadThreshold(int value) {
         int next = clampReloadThreshold(value);
         if (fullReloadThreshold == next) return;
@@ -159,6 +171,7 @@ public final class SelectiveRenderSettings {
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
             stored.interactWithHiddenRegions = interactWithHiddenRegions;
             stored.virtualLightMode = virtualLightMode;
+            stored.hiddenVirtualLightMode = hiddenVirtualLightMode;
             stored.fullReloadThreshold = fullReloadThreshold;
             stored.defaultPlotMinY = defaultPlotMinY;
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
@@ -268,6 +281,7 @@ public final class SelectiveRenderSettings {
         boolean filterInteractionsWhenInactive;
         boolean interactWithHiddenRegions;
         VirtualLightMode virtualLightMode;
+        VirtualLightMode hiddenVirtualLightMode;
         int fullReloadThreshold;
         Integer defaultPlotMinY;
     }

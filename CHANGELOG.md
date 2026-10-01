@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.9.22
+
+- Added one-command cuboid creation with render/hidden context, preset redefinition, and clearer
+  rename aliases.
+- Added an independent virtual-skylight mode for hidden regions.
+
 ## 1.9.21
 
 - Fixed Minecraft 1.21.1 worlds crashing on join with Sodium 0.8.13 because the visible-section collector hook used an outdated method signature.

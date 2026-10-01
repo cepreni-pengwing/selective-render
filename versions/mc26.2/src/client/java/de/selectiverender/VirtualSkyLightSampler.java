@@ -171,7 +171,7 @@ public final class VirtualSkyLightSampler {
                 int worldSurface = world.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
                 int visibleTop = SelectiveRenderState.visibleColumnTop(x, z,
                         Math.min(world.getMaxY(), worldSurface));
-                if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
+                if (!SelectiveRenderState.shouldScanVirtualSkyColumn(
                         visibleTop != Integer.MIN_VALUE)) continue;
                 int scanTop = visibleTop == Integer.MIN_VALUE ? maxY : Math.max(maxY, visibleTop);
                 int directLight = 15;
@@ -197,7 +197,7 @@ public final class VirtualSkyLightSampler {
                     if (y > maxY) continue;
                     int index = SCRATCH.index(localX, y - minY, localZ);
                     if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
-                            SCRATCH.visible[index] != 0)) continue;
+                            SCRATCH.visible[index] != 0, x, y, z)) continue;
                     SCRATCH.light[index] = (byte) directLight;
                     SCRATCH.queue[queueTail] = index;
                     queueTail = (queueTail + 1) % cells;
@@ -230,7 +230,9 @@ public final class VirtualSkyLightSampler {
                         || nextZ < 0 || nextZ >= sizeZ) continue;
                 int nextIndex = SCRATCH.index(nextX, nextY, nextZ);
                 if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
-                        SCRATCH.visible[currentIndex] != 0, SCRATCH.visible[nextIndex] != 0)) continue;
+                        SCRATCH.visible[currentIndex] != 0, SCRATCH.visible[nextIndex] != 0,
+                        currentPos.getX(), currentPos.getY(), currentPos.getZ(),
+                        minX + nextX, minY + nextY, minZ + nextZ)) continue;
                 int existingLight = Byte.toUnsignedInt(SCRATCH.light[nextIndex]);
                 if (!VirtualLightPropagation.canImprove(currentLight, existingLight)) continue;
                 nextPos.set(minX + nextX, minY + nextY, minZ + nextZ);

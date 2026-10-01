@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.9.21**. See
+Current stable version: **1.9.4**. Latest test version: **1.9.22**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -44,13 +44,15 @@ Available short commands:
 /sr pos1  # alias: /sr 1
 /sr pos2  # alias: /sr 2
 /sr s NAME
+/sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]
 /sr t NAME
 /sr t all  # alias: /sr t a
 /sr h NAME
 /sr h
 /sr h all  # alias: /sr h a
 /sr d NAME
-/sr r OLDNAME NEWNAME
+/sr r NAME
+/sr n OLDNAME NEWNAME
 /sr list
 /sr list h
 /sr l h
@@ -58,6 +60,10 @@ Available short commands:
 
 - `/sr s NAME` saves the current selection and immediately activates it. A name
   is always required and must not already exist.
+- `/sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]` creates and activates a complete
+  cuboid preset in one command. The context defaults to `render`.
+- `/sr r NAME` redefines an existing preset from the current pos1/pos2 selection while
+  preserving its context and active state.
 - `/sr t NAME` toggles a preset in the render context. Using it on a hide preset
   moves that preset back to the regular render context.
 - `/sr t` enables or disables the entire render group while preserving its members.
@@ -70,13 +76,12 @@ Available short commands:
   selected, it selects all registered hide presets.
   Global hide toggles and the hide keybind use a HUD overlay instead of chat.
 - `/sr d NAME` permanently deletes a preset.
-- `/sr r OLDNAME NEWNAME` renames a preset while preserving its group memberships.
+- `/sr n OLDNAME NEWNAME` renames a preset while preserving its group memberships.
 - `/sr list` displays regular presets on separate lines with status and a corner coordinate.
 - `/sr list h`, `/sr list hidden`, `/sr l h`, or `/sr l hidden` exclusively displays hide-group regions in the same format.
 
-The long `save`, `toggle`, `hide`, `delete`, and `rename` subcommands remain available as
-`/sr save NAME`, `/sr toggle NAME`, `/sr hide NAME`, `/sr delete NAME`, and
-`/sr rename OLDNAME NEWNAME`.
+The long `save`, `create`, `redefine`, `toggle`, `hide`, `delete`, and `name` subcommands remain
+available. `/sr rename OLDNAME NEWNAME` is also retained as an explicit rename alias.
 
 All regions in the enabled render group are combined. A block is rendered when
 it is inside at least one of them, so separate areas can be visible at the same
@@ -171,8 +176,8 @@ toggle controls whether hidden regions remain interactable; disabling it also bl
 otherwise unrestricted Everywhere mode.
 
 Virtual skylight can enter cut regions from the top and sides, only the top, only the sides, or
-nowhere. Top and sides is the default; this option does not alter vanilla lighting while filtering
-is inactive.
+nowhere. Render boundaries and hidden regions have separate controls. Top and sides is the default;
+these options do not alter vanilla lighting while filtering is inactive.
 
 The settings screen also provides the default `/sr p` minimum Y and the number of affected render
 sections that may be rebuilt locally before SR chooses a full renderer reload. Higher thresholds

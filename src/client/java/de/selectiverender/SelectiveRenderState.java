@@ -314,9 +314,38 @@ public final class SelectiveRenderState {
         return SelectiveRenderSettings.virtualLightMode().seedsColumn(visibleColumn);
     }
 
+    public static boolean shouldScanVirtualSkyColumn(boolean visibleColumn) {
+        if (SelectiveRenderSettings.virtualLightMode().seedsColumn(visibleColumn)) return true;
+        VisibilitySnapshot snapshot = visibility;
+        return snapshot.hideEnabled() && !snapshot.hiddenRegions().isEmpty()
+                && SelectiveRenderSettings.hiddenVirtualLightMode().seedsColumn(visibleColumn);
+    }
+
+    public static boolean shouldSeedVirtualSkyColumn(boolean visibleColumn,
+                                                     int blockX, int blockY, int blockZ) {
+        return virtualLightModeAt(blockX, blockY, blockZ).seedsColumn(visibleColumn);
+    }
+
     public static boolean shouldPropagateVirtualSkyLight(boolean fromVisible, boolean toVisible) {
         return SelectiveRenderSettings.virtualLightMode()
                 .allowsPropagation(fromVisible, toVisible);
+    }
+
+    public static boolean shouldPropagateVirtualSkyLight(boolean fromVisible, boolean toVisible,
+                                                          int fromX, int fromY, int fromZ,
+                                                          int toX, int toY, int toZ) {
+        SelectiveRenderSettings.VirtualLightMode mode = isActivelyHidden(fromX, fromY, fromZ)
+                || isActivelyHidden(toX, toY, toZ)
+                ? SelectiveRenderSettings.hiddenVirtualLightMode()
+                : SelectiveRenderSettings.virtualLightMode();
+        return mode.allowsPropagation(fromVisible, toVisible);
+    }
+
+    private static SelectiveRenderSettings.VirtualLightMode virtualLightModeAt(
+            int blockX, int blockY, int blockZ) {
+        return isActivelyHidden(blockX, blockY, blockZ)
+                ? SelectiveRenderSettings.hiddenVirtualLightMode()
+                : SelectiveRenderSettings.virtualLightMode();
     }
 
     public static boolean isBoundaryFace(BlockPos position, Direction direction) {

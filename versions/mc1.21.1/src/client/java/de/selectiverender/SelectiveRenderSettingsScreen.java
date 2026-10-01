@@ -15,6 +15,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private ButtonWidget inactiveInteractionsButton;
     private ButtonWidget hiddenInteractionsButton;
     private ButtonWidget virtualLightButton;
+    private ButtonWidget hiddenVirtualLightButton;
     private TextFieldWidget reloadThresholdField;
     private TextFieldWidget plotMinYField;
 
@@ -26,7 +27,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     @Override
     protected void init() {
         int left = width / 2 - 100;
-        int y = Math.max(30, height / 2 - 132);
+        int y = Math.max(20, height / 2 - 143);
         playerButton = addDrawableChild(ButtonWidget.builder(playerText(), button -> {
             SelectiveRenderSettings.setPlayerVisibility(
                     SelectiveRenderSettings.playerVisibility().next());
@@ -60,13 +61,18 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     SelectiveRenderSettings.virtualLightMode().next());
             button.setMessage(virtualLightText());
         }).dimensions(left, y + 132, 200, 20).build());
+        hiddenVirtualLightButton = addDrawableChild(ButtonWidget.builder(hiddenVirtualLightText(), button -> {
+            SelectiveRenderSettings.setHiddenVirtualLightMode(
+                    SelectiveRenderSettings.hiddenVirtualLightMode().next());
+            button.setMessage(hiddenVirtualLightText());
+        }).dimensions(left, y + 154, 200, 20).build());
 
-        reloadThresholdField = integerField(left, y + 165,
+        reloadThresholdField = integerField(left, y + 187,
                 Integer.toString(SelectiveRenderSettings.fullReloadThreshold()), false);
-        plotMinYField = integerField(left, y + 201,
+        plotMinYField = integerField(left, y + 223,
                 Integer.toString(SelectiveRenderSettings.defaultPlotMinY()), true);
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-                .dimensions(left, y + 227, 200, 20).build());
+                .dimensions(left, y + 249, 200, 20).build());
     }
 
     @Override
@@ -131,7 +137,12 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private Text virtualLightText() {
-        return Text.literal("Virtual skylight: " + SelectiveRenderSettings.virtualLightMode().label());
+        return Text.literal("Virtual skylight (render): " + SelectiveRenderSettings.virtualLightMode().label());
+    }
+
+    private Text hiddenVirtualLightText() {
+        return Text.literal("Virtual skylight (hidden): "
+                + SelectiveRenderSettings.hiddenVirtualLightMode().label());
     }
 
     private Text debugText() {

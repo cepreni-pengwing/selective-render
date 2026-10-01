@@ -177,7 +177,7 @@ abstract class WorldSliceMixin {
                 int worldSurface = level.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
                 int visibleTop = SelectiveRenderState.visibleColumnTop(x, z,
                         Math.min(level.getTopY() - 1, worldSurface));
-                if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
+                if (!SelectiveRenderState.shouldScanVirtualSkyColumn(
                         visibleTop != Integer.MIN_VALUE)) continue;
                 int scanTop = visibleTop == Integer.MIN_VALUE ? maxY : Math.max(maxY, visibleTop);
                 int directLight = 15;
@@ -204,7 +204,7 @@ abstract class WorldSliceMixin {
                     if (y > maxY) continue;
                     int index = selectiverender$lightIndex(localX, y - minY, localZ);
                     if (!SelectiveRenderState.shouldSeedVirtualSkyColumn(
-                            selectiverender$lightVisible[index] != 0)) continue;
+                            selectiverender$lightVisible[index] != 0, x, y, z)) continue;
                     selectiverender$virtualSkyLight[index] = (byte) directLight;
                     selectiverender$lightQueue[queueTail] = index;
                     queueTail = (queueTail + 1) % cellCount;
@@ -241,7 +241,11 @@ abstract class WorldSliceMixin {
                 int nextIndex = selectiverender$lightIndex(nextX, nextY, nextZ);
                 if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
                         selectiverender$lightVisible[currentIndex] != 0,
-                        selectiverender$lightVisible[nextIndex] != 0)) continue;
+                        selectiverender$lightVisible[nextIndex] != 0,
+                        currentPos.getX(), currentPos.getY(), currentPos.getZ(),
+                        selectiverender$lightMinX + nextX,
+                        selectiverender$lightMinY + nextY,
+                        selectiverender$lightMinZ + nextZ)) continue;
                 int existingLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]);
                 if (!de.selectiverender.VirtualLightPropagation.canImprove(
                         currentLight, existingLight)) continue;

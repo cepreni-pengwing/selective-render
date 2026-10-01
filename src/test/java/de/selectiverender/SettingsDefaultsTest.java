@@ -16,6 +16,8 @@ class SettingsDefaultsTest {
         assertFalse(SelectiveRenderSettings.interactWithHiddenRegions());
         assertEquals(SelectiveRenderSettings.VirtualLightMode.BOTH,
                 SelectiveRenderSettings.virtualLightMode());
+        assertEquals(SelectiveRenderSettings.VirtualLightMode.BOTH,
+                SelectiveRenderSettings.hiddenVirtualLightMode());
         assertEquals(8192, SelectiveRenderSettings.fullReloadThreshold());
         assertEquals(-64, SelectiveRenderSettings.defaultPlotMinY());
     }

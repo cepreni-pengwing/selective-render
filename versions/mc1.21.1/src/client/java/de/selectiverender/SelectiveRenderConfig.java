@@ -107,6 +107,34 @@ public final class SelectiveRenderConfig {
         return true;
     }
 
+    public static boolean saveRegion(MinecraftClient client, String requestedName,
+                                     BlockRegion region, boolean hidden) {
+        if (isReservedName(requestedName) || region == null) return false;
+        String name = normalize(requestedName);
+        if (PRESETS.containsKey(name)) return false;
+        PRESETS.put(name, List.of(region));
+        if (hidden) {
+            HIDDEN_PRESETS.add(name);
+            ACTIVE_HIDDEN_PRESETS.add(name);
+            hideGroupEnabled = true;
+        } else {
+            ACTIVE_PRESETS.add(name);
+            groupEnabled = true;
+        }
+        applyState();
+        write(client);
+        return true;
+    }
+
+    public static boolean redefinePreset(MinecraftClient client, String requestedName) {
+        String name = normalize(requestedName);
+        if (!PRESETS.containsKey(name) || !SelectiveRenderState.saveSelection()) return false;
+        PRESETS.put(name, List.of(SelectiveRenderState.selection()));
+        applyState();
+        write(client);
+        return true;
+    }
+
     public static boolean saveRegions(MinecraftClient client, String requestedName,
                                       List<BlockRegion> regions) {
         if (isReservedName(requestedName) || regions == null || regions.isEmpty()) return false;

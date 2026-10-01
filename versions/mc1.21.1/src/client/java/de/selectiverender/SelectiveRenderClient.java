@@ -159,14 +159,19 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommandManager.literal("2").executes(context -> setPosition(context.getSource(), false)))
                 .then(saveCommand("save"))
                 .then(saveCommand("s"))
+                .then(createCommand("create"))
+                .then(createCommand("c"))
                 .then(toggleCommand("toggle"))
                 .then(toggleCommand("t"))
                 .then(hideCommand("hide"))
                 .then(hideCommand("h"))
                 .then(deleteCommand("delete"))
                 .then(deleteCommand("d"))
+                .then(redefineCommand("redefine"))
+                .then(redefineCommand("r"))
                 .then(renameCommand("rename"))
-                .then(renameCommand("r"))
+                .then(renameCommand("name"))
+                .then(renameCommand("n"))
                 .then(plotCommand("plot"))
                 .then(plotCommand("p"))
                 .then(listCommand("list"))
@@ -247,6 +252,31 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         .executes(context -> save(context.getSource(), StringArgumentType.getString(context, "name"))));
     }
 
+    private static LiteralArgumentBuilder<FabricClientCommandSource> createCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("x1", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("y1", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("z1", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("x2", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("y2", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("z2", IntegerArgumentType.integer())
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> create(context.getSource(), context, false))
+                        .then(ClientCommandManager.literal("render")
+                                .executes(context -> create(context.getSource(), context, false)))
+                        .then(ClientCommandManager.literal("hidden")
+                                .executes(context -> create(context.getSource(), context, true))))))))));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> redefineCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                SelectiveRenderConfig.presetNames(), builder))
+                        .executes(context -> redefine(context.getSource(),
+                                StringArgumentType.getString(context, "name"))));
+    }
+
     private static LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(String name) {
         return ClientCommandManager.literal(name)
                 .executes(context -> toggle(context.getSource(), null))
@@ -318,6 +348,49 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         BlockRegion region = SelectiveRenderState.selection();
         feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
                 green(" saved"), white(" · " + region.blockCount() + " blocks")));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int create(FabricClientCommandSource source,
+                              com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> context,
+                              boolean hidden) {
+        String name = StringArgumentType.getString(context, "name");
+        if (SelectiveRenderConfig.isReservedName(name)) {
+            feedback(source, message(aqua(name), red(" is reserved")));
+            return 0;
+        }
+        if (SelectiveRenderConfig.presetExists(name)) {
+            feedback(source, presetExists(name));
+            return 0;
+        }
+        int x1 = IntegerArgumentType.getInteger(context, "x1");
+        int y1 = IntegerArgumentType.getInteger(context, "y1");
+        int z1 = IntegerArgumentType.getInteger(context, "z1");
+        int x2 = IntegerArgumentType.getInteger(context, "x2");
+        int y2 = IntegerArgumentType.getInteger(context, "y2");
+        int z2 = IntegerArgumentType.getInteger(context, "z2");
+        BlockRegion region = new BlockRegion(Math.min(x1, x2), Math.max(x1, x2),
+                Math.min(y1, y2), Math.max(y1, y2),
+                Math.min(z1, z2), Math.max(z1, z2));
+        SelectiveRenderConfig.saveRegion(MinecraftClient.getInstance(), name, region, hidden);
+        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+                green(" created"), white(" · " + region.blockCount() + " blocks · "),
+                hidden ? red("hidden") : green("render")));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int redefine(FabricClientCommandSource source, String name) {
+        if (!SelectiveRenderConfig.presetExists(name)) {
+            feedback(source, missingPreset(name));
+            return 0;
+        }
+        if (!SelectiveRenderConfig.redefinePreset(MinecraftClient.getInstance(), name)) {
+            feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
+            return 0;
+        }
+        BlockRegion region = SelectiveRenderState.selection();
+        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+                green(" redefined"), white(" · " + region.blockCount() + " blocks")));
         return Command.SINGLE_SUCCESS;
     }
 

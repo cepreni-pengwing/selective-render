@@ -1,6 +1,6 @@
 # Selective Render
 
-Current stable version: **1.9.4**. Latest test version: **1.9.21**.
+Current stable version: **1.9.4**. Latest test version: **1.9.22**.
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and
@@ -29,6 +29,7 @@ Iris is optional and supported.
 /sr 1
 /sr 2
 /sr s NAME
+/sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]
 /sr t NAME
 ```
 
@@ -39,12 +40,13 @@ normal preset in the current server, world, and dimension context.
 
 ```text
 /sr l
-/sr r OLDNAME NEWNAME
+/sr r NAME
+/sr n OLDNAME NEWNAME
 /sr d NAME
 ```
 
-The full command names `pos1`, `pos2`, `save`, `toggle`, `list`, `rename`, and
-`delete` remain available.
+The full command names `pos1`, `pos2`, `save`, `create`, `redefine`, `toggle`, `list`, `name`,
+`rename`, and `delete` remain available.
 
 ## Hiding regions
 
@@ -69,7 +71,8 @@ Settings are also accessible through Mod Menu when installed. Boundary faces can
 or hidden, and optional debug boxes show saved and temporary regions. Settings are preserved when updating.
 
 Switching region rendering off restores normal interaction behavior by default, or interactions can
-continue following saved regions. Virtual skylight can enter from the top, sides, both, or neither.
+continue following saved regions. Virtual skylight can enter from the top, sides, both, or neither,
+with separate controls for render boundaries and hidden regions.
 The settings screen also controls how aggressively affected sections are refreshed.
 
 ## PlotSquared integration
