@@ -188,10 +188,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         .suggests((context, builder) -> CommandSource.suggestMatching(SelectiveRenderConfig.presetNames(), builder))
                         .executes(context -> listBlockFilters(context.getSource(), StringArgumentType.getString(context, "region")))
                         .then(ClientCommandManager.literal("clear").executes(context -> clearBlockFilters(context.getSource(), StringArgumentType.getString(context, "region"))))
-                        .then(ClientCommandManager.literal("hide").then(ClientCommandManager.argument("selector", StringArgumentType.word())
+                        .then(ClientCommandManager.literal("hide").then(ClientCommandManager.argument("selector", StringArgumentType.greedyString())
                                 .suggests((context, builder) -> CommandSource.suggestMatching(blockFilterSuggestions(builder.getRemaining()), builder))
                                 .executes(context -> setBlockFilter(context.getSource(), StringArgumentType.getString(context, "region"), BlockFilterRule.Mode.HIDE, StringArgumentType.getString(context, "selector")))))
-                        .then(ClientCommandManager.literal("only").then(ClientCommandManager.argument("selector", StringArgumentType.word())
+                        .then(ClientCommandManager.literal("only").then(ClientCommandManager.argument("selector", StringArgumentType.greedyString())
                                 .suggests((context, builder) -> CommandSource.suggestMatching(blockFilterSuggestions(builder.getRemaining()), builder))
                                 .executes(context -> setBlockFilter(context.getSource(), StringArgumentType.getString(context, "region"), BlockFilterRule.Mode.ONLY, StringArgumentType.getString(context, "selector"))))));
     }

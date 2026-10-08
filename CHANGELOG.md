@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.2
+
+- Fixed block-filter command parsing so namespaced IDs and tags such as `tag:axiom:solid` work as intended.
+- Applied the command fix consistently to all three Minecraft builds.
+
 ## 1.10.1
 
 - Added per-region block filters with `/sr filter` (`/sr f`) using block IDs or registered block tags, including Axiom tags when available.
