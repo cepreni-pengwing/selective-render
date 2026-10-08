@@ -9,5 +9,6 @@
   "key.selectiverender.toggle_players": "Cycle player visibility",
   "key.selectiverender.cycle_interactions": "Cycle interaction mode",
   "key.selectiverender.cycle_boundary": "Cycle boundary faces",
-  "key.selectiverender.clear_plots": "Clear temporary plots"
+  "key.selectiverender.clear_plots": "Clear temporary plots",
+  "key.selectiverender.toggle_block_filters": "Toggle all block filters"
 }

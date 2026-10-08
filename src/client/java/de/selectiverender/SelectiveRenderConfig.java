@@ -305,6 +305,10 @@ public final class SelectiveRenderConfig {
         return true;
     }
 
+    public static void refreshBlockFilters() {
+        applyState();
+    }
+
     public static List<BlockFilterRule> blockFilters(String requestedName) {
         return List.copyOf(FILTERS.getOrDefault(normalize(requestedName), new LinkedHashSet<>()));
     }
@@ -434,7 +438,8 @@ public final class SelectiveRenderConfig {
     }
 
     private static List<FilteredRegion> filteredRegions() {
-        if (!groupEnabled || ACTIVE_PRESETS.isEmpty() || FILTERS.isEmpty()) return List.of();
+        if (!SelectiveRenderSettings.blockFiltersEnabled()
+                || !groupEnabled || ACTIVE_PRESETS.isEmpty() || FILTERS.isEmpty()) return List.of();
         java.util.ArrayList<FilteredRegion> result = new java.util.ArrayList<>();
         for (String name : ACTIVE_PRESETS) {
             LinkedHashSet<BlockFilterRule> rules = FILTERS.get(name);

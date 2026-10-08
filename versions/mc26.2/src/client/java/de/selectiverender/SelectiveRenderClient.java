@@ -78,6 +78,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.clear_plots",
             GLFW.GLFW_KEY_UNKNOWN,
             KEY_CATEGORY);
+    private static final KeyMapping BLOCK_FILTERS_KEY = new KeyMapping(
+            "key.selectiverender.toggle_block_filters",
+            GLFW.GLFW_KEY_UNKNOWN,
+            KEY_CATEGORY);
 
     @Override
     public void onInitializeClient() {
@@ -112,6 +116,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(INTERACTION_KEY);
         KeyMappingHelper.registerKeyMapping(BOUNDARY_KEY);
         KeyMappingHelper.registerKeyMapping(CLEAR_PLOTS_KEY);
+        KeyMappingHelper.registerKeyMapping(BLOCK_FILTERS_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             VirtualSkyLightSampler.tick(client.level);
             PlotSquaredClient.tick();
@@ -123,6 +128,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (PLAYER_VISIBILITY_KEY.consumeClick()) cyclePlayerVisibility();
             while (INTERACTION_KEY.consumeClick()) cycleInteractions();
             while (BOUNDARY_KEY.consumeClick()) cycleBoundaryFaces();
+            while (BLOCK_FILTERS_KEY.consumeClick()) toggleBlockFilters();
             while (CLEAR_PLOTS_KEY.consumeClick()) {
                 if (client.level != null) PlotSquaredClient.clear();
             }
@@ -660,6 +666,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         SelectiveRenderSettings.BoundaryMode next = SelectiveRenderSettings.boundaryMode().next();
         SelectiveRenderSettings.setBoundaryMode(next);
         overlay(message(white("Boundary faces: "), aqua(next.label())));
+    }
+
+    private static void toggleBlockFilters() {
+        boolean enabled = !SelectiveRenderSettings.blockFiltersEnabled();
+        SelectiveRenderSettings.setBlockFiltersEnabled(enabled);
+        overlay(message(white("Block filters "), enabled ? green("enabled") : red("disabled")));
     }
 
     public static void overlay(Component message) {

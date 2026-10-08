@@ -17,4 +17,9 @@ final class InteractionPolicy {
             case EVERYWHERE -> true;
         };
     }
+
+    static boolean allowsHiddenBlock(boolean hiddenRegion, boolean filteredOut,
+                                     boolean interactWithHiddenRegions) {
+        return interactWithHiddenRegions || (!hiddenRegion && !filteredOut);
+    }
 }

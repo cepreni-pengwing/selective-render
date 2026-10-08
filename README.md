@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.3**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.4**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -93,8 +93,8 @@ Available short commands:
 - `/sr f NAME hide id:namespace:block` hides matching blocks inside that active render region.
   Replace `id:` with `tag:` to filter by a registered block tag; suggestions include tags
   available to the client, including Axiom tags when Axiom provides them. The built-in
-  `tag:selectiverender:beams` selector matches Conquest Reforged and Architects block IDs
-  containing `beam`. Add multiple rules as needed. `only` keeps only matching blocks, and
+  `tag:selectiverender:beams` selector matches Conquest Reforged and Architects beams, lintels,
+  poles, and related stripped-log variants. Add multiple rules as needed. `only` keeps only matching blocks, and
   `clear` removes all filters for that region.
   Running `/sr f NAME` lists that region's current rules.
   Overlapping active regions combine as a union: a block stays visible if any containing region
@@ -118,7 +118,7 @@ Default keybinds:
 - `Backspace`: toggle the current PlotSquared region
 - `#`: open settings (the non-US key next to Enter on German layouts)
 - Unassigned: set Pos1, set Pos2, cycle all six player visibility modes, clear temporary plots
-  (`/sr p clear`), cycle interactions, and cycle boundary faces
+  (`/sr p clear`), cycle interactions and boundary faces, and toggle all block filters
 
 All keybinds can be reassigned in Minecraft's Controls settings under the
 Selective Render category.
@@ -195,7 +195,8 @@ By default, switching all rendering off restores completely vanilla interaction 
 `Interactions while rendering is off: Filtered` to keep the selected Inside/Outside/None policy
 using the retained region selection while the world remains fully visible.
 Filtered mode uses every saved region, including presets that are not currently selected. A separate
-toggle controls whether hidden regions remain interactable; disabling it also blocks them in the
+toggle controls whether hidden regions and blocks removed by region filters remain interactable;
+disabling it also removes their hitboxes and blocks targeting and interaction, including in the
 otherwise unrestricted Everywhere mode.
 
 Virtual skylight can enter cut regions from the top and sides, only the top, only the sides, or

@@ -9,12 +9,21 @@ public final class BuiltInBlockTags {
 
     private BuiltInBlockTags() {}
 
-    /** Includes every registered block from the supported mods whose identifier names it as a beam. */
+    /** Includes beams, lintels, poles, and stripped-log beam variants from the supported building mods. */
     public static boolean isBeam(String blockId) {
         if (blockId == null) return false;
         int separator = blockId.indexOf(':');
-        return separator > 0 && separator < blockId.length() - 1
-                && BEAM_MODS.contains(blockId.substring(0, separator))
-                && blockId.substring(separator + 1).contains("beam");
+        if (separator <= 0 || separator >= blockId.length() - 1) return false;
+        String namespace = blockId.substring(0, separator);
+        String path = blockId.substring(separator + 1);
+        if (!BEAM_MODS.contains(namespace)) return false;
+        if (path.contains("beam") || path.contains("lintel") || path.contains("pole")) return true;
+
+        // Architects names some diagonal/thin stripped-log beam shapes without "beam" in the ID.
+        return namespace.equals("architects")
+                && (path.startsWith("diagonal_stripped_")
+                || path.startsWith("half_diagonal_stripped_")
+                || path.startsWith("steeper_diagonal_stripped_")
+                || path.startsWith("thin_stripped_"));
     }
 }

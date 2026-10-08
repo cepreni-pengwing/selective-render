@@ -185,6 +185,11 @@ public final class SelectiveRenderState {
         VisibilitySnapshot snapshot = visibility;
         if (!snapshot.enabled() && !snapshot.hideEnabled()) return true;
         if (!shouldRender(snapshot, blockX, blockY, blockZ)) return false;
+        return matchesBlockFilters(snapshot, state, blockX, blockY, blockZ);
+    }
+
+    private static boolean matchesBlockFilters(VisibilitySnapshot snapshot, BlockState state,
+                                               int blockX, int blockY, int blockZ) {
         if (!snapshot.enabled() || snapshot.plotModeActive() || snapshot.filteredRegions().isEmpty()) return true;
         boolean inFilteredRegion = false;
         boolean matchesAny = false;
@@ -307,12 +312,34 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldInteract(BlockPos position) {
-        if (isActivelyHidden(position)
-                && !SelectiveRenderSettings.interactWithHiddenRegions()) return false;
+        boolean interactWithHidden = SelectiveRenderSettings.interactWithHiddenRegions();
+        boolean hidden = isActivelyHidden(position);
+        boolean filteredOut = !interactWithHidden && !hidden && isFilteredOut(position);
+        if (!InteractionPolicy.allowsHiddenBlock(hidden, filteredOut, interactWithHidden)) return false;
         SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
         if (!interactionFilteringActive(mode)) return true;
         return InteractionPolicy.allows(mode,
                 interactionInside(position.getX(), position.getY(), position.getZ()));
+    }
+
+    private static boolean isFilteredOut(BlockPos position) {
+        VisibilitySnapshot snapshot = visibility;
+        if (!snapshot.enabled() || snapshot.plotModeActive() || snapshot.filteredRegions().isEmpty()) return false;
+        int x = position.getX();
+        int y = position.getY();
+        int z = position.getZ();
+        boolean insideFilteredRegion = false;
+        for (FilteredRegion filtered : snapshot.filteredRegions()) {
+            if (filtered.region().contains(x, y, z)) {
+                insideFilteredRegion = true;
+                break;
+            }
+        }
+        if (!insideFilteredRegion) return false;
+        MinecraftClient client = MinecraftClient.getInstance();
+        ClientWorld world = client.world;
+        if (world == null) return false;
+        return !matchesBlockFilters(snapshot, world.getBlockState(position), x, y, z);
     }
 
     public static boolean shouldInteract(Entity entity) {

@@ -15,7 +15,7 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 
 public final class SelectiveRenderSettings {
-    private static final int SETTINGS_FORMAT_VERSION = 3;
+    private static final int SETTINGS_FORMAT_VERSION = 4;
     static final int DEFAULT_FULL_RELOAD_THRESHOLD = 8192;
     static final int MIN_FULL_RELOAD_THRESHOLD = 256;
     static final int MAX_FULL_RELOAD_THRESHOLD = 65536;
@@ -30,6 +30,7 @@ public final class SelectiveRenderSettings {
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean debugBoxes;
     private static volatile boolean filterInteractionsWhenInactive;
+    private static volatile boolean blockFiltersEnabled = true;
     private static volatile boolean interactWithHiddenRegions;
     private static volatile VirtualLightMode virtualLightMode = VirtualLightMode.BOTH;
     private static volatile VirtualLightMode hiddenVirtualLightMode = VirtualLightMode.BOTH;
@@ -57,6 +58,7 @@ public final class SelectiveRenderSettings {
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
         debugBoxes = stored.debugBoxes;
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
+        blockFiltersEnabled = stored.blockFiltersEnabled == null || stored.blockFiltersEnabled;
         interactWithHiddenRegions = stored.interactWithHiddenRegions;
         virtualLightMode = stored.virtualLightMode == null ? VirtualLightMode.BOTH : stored.virtualLightMode;
         hiddenVirtualLightMode = stored.hiddenVirtualLightMode == null
@@ -75,6 +77,7 @@ public final class SelectiveRenderSettings {
     public static BoundaryMode boundaryMode() { return boundaryMode; }
     public static boolean debugBoxes() { return debugBoxes; }
     public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
+    public static boolean blockFiltersEnabled() { return blockFiltersEnabled; }
     public static boolean interactWithHiddenRegions() { return interactWithHiddenRegions; }
     public static VirtualLightMode virtualLightMode() { return virtualLightMode; }
     public static VirtualLightMode hiddenVirtualLightMode() { return hiddenVirtualLightMode; }
@@ -111,6 +114,13 @@ public final class SelectiveRenderSettings {
         if (filterInteractionsWhenInactive == value) return;
         filterInteractionsWhenInactive = value;
         save();
+    }
+
+    public static void setBlockFiltersEnabled(boolean value) {
+        if (blockFiltersEnabled == value) return;
+        blockFiltersEnabled = value;
+        save();
+        SelectiveRenderConfig.refreshBlockFilters();
     }
 
     public static void setInteractWithHiddenRegions(boolean value) {
@@ -169,6 +179,7 @@ public final class SelectiveRenderSettings {
             stored.boundaryMode = boundaryMode;
             stored.debugBoxes = debugBoxes;
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
+            stored.blockFiltersEnabled = blockFiltersEnabled;
             stored.interactWithHiddenRegions = interactWithHiddenRegions;
             stored.virtualLightMode = virtualLightMode;
             stored.hiddenVirtualLightMode = hiddenVirtualLightMode;
@@ -279,6 +290,7 @@ public final class SelectiveRenderSettings {
         BoundaryMode boundaryMode;
         boolean debugBoxes;
         boolean filterInteractionsWhenInactive;
+        Boolean blockFiltersEnabled;
         boolean interactWithHiddenRegions;
         VirtualLightMode virtualLightMode;
         VirtualLightMode hiddenVirtualLightMode;

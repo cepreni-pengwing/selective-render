@@ -22,4 +22,11 @@ class InteractionPolicyTest {
         assertTrue(InteractionPolicy.allows(SelectiveRenderSettings.InteractionMode.OUTSIDE, false));
         assertTrue(InteractionPolicy.allows(SelectiveRenderSettings.InteractionMode.EVERYWHERE, false));
     }
+
+    @Test void filteredBlocksUseTheHiddenRegionInteractionSetting() {
+        assertTrue(InteractionPolicy.allowsHiddenBlock(false, false, false));
+        assertFalse(InteractionPolicy.allowsHiddenBlock(true, false, false));
+        assertFalse(InteractionPolicy.allowsHiddenBlock(false, true, false));
+        assertTrue(InteractionPolicy.allowsHiddenBlock(false, true, true));
+    }
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.4
+
+- Added an unassigned keybind to toggle all saved block filters together, with an in-game status notification.
+- Made filtered-out blocks follow the hidden-region interaction setting, including targeting, hitboxes, and block interactions.
+- Expanded `tag:selectiverender:beams` to include Architects stripped-log beam variants and both mods' lintels and poles.
+- Applied the toggle consistently to Minecraft 1.20.1, 1.21.1, and 26.2; its enabled state is saved between sessions.
+
 ## 1.10.3
 
 - Added the built-in `tag:selectiverender:beams` filter for Conquest Reforged and Architects blocks whose IDs contain `beam`, including beam layers, stairs, and other variants.

@@ -12,6 +12,7 @@ class SettingsDefaultsTest {
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
                 SelectiveRenderSettings.boundaryMode());
         assertFalse(SelectiveRenderSettings.debugBoxes());
+        assertTrue(SelectiveRenderSettings.blockFiltersEnabled());
         assertFalse(SelectiveRenderSettings.filterInteractionsWhenInactive());
         assertFalse(SelectiveRenderSettings.interactWithHiddenRegions());
         assertEquals(SelectiveRenderSettings.VirtualLightMode.BOTH,

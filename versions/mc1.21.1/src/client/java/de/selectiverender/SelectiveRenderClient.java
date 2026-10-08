@@ -75,6 +75,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.clear_plots",
             GLFW.GLFW_KEY_UNKNOWN,
             "category.selectiverender");
+    private static final KeyBinding BLOCK_FILTERS_KEY = new KeyBinding(
+            "key.selectiverender.toggle_block_filters",
+            GLFW.GLFW_KEY_UNKNOWN,
+            "category.selectiverender");
 
     @Override
     public void onInitializeClient() {
@@ -109,6 +113,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyBindingHelper.registerKeyBinding(INTERACTION_KEY);
         KeyBindingHelper.registerKeyBinding(BOUNDARY_KEY);
         KeyBindingHelper.registerKeyBinding(CLEAR_PLOTS_KEY);
+        KeyBindingHelper.registerKeyBinding(BLOCK_FILTERS_KEY);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             VirtualSkyLightSampler.tick(client.world);
             PlotSquaredClient.tick();
@@ -120,6 +125,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (PLAYER_VISIBILITY_KEY.wasPressed()) cyclePlayerVisibility();
             while (INTERACTION_KEY.wasPressed()) cycleInteractions();
             while (BOUNDARY_KEY.wasPressed()) cycleBoundaryFaces();
+            while (BLOCK_FILTERS_KEY.wasPressed()) toggleBlockFilters();
             while (CLEAR_PLOTS_KEY.wasPressed()) {
                 if (client.world != null) PlotSquaredClient.clear();
             }
@@ -657,6 +663,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         SelectiveRenderSettings.BoundaryMode next = SelectiveRenderSettings.boundaryMode().next();
         SelectiveRenderSettings.setBoundaryMode(next);
         overlay(message(white("Boundary faces: "), aqua(next.label())));
+    }
+
+    private static void toggleBlockFilters() {
+        boolean enabled = !SelectiveRenderSettings.blockFiltersEnabled();
+        SelectiveRenderSettings.setBlockFiltersEnabled(enabled);
+        overlay(message(white("Block filters "), enabled ? green("enabled") : red("disabled")));
     }
 
     public static void overlay(Text message) {
