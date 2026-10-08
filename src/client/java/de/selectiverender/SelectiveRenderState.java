@@ -48,7 +48,7 @@ public final class SelectiveRenderState {
     public static int visibilityGeneration() { return visibility.generation(); }
     public static boolean filteringActive() {
         VisibilitySnapshot snapshot = visibility;
-        return snapshot.enabled() || snapshot.hideEnabled();
+        return snapshot.enabled() || snapshot.hideEnabled() || !snapshot.filteredRegions().isEmpty();
     }
 
     static VisibilitySnapshot snapshot() { return visibility; }
@@ -183,14 +183,17 @@ public final class SelectiveRenderState {
 
     public static boolean shouldRender(BlockState state, int blockX, int blockY, int blockZ) {
         VisibilitySnapshot snapshot = visibility;
-        if (!snapshot.enabled() && !snapshot.hideEnabled()) return true;
-        if (!shouldRender(snapshot, blockX, blockY, blockZ)) return false;
+        if (!snapshot.enabled() && !snapshot.hideEnabled()) {
+            if (snapshot.filteredRegions().isEmpty()) return true;
+        } else if (!shouldRender(snapshot, blockX, blockY, blockZ)) {
+            return false;
+        }
         return matchesBlockFilters(snapshot, state, blockX, blockY, blockZ);
     }
 
     private static boolean matchesBlockFilters(VisibilitySnapshot snapshot, BlockState state,
                                                int blockX, int blockY, int blockZ) {
-        if (!snapshot.enabled() || snapshot.plotModeActive() || snapshot.filteredRegions().isEmpty()) return true;
+        if (snapshot.filteredRegions().isEmpty()) return true;
         boolean inFilteredRegion = false;
         boolean matchesAny = false;
         String blockId = null;
@@ -324,7 +327,7 @@ public final class SelectiveRenderState {
 
     private static boolean isFilteredOut(BlockPos position) {
         VisibilitySnapshot snapshot = visibility;
-        if (!snapshot.enabled() || snapshot.plotModeActive() || snapshot.filteredRegions().isEmpty()) return false;
+        if (snapshot.filteredRegions().isEmpty()) return false;
         int x = position.getX();
         int y = position.getY();
         int z = position.getZ();

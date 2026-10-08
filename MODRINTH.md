@@ -1,6 +1,6 @@
 # Selective Render
 
-Current stable version: **1.9.4**. Latest test version: **1.10.4**.
+Current stable version: **1.9.4**. Latest test version: **1.10.5**.
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and
@@ -62,7 +62,9 @@ Filter blocks inside a region with `/sr f NAME hide id:namespace:block` or
 `/sr f NAME only tag:namespace:tag`. Tab completion lists known blocks and block tags,
 including Axiom tags when available. Use `tag:selectiverender:beams` for Conquest Reforged
 and Architects beams, lintels, poles, and related stripped-log variants. `/sr f NAME clear` removes the region's filters.
-`/sr f NAME` lists its current filters. Filters are visual-only and are saved with the region.
+`/sr f NAME` lists its current filters. Filters are saved with the region and do not change collision or server-side state.
+Saved filters remain active when their render region is toggled off; use the unassigned filter keybind to pause them.
+The hidden-region interaction setting can also disable targeting and interaction with filtered blocks.
 
 ## Hiding regions
 

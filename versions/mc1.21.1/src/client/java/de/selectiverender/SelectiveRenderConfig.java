@@ -434,13 +434,14 @@ public final class SelectiveRenderConfig {
     }
 
     private static List<FilteredRegion> filteredRegions() {
-        if (!SelectiveRenderSettings.blockFiltersEnabled()
-                || !groupEnabled || ACTIVE_PRESETS.isEmpty() || FILTERS.isEmpty()) return List.of();
+        if (!SelectiveRenderSettings.blockFiltersEnabled() || FILTERS.isEmpty()) return List.of();
         java.util.ArrayList<FilteredRegion> result = new java.util.ArrayList<>();
-        for (String name : ACTIVE_PRESETS) {
-            LinkedHashSet<BlockFilterRule> rules = FILTERS.get(name);
-            java.util.Set<BlockFilterRule> regionRules = rules == null ? java.util.Set.of() : rules;
-            for (BlockRegion region : PRESETS.getOrDefault(name, List.of())) result.add(new FilteredRegion(region, regionRules));
+        for (Map.Entry<String, LinkedHashSet<BlockFilterRule>> entry : FILTERS.entrySet()) {
+            String name = entry.getKey();
+            if (HIDDEN_PRESETS.contains(name) || entry.getValue().isEmpty()) continue;
+            for (BlockRegion region : PRESETS.getOrDefault(name, List.of())) {
+                result.add(new FilteredRegion(region, entry.getValue()));
+            }
         }
         return List.copyOf(result);
     }

@@ -56,6 +56,19 @@ class VisibilitySnapshotTest {
     }
 
     @Test
+    void savedBlockFiltersRemainInTheSnapshotWhenRenderRegionsAreOff() {
+        FilteredRegion filter = new FilteredRegion(NORMAL, java.util.Set.of(
+                new BlockFilterRule(BlockFilterRule.Mode.HIDE, BlockFilterRule.Kind.ID,
+                        "minecraft:oak_planks")));
+        VisibilitySnapshot snapshot = VisibilitySnapshot.create(
+                List.of(NORMAL), false, List.of(), false, List.of(), List.of(),
+                List.of(filter), false, false, 14);
+
+        assertFalse(snapshot.enabled());
+        assertEquals(List.of(filter), snapshot.filteredRegions());
+    }
+
+    @Test
     void configuredToggleNeverChangesTheHiddenGroupState() {
         VisibilitySnapshot snapshot = VisibilitySnapshot.create(
                 List.of(NORMAL), true, List.of(OVERRIDE), true, List.of(),

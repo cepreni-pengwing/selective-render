@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.4**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.5**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -97,6 +97,8 @@ Available short commands:
   poles, and related stripped-log variants. Add multiple rules as needed. `only` keeps only matching blocks, and
   `clear` removes all filters for that region.
   Running `/sr f NAME` lists that region's current rules.
+  Saved filters remain active independently of whether their render toggle is on; use the
+  unassigned filter keybind to pause all block filters.
   Overlapping active regions combine as a union: a block stays visible if any containing region
   allows it. Filters affect visuals only, not collision or server-side interactions.
 - `/sr n OLDNAME NEWNAME` renames a preset while preserving its group memberships.

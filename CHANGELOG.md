@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.5
+
+- Saved region filters now apply independently of whether their render regions are toggled on.
+- Filter-hidden blocks follow the hidden-region interaction setting across all supported Minecraft builds.
+
 ## 1.10.4
 
 - Added an unassigned keybind to toggle all saved block filters together, with an in-game status notification.
