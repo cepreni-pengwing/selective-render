@@ -1,6 +1,7 @@
 package de.selectiverender.mixin.sodium;
 
 import de.selectiverender.SelectiveRenderState;
+import net.minecraft.block.BlockState;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
 import me.jellysquid.mods.sodium.client.world.WorldSlice;
@@ -19,6 +20,7 @@ abstract class FluidRendererMixin {
     private void selectiverender$filterFluid(WorldSlice world, FluidState fluidState,
                                              BlockPos pos, BlockPos offset,
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(pos)) ci.cancel();
+        BlockState state = world.getBlockState(pos);
+        if (!SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 }

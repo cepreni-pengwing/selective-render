@@ -31,14 +31,17 @@ abstract class BlockModelRendererMixin {
     private void selectiverender$filter(BlockQuadOutput output, float x, float y, float z,
             BlockAndTintGetter world, BlockPos pos, BlockState state, BlockStateModel model,
             long seed, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(pos)) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 
     @Inject(method = "shouldRenderFace", at = @At("HEAD"), cancellable = true)
     private void selectiverender$expose(BlockAndTintGetter world, BlockState state,
             Direction direction, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
         if (!SelectiveRenderState.filteringActive()) return;
-        if (SelectiveRenderState.shouldRender(pos) && !SelectiveRenderState.shouldRender(pos.relative(direction))) {
+        BlockState neighbor = world.getBlockState(pos.relative(direction));
+        if (SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())
+                && !SelectiveRenderState.shouldRender(neighbor, pos.getX() + direction.getStepX(),
+                pos.getY() + direction.getStepY(), pos.getZ() + direction.getStepZ())) {
             cir.setReturnValue(SelectiveRenderState.boundaryModeForFace(pos, direction)
                     != SelectiveRenderSettings.BoundaryMode.CULLED);
         }

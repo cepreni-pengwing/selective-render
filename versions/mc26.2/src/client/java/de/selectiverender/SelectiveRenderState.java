@@ -12,6 +12,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
 
@@ -61,11 +62,19 @@ public final class SelectiveRenderState {
 
     public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
                                      Collection<BlockRegion> hidden, boolean newHideEnabled,
-                                     Collection<BlockRegion> overrides) {
+                                     Collection<BlockRegion> overrides,
+                                     Collection<FilteredRegion> filteredRegions) {
         visibleOccluderCache.clear();
         VisibilitySnapshot current = visibility;
         visibility = current.withSavedState(List.copyOf(regions), newEnabled,
-                List.copyOf(hidden), newHideEnabled, List.copyOf(overrides), nextGeneration(current));
+                List.copyOf(hidden), newHideEnabled, List.copyOf(overrides),
+                List.copyOf(filteredRegions), nextGeneration(current));
+    }
+
+    public static void setSavedState(Collection<BlockRegion> regions, boolean newEnabled,
+                                     Collection<BlockRegion> hidden, boolean newHideEnabled,
+                                     Collection<BlockRegion> overrides) {
+        setSavedState(regions, newEnabled, hidden, newHideEnabled, overrides, List.of());
     }
 
     public static boolean saveSelection() {
@@ -170,6 +179,29 @@ public final class SelectiveRenderState {
         VisibilitySnapshot snapshot = visibility;
         if (!snapshot.enabled() && !snapshot.hideEnabled()) return true;
         return shouldRender(snapshot, blockX, blockY, blockZ);
+    }
+
+    public static boolean shouldRender(BlockState state, int x, int y, int z) {
+        VisibilitySnapshot snapshot = visibility;
+        if (!snapshot.enabled() && !snapshot.hideEnabled()) return true;
+        if (!shouldRender(snapshot, x, y, z)) return false;
+        if (!snapshot.enabled() || snapshot.plotModeActive() || snapshot.filteredRegions().isEmpty()) return true;
+        boolean matchedRegion = false, allowed = false;
+        String blockId = null;
+        Set<String> tags = null;
+        for (FilteredRegion filtered : snapshot.filteredRegions()) {
+            if (!filtered.region().contains(x, y, z)) continue;
+            matchedRegion = true;
+            if (filtered.rules().isEmpty()) return true;
+            if (blockId == null) {
+                blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
+                tags = BuiltInRegistries.BLOCK.wrapAsHolder(state.getBlock()).tags()
+                        .map(tag -> tag.location().toString())
+                        .collect(java.util.stream.Collectors.toSet());
+            }
+            if (BlockFilterRule.allows(filtered.rules(), blockId, tags)) allowed = true;
+        }
+        return !matchedRegion || allowed;
     }
 
     private static boolean shouldRender(VisibilitySnapshot snapshot,
@@ -447,7 +479,7 @@ public final class SelectiveRenderState {
         VirtualSkyLightSampler.invalidate();
         VisibilitySnapshot current = visibility;
         visibility = VisibilitySnapshot.create(List.of(), false, List.of(), false,
-                List.of(), List.of(), false, false, nextGeneration(current));
+                List.of(), List.of(), List.of(), false, false, nextGeneration(current));
     }
 
     public static void refreshRenderer() {

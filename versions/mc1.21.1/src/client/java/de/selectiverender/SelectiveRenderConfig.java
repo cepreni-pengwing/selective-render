@@ -32,6 +32,7 @@ public final class SelectiveRenderConfig {
     private static final LinkedHashSet<String> ACTIVE_PRESETS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> HIDDEN_PRESETS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> ACTIVE_HIDDEN_PRESETS = new LinkedHashSet<>();
+    private static final Map<String, LinkedHashSet<BlockFilterRule>> FILTERS = new LinkedHashMap<>();
     private static boolean groupEnabled;
     private static boolean hideGroupEnabled = true;
     private static volatile RegionIndex allNormalRegionIndex = RegionIndex.empty();
@@ -144,6 +145,7 @@ public final class SelectiveRenderConfig {
         PRESETS.put(name, next);
         HIDDEN_PRESETS.remove(name);
         ACTIVE_HIDDEN_PRESETS.remove(name);
+        FILTERS.remove(name);
         ACTIVE_PRESETS.add(name);
         groupEnabled = true;
         applyState();
@@ -223,6 +225,7 @@ public final class SelectiveRenderConfig {
         ACTIVE_PRESETS.remove(name);
         HIDDEN_PRESETS.remove(name);
         ACTIVE_HIDDEN_PRESETS.remove(name);
+        FILTERS.remove(name);
         applyState();
         write(client);
         return true;
@@ -239,6 +242,8 @@ public final class SelectiveRenderConfig {
 
         List<BlockRegion> regions = PRESETS.remove(oldName);
         PRESETS.put(newName, regions);
+        LinkedHashSet<BlockFilterRule> rules = FILTERS.remove(oldName);
+        if (rules != null) FILTERS.put(newName, rules);
         PresetGroupLogic.replaceMembership(ACTIVE_PRESETS, oldName, newName);
         PresetGroupLogic.replaceMembership(HIDDEN_PRESETS, oldName, newName);
         PresetGroupLogic.replaceMembership(ACTIVE_HIDDEN_PRESETS, oldName, newName);
@@ -283,6 +288,23 @@ public final class SelectiveRenderConfig {
         return regionsFor(PRESETS.keySet());
     }
 
+    public static boolean setBlockFilter(MinecraftClient client, String requestedName, BlockFilterRule rule) {
+        String name = normalize(requestedName);
+        if (!PRESETS.containsKey(name) || HIDDEN_PRESETS.contains(name)) return false;
+        if (!FILTERS.computeIfAbsent(name, ignored -> new LinkedHashSet<>()).add(rule)) return true;
+        applyState(); write(client); return true;
+    }
+
+    public static boolean clearBlockFilters(MinecraftClient client, String requestedName) {
+        String name = normalize(requestedName);
+        if (!PRESETS.containsKey(name) || FILTERS.remove(name) == null) return false;
+        applyState(); write(client); return true;
+    }
+
+    public static List<BlockFilterRule> blockFilters(String requestedName) {
+        return List.copyOf(FILTERS.getOrDefault(normalize(requestedName), new LinkedHashSet<>()));
+    }
+
     public static boolean containsSavedRegion(int x, int y, int z, boolean includeHidden) {
         return allNormalRegionIndex.contains(x, y, z)
                 || (includeHidden && allHiddenRegionIndex.contains(x, y, z));
@@ -311,11 +333,12 @@ public final class SelectiveRenderConfig {
         ACTIVE_PRESETS.clear();
         HIDDEN_PRESETS.clear();
         ACTIVE_HIDDEN_PRESETS.clear();
+        FILTERS.clear();
         groupEnabled = false;
         hideGroupEnabled = true;
         allNormalRegionIndex = RegionIndex.empty();
         allHiddenRegionIndex = RegionIndex.empty();
-        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of());
+        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of(), List.of());
     }
 
     public static void endSession() {
@@ -345,7 +368,7 @@ public final class SelectiveRenderConfig {
         try {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
-            stored.formatVersion = 7;
+            stored.formatVersion = 8;
             stored.activePresets = List.copyOf(ACTIVE_PRESETS);
             stored.hiddenPresets = List.copyOf(HIDDEN_PRESETS);
             stored.activeHiddenPresets = List.copyOf(ACTIVE_HIDDEN_PRESETS);
@@ -354,6 +377,9 @@ public final class SelectiveRenderConfig {
             stored.regionGroups = new LinkedHashMap<>();
             PRESETS.forEach((name, regions) -> stored.regionGroups.put(name,
                     regions.stream().map(StoredRegion::from).toList()));
+            stored.blockFilters = new LinkedHashMap<>();
+            FILTERS.forEach((name, rules) -> stored.blockFilters.put(name,
+                    rules.stream().map(StoredBlockFilter::from).toList()));
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
             if (backupExisting && Files.isRegularFile(path)) {
                 Files.copy(path, ConfigRecovery.backupPath(path),
@@ -385,7 +411,7 @@ public final class SelectiveRenderConfig {
         SelectiveRenderState.setSavedState(
                 regionsFor(ACTIVE_PRESETS), groupEnabled,
                 regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled,
-                regionsFor(visibleOverrides));
+                regionsFor(visibleOverrides), filteredRegions());
         if (refresh) SelectiveRenderState.refreshChange(previous);
     }
 
@@ -401,6 +427,17 @@ public final class SelectiveRenderConfig {
         java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>();
         for (String name : names) regions.addAll(PRESETS.getOrDefault(name, List.of()));
         return List.copyOf(regions);
+    }
+
+    private static List<FilteredRegion> filteredRegions() {
+        if (!groupEnabled || ACTIVE_PRESETS.isEmpty() || FILTERS.isEmpty()) return List.of();
+        java.util.ArrayList<FilteredRegion> result = new java.util.ArrayList<>();
+        for (String name : ACTIVE_PRESETS) {
+            LinkedHashSet<BlockFilterRule> rules = FILTERS.get(name);
+            java.util.Set<BlockFilterRule> regionRules = rules == null ? java.util.Set.of() : rules;
+            for (BlockRegion region : PRESETS.getOrDefault(name, List.of())) result.add(new FilteredRegion(region, regionRules));
+        }
+        return List.copyOf(result);
     }
 
     public enum RenameResult {
@@ -440,6 +477,7 @@ public final class SelectiveRenderConfig {
     }
 
     private static void applyStoredConfig(StoredConfig stored) {
+        FILTERS.clear();
         if (stored.formatVersion >= 7 && stored.regionGroups != null) {
             stored.regionGroups.forEach((name, regions) -> {
                 if (name != null && regions != null && !regions.isEmpty()) {
@@ -457,6 +495,14 @@ public final class SelectiveRenderConfig {
                 && stored.minZ != null && stored.maxZ != null) {
             PRESETS.put("default", List.of(StoredRegion.fromLegacyChunks(
                     stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
+        }
+        if (stored.formatVersion >= 8 && stored.blockFilters != null) {
+            stored.blockFilters.forEach((name, rules) -> {
+                if (name == null || rules == null || !PRESETS.containsKey(normalize(name))) return;
+                LinkedHashSet<BlockFilterRule> parsed = new LinkedHashSet<>();
+                for (StoredBlockFilter rule : rules) if (rule != null) parsed.add(rule.toRule());
+                if (!parsed.isEmpty()) FILTERS.put(normalize(name), parsed);
+            });
         }
 
         if (stored.formatVersion >= 4 && stored.activePresets != null) {
@@ -503,6 +549,10 @@ public final class SelectiveRenderConfig {
                 && stored.minZ != null && stored.maxZ != null) {
             StoredRegion.fromLegacyChunks(stored.minX, stored.maxX, stored.minZ, stored.maxZ);
         }
+        if (stored.formatVersion >= 8 && stored.blockFilters != null) stored.blockFilters.forEach((name, rules) -> {
+            if (name == null || rules == null) throw new IllegalArgumentException("Invalid block filters");
+            for (StoredBlockFilter rule : rules) { if (rule == null) throw new IllegalArgumentException("Null block filter"); rule.toRule(); }
+        });
     }
 
     private static Path pathFor(ClientWorld world) {
@@ -534,6 +584,7 @@ public final class SelectiveRenderConfig {
     private static final class StoredConfig {
         Map<String, StoredRegion> presets;
         Map<String, List<StoredRegion>> regionGroups;
+        Map<String, List<StoredBlockFilter>> blockFilters;
         int formatVersion;
         String activePreset;
         List<String> activePresets;
@@ -545,6 +596,17 @@ public final class SelectiveRenderConfig {
         Integer maxX;
         Integer minZ;
         Integer maxZ;
+    }
+
+    private static final class StoredBlockFilter {
+        String mode; String kind; String value;
+        static StoredBlockFilter from(BlockFilterRule rule) {
+            StoredBlockFilter stored = new StoredBlockFilter();
+            stored.mode = rule.mode().name(); stored.kind = rule.kind().name(); stored.value = rule.value(); return stored;
+        }
+        BlockFilterRule toRule() {
+            return new BlockFilterRule(BlockFilterRule.Mode.valueOf(mode), BlockFilterRule.Kind.valueOf(kind), value);
+        }
     }
 
     private static final class StoredRegion {

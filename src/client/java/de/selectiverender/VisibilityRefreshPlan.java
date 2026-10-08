@@ -12,6 +12,10 @@ record VisibilityRefreshPlan(List<BlockRegion> changedRegions, boolean scanCompl
                 after.enabled() ? after.visibleRegions() : List.of());
         addDifference(changed, before.hideEnabled() ? before.hiddenRegions() : List.of(),
                 after.hideEnabled() ? after.hiddenRegions() : List.of());
+        if (!before.filteredRegions().equals(after.filteredRegions())) {
+            before.filteredRegions().forEach(region -> changed.add(region.region()));
+            after.filteredRegions().forEach(region -> changed.add(region.region()));
+        }
         return new VisibilityRefreshPlan(List.copyOf(changed), before.enabled() != after.enabled());
     }
 

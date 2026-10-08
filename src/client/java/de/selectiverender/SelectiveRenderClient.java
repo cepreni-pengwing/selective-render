@@ -176,8 +176,94 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(renameCommand("n"))
                 .then(plotCommand("plot"))
                 .then(plotCommand("p"))
+                .then(filterCommand("filter"))
+                .then(filterCommand("f"))
                 .then(listCommand("list"))
                 .then(listCommand("l"));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> filterCommand(String name) {
+        return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("region", StringArgumentType.word())
+                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                SelectiveRenderConfig.presetNames(), builder))
+                        .executes(context -> listBlockFilters(context.getSource(), StringArgumentType.getString(context, "region")))
+                        .then(ClientCommandManager.literal("clear")
+                                .executes(context -> clearBlockFilters(context.getSource(),
+                                        StringArgumentType.getString(context, "region"))))
+                        .then(ClientCommandManager.literal("hide")
+                                .then(ClientCommandManager.argument("selector", StringArgumentType.word())
+                                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                                blockFilterSuggestions(builder.getRemaining()), builder))
+                                        .executes(context -> setBlockFilter(context.getSource(),
+                                                StringArgumentType.getString(context, "region"),
+                                                BlockFilterRule.Mode.HIDE,
+                                                StringArgumentType.getString(context, "selector")))))
+                        .then(ClientCommandManager.literal("only")
+                                .then(ClientCommandManager.argument("selector", StringArgumentType.word())
+                                        .suggests((context, builder) -> CommandSource.suggestMatching(
+                                                blockFilterSuggestions(builder.getRemaining()), builder))
+                                        .executes(context -> setBlockFilter(context.getSource(),
+                                                StringArgumentType.getString(context, "region"),
+                                                BlockFilterRule.Mode.ONLY,
+                                                StringArgumentType.getString(context, "selector"))))));
+    }
+
+    private static List<String> blockFilterSuggestions(String remaining) {
+        List<String> suggestions = new java.util.ArrayList<>();
+        if (!remaining.startsWith("tag:")) {
+            net.minecraft.registry.Registries.BLOCK.getIds().forEach(id -> suggestions.add("id:" + id));
+        }
+        if (!remaining.startsWith("id:")) {
+            net.minecraft.registry.Registries.BLOCK.forEach(block -> block.getRegistryEntry().streamTags()
+                    .forEach(tag -> suggestions.add("tag:" + tag.id())));
+        }
+        return suggestions;
+    }
+
+    private static int setBlockFilter(FabricClientCommandSource source, String region,
+                                      BlockFilterRule.Mode mode, String selector) {
+        try {
+            int separator = selector.indexOf(':');
+            if (separator <= 0 || separator == selector.length() - 1) throw new IllegalArgumentException();
+            String prefix = selector.substring(0, separator).toLowerCase(Locale.ROOT);
+            BlockFilterRule.Kind kind = switch (prefix) {
+                case "id" -> BlockFilterRule.Kind.ID;
+                case "tag" -> BlockFilterRule.Kind.TAG;
+                default -> throw new IllegalArgumentException();
+            };
+            String value = selector.substring(separator + 1).toLowerCase(Locale.ROOT);
+            BlockFilterRule rule = new BlockFilterRule(mode, kind, value);
+            if (!SelectiveRenderConfig.setBlockFilter(MinecraftClient.getInstance(), region, rule)) {
+                feedback(source, Text.literal("Could not add filter: unknown or hidden region " + region));
+                return 0;
+            }
+            feedback(source, Text.literal("Added " + mode.name().toLowerCase(Locale.ROOT)
+                    + " filter " + selector + " to " + region));
+            return Command.SINGLE_SUCCESS;
+        } catch (IllegalArgumentException exception) {
+            feedback(source, Text.literal("Use id:minecraft:stone or tag:minecraft:slabs"));
+            return 0;
+        }
+    }
+
+    private static int clearBlockFilters(FabricClientCommandSource source, String region) {
+        if (!SelectiveRenderConfig.clearBlockFilters(MinecraftClient.getInstance(), region)) {
+            feedback(source, Text.literal("No block filters cleared for " + region));
+            return 0;
+        }
+        feedback(source, Text.literal("Cleared block filters for " + region));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int listBlockFilters(FabricClientCommandSource source, String region) {
+        List<BlockFilterRule> rules = SelectiveRenderConfig.blockFilters(region);
+        feedback(source, rules.isEmpty() ? Text.literal("No block filters for " + region)
+                : Text.literal("Block filters for " + region + ": " + rules.stream()
+                        .map(rule -> rule.mode().name().toLowerCase(Locale.ROOT) + " "
+                                + rule.kind().name().toLowerCase(Locale.ROOT) + ":" + rule.value())
+                        .collect(java.util.stream.Collectors.joining(", "))));
+        return rules.isEmpty() ? 0 : Command.SINGLE_SUCCESS;
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> plotCommand(String name) {

@@ -20,7 +20,9 @@ abstract class BlockMixin {
                                                            BlockPos neighborPos,
                                                            CallbackInfoReturnable<Boolean> cir) {
         if (!SelectiveRenderState.filteringActive()) return;
-        if (SelectiveRenderState.shouldRender(pos) && !SelectiveRenderState.shouldRender(neighborPos)) {
+        BlockState neighbor = world.getBlockState(neighborPos);
+        if (SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())
+                && !SelectiveRenderState.shouldRender(neighbor, neighborPos.getX(), neighborPos.getY(), neighborPos.getZ())) {
             cir.setReturnValue(SelectiveRenderState.boundaryModeForFace(pos, direction)
                     != SelectiveRenderSettings.BoundaryMode.CULLED);
         }

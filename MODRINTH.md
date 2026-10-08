@@ -1,6 +1,6 @@
 # Selective Render
 
-Current stable version: **1.9.4**. Latest test version: **1.10.0**.
+Current stable version: **1.9.4**. Latest test version: **1.10.1**.
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and
@@ -31,6 +31,10 @@ Iris is optional and supported.
 /sr s NAME
 /sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]
 /sr t NAME
+/sr f NAME hide id:minecraft:stone
+/sr f NAME only tag:minecraft:slabs
+/sr f NAME
+/sr f NAME clear
 ```
 
 The two positions are exact block corners on all three axes. Saving creates a
@@ -52,6 +56,11 @@ The full command names `pos1`, `pos2`, `save`, `create`, `redefine`, `toggle`, `
 `/sr c NAME hidden` to hide it. No coordinates or SR server addon required.
 WorldEditCUI is optional; the server needs to support WorldEdit selection synchronization.
 If the selection is missing, select both corners again or run `/we cui`.
+
+Filter blocks inside a region with `/sr f NAME hide id:namespace:block` or
+`/sr f NAME only tag:namespace:tag`. Tab completion lists known blocks and block tags,
+including Axiom tags when available. `/sr f NAME clear` removes the region's filters.
+`/sr f NAME` lists its current filters. Filters are visual-only and are saved with the region.
 
 ## Hiding regions
 

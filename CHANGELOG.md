@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.1
+
+- Added per-region block filters with `/sr filter` (`/sr f`) using block IDs or registered block tags, including Axiom tags when available.
+- Added `hide`, `only`, and `clear` filter modes; filters persist with each saved region and work across overlapping regions.
+- Applied block, fluid, block-entity, and lighting behavior consistently to all three Minecraft builds.
+
 ## 1.10.0
 
 - Added client-side WorldEdit cuboid selection import with `/sr c NAME [render|hidden]`

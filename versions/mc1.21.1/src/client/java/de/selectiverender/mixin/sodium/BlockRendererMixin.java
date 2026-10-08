@@ -27,7 +27,7 @@ abstract class BlockRendererMixin {
                                               BlockPos pos, BlockPos origin,
                                               CallbackInfo ci) {
         selectiverender$currentPos = pos;
-        if (!SelectiveRenderState.shouldRender(pos)) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 
     @Inject(method = "processQuad", at = @At("HEAD"), cancellable = true)

@@ -16,7 +16,8 @@ abstract class BlockEntityRenderDispatcherMixin {
             at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlockEntity(BlockEntity blockEntity, float tickDelta, MatrixStack matrices,
                                                VertexConsumerProvider consumers, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(blockEntity.getPos())) ci.cancel();
+        var pos = blockEntity.getPos();
+        if (!SelectiveRenderState.shouldRender(blockEntity.getCachedState(), pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 
 }

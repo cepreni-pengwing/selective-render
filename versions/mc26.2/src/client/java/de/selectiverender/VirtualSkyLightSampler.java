@@ -272,7 +272,8 @@ public final class VirtualSkyLightSampler {
         cursor.set(x, y, z);
         if (!SelectiveRenderState.shouldRender(cursor)) return Blocks.AIR.defaultBlockState();
         BlockState state = world.getBlockState(cursor);
-        return state == null ? Blocks.AIR.defaultBlockState() : state;
+        return state == null || !SelectiveRenderState.shouldRender(state, x, y, z)
+                ? Blocks.AIR.defaultBlockState() : state;
     }
 
     private static int opacity(ClientLevel world, BlockState state, BlockPos pos) {

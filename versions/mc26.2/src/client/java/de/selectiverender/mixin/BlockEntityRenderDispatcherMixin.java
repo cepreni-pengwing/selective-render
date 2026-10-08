@@ -17,7 +17,8 @@ abstract class BlockEntityRenderDispatcherMixin {
     private void selectiverender$filterBlockEntity(BlockEntity blockEntity, float tickDelta,
             ModelFeatureRenderer.CrumblingOverlay overlay, boolean renderOutline,
             CallbackInfoReturnable<BlockEntityRenderState> cir) {
-        if (!SelectiveRenderState.shouldRender(blockEntity.getBlockPos())) cir.setReturnValue(null);
+        var pos = blockEntity.getBlockPos();
+        if (!SelectiveRenderState.shouldRender(blockEntity.getBlockState(), pos.getX(), pos.getY(), pos.getZ())) cir.setReturnValue(null);
     }
 
 }

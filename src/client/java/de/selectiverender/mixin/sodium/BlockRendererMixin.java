@@ -41,7 +41,8 @@ abstract class BlockRendererMixin {
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlock(BlockRenderContext context,
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(context.pos())) ci.cancel();
+        var pos = context.pos();
+        if (!SelectiveRenderState.shouldRender(context.state(), pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 
     @Inject(method = "getVertexColors", at = @At("RETURN"))

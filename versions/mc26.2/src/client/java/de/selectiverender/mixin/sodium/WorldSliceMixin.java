@@ -60,6 +60,12 @@ abstract class WorldSliceMixin {
         }
     }
 
+    @Inject(method = "getBlockState(III)Lnet/minecraft/world/level/block/state/BlockState;", at = @At("RETURN"), cancellable = true, remap = true)
+    private void selectiverender$filterBlockByRule(int x, int y, int z, CallbackInfoReturnable<BlockState> cir) {
+        if (selectiverender$sourceRead || !SelectiveRenderState.filteringActive()) return;
+        if (!SelectiveRenderState.shouldRender(cir.getReturnValue(), x, y, z)) cir.setReturnValue(Blocks.AIR.defaultBlockState());
+    }
+
     @Inject(method = "getBrightness(Lnet/minecraft/world/level/LightLayer;Lnet/minecraft/core/BlockPos;)I", at = @At("RETURN"), cancellable = true)
     private void selectiverender$filterLightLevel(LightLayer type, BlockPos pos, CallbackInfoReturnable<Integer> cir) {
         if (!SelectiveRenderState.filteringActive()) return;
@@ -304,7 +310,8 @@ abstract class WorldSliceMixin {
     private BlockState selectiverender$sourceState(BlockPos.MutableBlockPos cursor, int x, int y, int z) {
         cursor.set(x, y, z);
         if (!SelectiveRenderState.shouldRender(cursor)) return Blocks.AIR.defaultBlockState();
-        return selectiverender$getSourceBlockState(cursor);
+        BlockState state = selectiverender$getSourceBlockState(cursor);
+        return SelectiveRenderState.shouldRender(state, x, y, z) ? state : Blocks.AIR.defaultBlockState();
     }
 
     @Unique

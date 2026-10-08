@@ -5,7 +5,7 @@ import java.util.List;
 
 final class VisibilitySnapshot {
     static final VisibilitySnapshot EMPTY = create(
-            List.of(), false, List.of(), false, List.of(), List.of(), false, false, 1);
+            List.of(), false, List.of(), false, List.of(), List.of(), List.of(), false, false, 1);
 
     private final List<BlockRegion> configuredRegions;
     private final List<BlockRegion> hiddenRegions;
@@ -14,6 +14,7 @@ final class VisibilitySnapshot {
     private final List<BlockRegion> activeRegions;
     private final List<BlockRegion> traversalRegions;
     private final List<BlockRegion> visibleRegions;
+    private final List<FilteredRegion> filteredRegions;
     private final RegionIndex activeRegionIndex;
     private final RegionIndex hiddenRegionIndex;
     private final RegionIndex overrideRegionIndex;
@@ -33,6 +34,7 @@ final class VisibilitySnapshot {
                                List<BlockRegion> activeRegions,
                                List<BlockRegion> traversalRegions,
                                List<BlockRegion> visibleRegions,
+                               List<FilteredRegion> filteredRegions,
                                RegionIndex activeRegionIndex,
                                RegionIndex hiddenRegionIndex,
                                RegionIndex overrideRegionIndex,
@@ -51,6 +53,7 @@ final class VisibilitySnapshot {
         this.activeRegions = activeRegions;
         this.traversalRegions = traversalRegions;
         this.visibleRegions = visibleRegions;
+        this.filteredRegions = filteredRegions;
         this.activeRegionIndex = activeRegionIndex;
         this.hiddenRegionIndex = hiddenRegionIndex;
         this.overrideRegionIndex = overrideRegionIndex;
@@ -70,6 +73,7 @@ final class VisibilitySnapshot {
                                      boolean hideConfiguredEnabled,
                                      List<BlockRegion> visibleOverrides,
                                      List<BlockRegion> plotRegions,
+                                     List<FilteredRegion> filteredRegions,
                                      boolean plotModeActive,
                                      boolean plotRenderingConfigured,
                                      int generation) {
@@ -93,11 +97,25 @@ final class VisibilitySnapshot {
             visible = enabled ? traversal : active;
         }
 
+        List<FilteredRegion> filters = List.copyOf(filteredRegions);
         return new VisibilitySnapshot(configured, hidden, overrides, plots, active,
-                traversal, visible, RegionIndex.of(active), RegionIndex.of(hidden),
+                traversal, visible, filters, RegionIndex.of(active), RegionIndex.of(hidden),
                 RegionIndex.of(overrides), TraversalSectionIndex.of(traversal),
                 configuredEnabled, hideConfiguredEnabled,
                 plotModeActive, plotRenderingConfigured, enabled, hideEnabled, generation);
+    }
+
+    static VisibilitySnapshot create(List<BlockRegion> configuredRegions,
+                                     boolean configuredEnabled,
+                                     List<BlockRegion> hiddenRegions,
+                                     boolean hideConfiguredEnabled,
+                                     List<BlockRegion> visibleOverrides,
+                                     List<BlockRegion> plotRegions,
+                                     boolean plotModeActive,
+                                     boolean plotRenderingConfigured,
+                                     int generation) {
+        return create(configuredRegions, configuredEnabled, hiddenRegions, hideConfiguredEnabled,
+                visibleOverrides, plotRegions, List.of(), plotModeActive, plotRenderingConfigured, generation);
     }
 
     VisibilitySnapshot withSavedState(List<BlockRegion> configuredRegions,
@@ -105,9 +123,10 @@ final class VisibilitySnapshot {
                                       List<BlockRegion> hiddenRegions,
                                       boolean hideConfiguredEnabled,
                                       List<BlockRegion> visibleOverrides,
+                                      List<FilteredRegion> filteredRegions,
                                       int generation) {
         return create(configuredRegions, configuredEnabled, hiddenRegions, hideConfiguredEnabled,
-                visibleOverrides, plotRegions, plotModeActive, plotRenderingConfigured, generation);
+                visibleOverrides, plotRegions, filteredRegions, plotModeActive, plotRenderingConfigured, generation);
     }
 
     VisibilitySnapshot withPlotState(List<BlockRegion> plotRegions,
@@ -115,12 +134,12 @@ final class VisibilitySnapshot {
                                      boolean plotRenderingConfigured,
                                      int generation) {
         return create(configuredRegions, configuredEnabled, hiddenRegions, hideConfiguredEnabled,
-                visibleOverrides, plotRegions, plotModeActive, plotRenderingConfigured, generation);
+                visibleOverrides, plotRegions, filteredRegions, plotModeActive, plotRenderingConfigured, generation);
     }
 
     VisibilitySnapshot toggleConfiguredState(int generation) {
         return create(configuredRegions, !configuredEnabled, hiddenRegions, hideConfiguredEnabled,
-                visibleOverrides, plotRegions, plotModeActive, plotRenderingConfigured, generation);
+                visibleOverrides, plotRegions, filteredRegions, plotModeActive, plotRenderingConfigured, generation);
     }
 
     List<BlockRegion> configuredRegions() { return configuredRegions; }
@@ -130,6 +149,7 @@ final class VisibilitySnapshot {
     List<BlockRegion> activeRegions() { return activeRegions; }
     List<BlockRegion> traversalRegions() { return traversalRegions; }
     List<BlockRegion> visibleRegions() { return visibleRegions; }
+    List<FilteredRegion> filteredRegions() { return filteredRegions; }
     RegionIndex activeRegionIndex() { return activeRegionIndex; }
     RegionIndex hiddenRegionIndex() { return hiddenRegionIndex; }
     RegionIndex overrideRegionIndex() { return overrideRegionIndex; }

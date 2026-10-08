@@ -20,13 +20,13 @@ abstract class BlockRenderManagerMixin {
     private void selectiverender$filterBlock(BlockState state, BlockPos pos, BlockRenderView world,
                                              MatrixStack matrices, VertexConsumer vertexConsumer,
                                              boolean cull, Random random, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(pos)) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 
     @Inject(method = "renderFluid", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterFluid(BlockPos pos, BlockRenderView world,
                                              VertexConsumer vertexConsumer, BlockState blockState,
                                              FluidState fluidState, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(pos)) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(blockState, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 }

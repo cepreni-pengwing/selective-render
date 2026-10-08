@@ -20,6 +20,6 @@ abstract class FluidRendererMixin {
                                              BlockPos pos, BlockPos offset,
                                              net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector collector,
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
-        if (!SelectiveRenderState.shouldRender(pos)) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 }

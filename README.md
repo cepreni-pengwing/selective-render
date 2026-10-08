@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.0**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.1**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -53,6 +53,10 @@ Available short commands:
 /sr d NAME
 /sr r NAME
 /sr n OLDNAME NEWNAME
+/sr f NAME hide id:minecraft:stone
+/sr f NAME only tag:minecraft:slabs
+/sr f NAME
+/sr f NAME clear
 /sr list
 /sr list h
 /sr l h
@@ -85,6 +89,13 @@ Available short commands:
   selected, it selects all registered hide presets.
   Global hide toggles and the hide keybind use a HUD overlay instead of chat.
 - `/sr d NAME` permanently deletes a preset.
+- `/sr f NAME hide id:namespace:block` hides matching blocks inside that active render region.
+  Replace `id:` with `tag:` to filter by a registered block tag; suggestions include tags
+  available to the client, including Axiom tags when Axiom provides them. Add multiple rules
+  as needed. `only` keeps only matching blocks, and `clear` removes all filters for that region.
+  Running `/sr f NAME` lists that region's current rules.
+  Overlapping active regions combine as a union: a block stays visible if any containing region
+  allows it. Filters affect visuals only, not collision or server-side interactions.
 - `/sr n OLDNAME NEWNAME` renames a preset while preserving its group memberships.
 - `/sr list` displays regular presets on separate lines with status and a corner coordinate.
 - `/sr list h`, `/sr list hidden`, `/sr l h`, or `/sr l hidden` exclusively displays hide-group regions in the same format.

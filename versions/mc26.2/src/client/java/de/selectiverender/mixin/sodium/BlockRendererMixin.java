@@ -27,7 +27,7 @@ abstract class BlockRendererMixin {
     private void selectiverender$filterBlock(BlockStateModel model, BlockState state,
             BlockPos position, BlockPos origin, CallbackInfo ci) {
         selectiverender$currentPos = position;
-        if (!SelectiveRenderState.shouldRender(position)) ci.cancel();
+        if (!SelectiveRenderState.shouldRender(state, position.getX(), position.getY(), position.getZ())) ci.cancel();
     }
 
     // Sodium 0.9 uses this path for both standard and Fabric renderer models.
