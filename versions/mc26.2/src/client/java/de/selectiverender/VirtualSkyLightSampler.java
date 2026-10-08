@@ -88,6 +88,9 @@ public final class VirtualSkyLightSampler {
         if (!VOLUMES.containsKey(key)) return;
         CoreVolume volume = build(world, SectionPos.x(key), SectionPos.y(key), SectionPos.z(key));
         VOLUMES.putAndMoveToLast(key, volume);
+        // Building a halo volume is intentionally expensive. Pace rebuilds even when
+        // a burst invalidated several adjacent volumes at once.
+        rebuildDelay = REBUILD_DELAY_TICKS;
     }
 
     public static void invalidate() {

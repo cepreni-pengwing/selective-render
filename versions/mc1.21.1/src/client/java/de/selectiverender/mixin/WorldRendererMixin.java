@@ -42,10 +42,10 @@ abstract class WorldRendererMixin {
                                                         BlockState oldState, BlockState newState,
                                                         int flags, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
-        if (oldState != newState) {
+        int oldOpacity = oldState.getOpacity(world, pos);
+        int newOpacity = newState.getOpacity(world, pos);
+        if (oldOpacity != newOpacity) {
             SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
-        }
-        if (oldState.getOpacity(world, pos) != newState.getOpacity(world, pos)) {
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
         }
     }

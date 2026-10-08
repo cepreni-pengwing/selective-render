@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.6
+
+- Reduced virtual-skylight work during block updates: changes that do not affect light opacity no longer invalidate cached light volumes.
+- Spaced out expensive volume rebuilds so bursts of edits cannot trigger rebuilds on consecutive ticks.
+- Applied the same behavior to Minecraft 1.20.1, 1.21.1, and 26.2.
+
 ## 1.10.5
 
 - Saved region filters now apply independently of whether their render regions are toggled on.

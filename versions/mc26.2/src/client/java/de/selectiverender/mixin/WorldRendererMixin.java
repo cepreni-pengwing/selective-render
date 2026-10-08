@@ -18,10 +18,10 @@ abstract class WorldRendererMixin {
     private void selectiverender$invalidateLightColumn(BlockPos pos,
             BlockState oldState, BlockState newState, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
-        if (oldState != newState) {
+        int oldDampening = oldState.getLightDampening();
+        int newDampening = newState.getLightDampening();
+        if (oldDampening != newDampening) {
             SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
-        }
-        if (oldState.getLightDampening() != newState.getLightDampening()) {
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
         }
     }
