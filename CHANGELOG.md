@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.3
+
+- Added the built-in `tag:selectiverender:beams` filter for Conquest Reforged and Architects blocks whose IDs contain `beam`, including beam layers, stairs, and other variants.
+- Made the beam filter available consistently in all three Minecraft builds, including when the server does not sync a matching block tag.
+
 ## 1.10.2
 
 - Fixed block-filter command parsing so namespaced IDs and tags such as `tag:axiom:solid` work as intended.

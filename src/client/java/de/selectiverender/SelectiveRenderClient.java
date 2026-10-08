@@ -211,6 +211,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static List<String> blockFilterSuggestions(String remaining) {
         List<String> suggestions = new java.util.ArrayList<>();
+        if (!remaining.startsWith("id:")) suggestions.add("tag:" + BuiltInBlockTags.BEAMS);
         if (!remaining.startsWith("tag:")) {
             net.minecraft.registry.Registries.BLOCK.getIds().forEach(id -> suggestions.add("id:" + id));
         }

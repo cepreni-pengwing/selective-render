@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.2**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.3**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -55,6 +55,7 @@ Available short commands:
 /sr n OLDNAME NEWNAME
 /sr f NAME hide id:minecraft:stone
 /sr f NAME only tag:minecraft:slabs
+/sr f NAME hide tag:selectiverender:beams
 /sr f NAME
 /sr f NAME clear
 /sr list
@@ -91,8 +92,10 @@ Available short commands:
 - `/sr d NAME` permanently deletes a preset.
 - `/sr f NAME hide id:namespace:block` hides matching blocks inside that active render region.
   Replace `id:` with `tag:` to filter by a registered block tag; suggestions include tags
-  available to the client, including Axiom tags when Axiom provides them. Add multiple rules
-  as needed. `only` keeps only matching blocks, and `clear` removes all filters for that region.
+  available to the client, including Axiom tags when Axiom provides them. The built-in
+  `tag:selectiverender:beams` selector matches Conquest Reforged and Architects block IDs
+  containing `beam`. Add multiple rules as needed. `only` keeps only matching blocks, and
+  `clear` removes all filters for that region.
   Running `/sr f NAME` lists that region's current rules.
   Overlapping active regions combine as a union: a block stays visible if any containing region
   allows it. Filters affect visuals only, not collision or server-side interactions.

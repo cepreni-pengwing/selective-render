@@ -17,7 +17,9 @@ public record BlockFilterRule(Mode mode, Kind kind, String value) {
     }
 
     public boolean matches(String blockId, Set<String> blockTags) {
-        return kind == Kind.ID ? value.equals(blockId) : blockTags.contains(value);
+        if (kind == Kind.ID) return value.equals(blockId);
+        if (BuiltInBlockTags.BEAMS.equals(value)) return BuiltInBlockTags.isBeam(blockId);
+        return blockTags.contains(value);
     }
 
     public static boolean allows(Set<BlockFilterRule> rules, String blockId, Set<String> blockTags) {
