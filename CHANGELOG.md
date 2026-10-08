@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.8
+
+- Removed the legacy `rename` command alias so typing `/sr r` no longer suggests an unrelated rename operation.
+- Use `/sr r NAME` or `/sr redefine NAME` to redefine, and `/sr n OLDNAME NEWNAME` or `/sr name OLDNAME NEWNAME` to rename, on all three Minecraft builds.
+- Includes the virtual-skylight performance changes from 1.10.7.
+
 ## 1.10.7
 
 - Added a bounded Sodium terrain-skylight cache so mesh rebuilds after light-equivalent material changes can reuse their lighting instead of repeating the full solver.

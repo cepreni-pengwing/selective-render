@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.7**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.8**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -106,7 +106,8 @@ Available short commands:
 - `/sr list h`, `/sr list hidden`, `/sr l h`, or `/sr l hidden` exclusively displays hide-group regions in the same format.
 
 The long `save`, `create`, `redefine`, `toggle`, `hide`, `delete`, and `name` subcommands remain
-available. `/sr rename OLDNAME NEWNAME` is also retained as an explicit rename alias.
+available. Use `/sr name OLDNAME NEWNAME` or `/sr n OLDNAME NEWNAME` to rename;
+the old `rename` alias is no longer registered, keeping `r` reserved for redefining.
 
 All regions in the enabled render group are combined. A block is rendered when
 it is inside at least one of them, so separate areas can be visible at the same

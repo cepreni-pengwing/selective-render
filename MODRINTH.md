@@ -1,6 +1,6 @@
 # Selective Render
 
-Current stable version: **1.9.4**. Latest test version: **1.10.7**.
+Current stable version: **1.9.4**. Latest test version: **1.10.8**.
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and

@@ -177,7 +177,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(deleteCommand("d"))
                 .then(redefineCommand("redefine"))
                 .then(redefineCommand("r"))
-                .then(renameCommand("rename"))
                 .then(renameCommand("name"))
                 .then(renameCommand("n"))
                 .then(plotCommand("plot"))
