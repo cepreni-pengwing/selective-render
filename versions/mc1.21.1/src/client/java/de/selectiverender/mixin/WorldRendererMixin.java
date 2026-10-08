@@ -6,6 +6,9 @@ import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.block.BlockState;
+import net.minecraft.block.Blocks;
+import net.minecraft.util.shape.VoxelShapes;
+import net.minecraft.util.function.BooleanBiFunction;
 import net.minecraft.client.render.chunk.ChunkBuilder;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.client.util.math.MatrixStack;
@@ -42,9 +45,28 @@ abstract class WorldRendererMixin {
                                                         BlockState oldState, BlockState newState,
                                                         int flags, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
-        int oldOpacity = oldState.getOpacity(world, pos);
-        int newOpacity = newState.getOpacity(world, pos);
-        if (oldOpacity != newOpacity) {
+        // Compare the states that virtual light actually sees, including ID/tag filters.
+        BlockState oldVisible = SelectiveRenderState.shouldRender(oldState,
+                pos.getX(), pos.getY(), pos.getZ()) ? oldState : Blocks.AIR.getDefaultState();
+        BlockState newVisible = SelectiveRenderState.shouldRender(newState,
+                pos.getX(), pos.getY(), pos.getZ()) ? newState : Blocks.AIR.getDefaultState();
+        boolean oldShaped = oldState.isOpaque() && oldState.hasSidedTransparency();
+        boolean newShaped = newState.isOpaque() && newState.hasSidedTransparency();
+        // Raw light changes matter too: a previously cached vanilla fast path
+        // must stop being used when a new roof is placed outside the region.
+        boolean changed = oldState.getOpacity(world, pos) != newState.getOpacity(world, pos)
+                || oldVisible.getOpacity(world, pos) != newVisible.getOpacity(world, pos)
+                || (oldVisible == oldState) != (newVisible == newState)
+                || oldShaped != newShaped;
+        if (!changed && (oldShaped || newShaped)) {
+            // Context-dependent shapes must remain conservative. Static shapes can
+            // reuse light across material changes, but never across slab/shape changes.
+            changed = oldState.getBlock().hasDynamicBounds()
+                    || newState.getBlock().hasDynamicBounds()
+                    || VoxelShapes.matchesAnywhere(oldState.getCullingShape(world, pos),
+                            newState.getCullingShape(world, pos), BooleanBiFunction.NOT_SAME);
+        }
+        if (changed) {
             SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
         }

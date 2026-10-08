@@ -1,6 +1,9 @@
 package de.selectiverender.mixin.sodium;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.SelectiveRenderSettings;
+import de.selectiverender.TerrainSkyLightCache;
+import org.spongepowered.asm.mixin.injection.Coerce;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientWorld;
@@ -30,6 +33,12 @@ abstract class WorldSliceMixin {
     @Shadow private BlockBox volume;
     @Shadow public abstract BlockState getBlockState(int x, int y, int z);
     @Unique private byte[] selectiverender$virtualSkyLight;
+    @Unique private byte[] selectiverender$cachedSkyLight;
+    @Unique private TerrainSkyLightCache.Ticket selectiverender$lightTicket;
+    @Unique private net.minecraft.world.chunk.WorldChunk[] selectiverender$sourceChunks;
+    @Unique private int selectiverender$sourceChunkMinX;
+    @Unique private int selectiverender$sourceChunkMinZ;
+    @Unique private int selectiverender$sourceChunkWidth;
     @Unique private byte[] selectiverender$queuedLight;
     @Unique private byte[] selectiverender$lightOpacity;
     @Unique private byte[] selectiverender$lightVisible;
@@ -47,9 +56,27 @@ abstract class WorldSliceMixin {
     @Unique private static final Direction[] selectiverender$directions = Direction.values();
 
     @Inject(method = "copyData", at = @At("HEAD"))
-    private void selectiverender$clearLightCache(CallbackInfo ci) {
+    private void selectiverender$clearLightCache(@Coerce Object context, CallbackInfo ci) {
         selectiverender$virtualSkyPrepared = false;
         selectiverender$vanillaSkyUnchanged = false;
+        selectiverender$cachedSkyLight = null;
+        selectiverender$sourceChunks = null;
+        selectiverender$lightTicket = SelectiveRenderState.filteringActive()
+                ? TerrainSkyLightCache.INSTANCE.ticket(context) : null;
+    }
+
+    @Inject(method = "prepare", at = @At("RETURN"))
+    private static void selectiverender$captureLightSnapshot(CallbackInfoReturnable<Object> cir) {
+        if (SelectiveRenderState.filteringActive()) {
+            TerrainSkyLightCache.INSTANCE.capture(cir.getReturnValue(),
+                    SelectiveRenderState.visibilityGeneration(), selectiverender$lightPolicy());
+        }
+    }
+
+    @Unique
+    private static int selectiverender$lightPolicy() {
+        return SelectiveRenderSettings.virtualLightMode().ordinal() * 4
+                + SelectiveRenderSettings.hiddenVirtualLightMode().ordinal();
     }
 
     @Inject(method = "getBlockState(III)Lnet/minecraft/block/BlockState;", at = @At("HEAD"), cancellable = true, remap = true)
@@ -120,7 +147,8 @@ abstract class WorldSliceMixin {
         if (localX < 0 || localX >= selectiverender$lightSizeX
                 || localY < 0 || localY >= selectiverender$lightSizeY
                 || localZ < 0 || localZ >= selectiverender$lightSizeZ) return 0;
-        return Byte.toUnsignedInt(selectiverender$virtualSkyLight[
+        return Byte.toUnsignedInt((selectiverender$cachedSkyLight == null
+                ? selectiverender$virtualSkyLight : selectiverender$cachedSkyLight)[
                 selectiverender$lightIndex(localX, localY, localZ)]);
     }
 
@@ -133,16 +161,34 @@ abstract class WorldSliceMixin {
         int maxY = Math.min(world.getTopY() - 1, volume.getMaxY() + selectiverender$lightRadius);
         int minZ = volume.getMinZ() - selectiverender$lightRadius;
         int maxZ = volume.getMaxZ() + selectiverender$lightRadius;
-        if (selectiverender$canUseVanillaSky(minX, minY, minZ, maxX, maxZ)) {
-            selectiverender$vanillaSkyUnchanged = true;
-            return;
-        }
         selectiverender$lightMinX = minX;
         selectiverender$lightMinY = minY;
         selectiverender$lightMinZ = minZ;
         selectiverender$lightSizeX = maxX - minX + 1;
         selectiverender$lightSizeY = maxY - minY + 1;
         selectiverender$lightSizeZ = maxZ - minZ + 1;
+        TerrainSkyLightCache.Key cacheKey = new TerrainSkyLightCache.Key(world,
+                SelectiveRenderState.visibilityGeneration(), selectiverender$lightPolicy(),
+                minX, minY, minZ, maxX, maxY, maxZ);
+        TerrainSkyLightCache.Result cached = TerrainSkyLightCache.INSTANCE.get(
+                cacheKey, selectiverender$lightTicket);
+        if (cached != null) {
+            selectiverender$vanillaSkyUnchanged = cached.vanilla();
+            selectiverender$cachedSkyLight = cached.light();
+            return;
+        }
+        if (selectiverender$canUseVanillaSky(minX, minY, minZ, maxX, maxZ)) {
+            selectiverender$vanillaSkyUnchanged = true;
+            TerrainSkyLightCache.INSTANCE.put(cacheKey, selectiverender$lightTicket, null, 0);
+            return;
+        }
+        // The halo is mostly outside Sodium's copied slice. Resolve each live
+        // chunk once instead of repeating a world/provider lookup for every cell.
+        selectiverender$sourceChunkMinX = minX >> 4;
+        selectiverender$sourceChunkMinZ = minZ >> 4;
+        selectiverender$sourceChunkWidth = (maxX >> 4) - selectiverender$sourceChunkMinX + 1;
+        int chunkDepth = (maxZ >> 4) - selectiverender$sourceChunkMinZ + 1;
+        selectiverender$sourceChunks = new net.minecraft.world.chunk.WorldChunk[selectiverender$sourceChunkWidth * chunkDepth];
         int cellCount = selectiverender$lightSizeX * selectiverender$lightSizeY * selectiverender$lightSizeZ;
         if (selectiverender$virtualSkyLight == null || selectiverender$virtualSkyLight.length < cellCount) {
             selectiverender$virtualSkyLight = new byte[cellCount];
@@ -261,6 +307,9 @@ abstract class WorldSliceMixin {
                 int existingLight = Byte.toUnsignedInt(selectiverender$virtualSkyLight[nextIndex]);
                 if (!de.selectiverender.VirtualLightPropagation.canImprove(
                         currentLight, existingLight)) continue;
+                int opacity = Byte.toUnsignedInt(selectiverender$lightOpacity[nextIndex]);
+                if (!de.selectiverender.VirtualLightPropagation.canPass(
+                        currentLight, existingLight, opacity)) continue;
                 if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
                         selectiverender$lightVisible[currentIndex] != 0,
                         selectiverender$lightVisible[nextIndex] != 0,
@@ -268,7 +317,6 @@ abstract class WorldSliceMixin {
                         selectiverender$lightMinX + nextX,
                         selectiverender$lightMinY + nextY,
                         selectiverender$lightMinZ + nextZ)) continue;
-                int opacity = Byte.toUnsignedInt(selectiverender$lightOpacity[nextIndex]);
                 nextPos.set(selectiverender$lightMinX + nextX,
                         selectiverender$lightMinY + nextY,
                         selectiverender$lightMinZ + nextZ);
@@ -287,6 +335,8 @@ abstract class WorldSliceMixin {
                 }
             }
         }
+        TerrainSkyLightCache.INSTANCE.put(cacheKey, selectiverender$lightTicket,
+                selectiverender$virtualSkyLight, cellCount);
     }
 
     @Unique
@@ -337,6 +387,22 @@ abstract class WorldSliceMixin {
                 state = getBlockState(x, y, z);
             } finally {
                 selectiverender$sourceRead = false;
+            }
+        }
+        if (state == null && selectiverender$sourceChunks != null
+                && y >= world.getBottomY()
+                && y < world.getTopY()) {
+            int chunkX = (x >> 4) - selectiverender$sourceChunkMinX;
+            int chunkZ = (z >> 4) - selectiverender$sourceChunkMinZ;
+            int index = chunkZ * selectiverender$sourceChunkWidth + chunkX;
+            if (chunkX >= 0 && chunkX < selectiverender$sourceChunkWidth
+                    && chunkZ >= 0 && index < selectiverender$sourceChunks.length) {
+                net.minecraft.world.chunk.WorldChunk chunk = selectiverender$sourceChunks[index];
+                if (chunk == null) {
+                    chunk = world.getChunk(x >> 4, z >> 4);
+                    selectiverender$sourceChunks[index] = chunk;
+                }
+                state = chunk.getBlockState(pos);
             }
         }
         if (state == null) state = world.getBlockState(pos);

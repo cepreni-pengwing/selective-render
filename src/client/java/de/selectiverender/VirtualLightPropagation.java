@@ -38,4 +38,9 @@ public final class VirtualLightPropagation {
     public static boolean canImprove(int currentLight, int existingNeighborLight) {
         return currentLight > 1 && existingNeighborLight < currentLight - 1;
     }
+
+    /** Shape checks can only increase attenuation, never reduce block opacity. */
+    public static boolean canPass(int currentLight, int existingNeighborLight, int opacity) {
+        return currentLight - Math.max(1, opacity) > existingNeighborLight;
+    }
 }

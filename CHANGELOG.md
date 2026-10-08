@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.7
+
+- Added a bounded Sodium terrain-skylight cache so mesh rebuilds after light-equivalent material changes can reuse their lighting instead of repeating the full solver.
+- Invalidate affected chunk columns on optical changes and chunk loading/unloading; reject stale asynchronous block snapshots and keep worlds, region states, and lighting settings separate.
+- Compare light-occlusion shapes and block filters as well as opacity, preserving updates for slab/shape changes and hidden roofs.
+- Reduced repeated chunk lookups during uncached terrain-light calculations and skipped propagation checks that cannot pass an opaque block.
+- Keep the vanilla-light fast path conservative around block filters, and apply the changes to Minecraft 1.20.1, 1.21.1, and 26.2.
+- This is a performance test build; improvements during real server editing still need player verification.
+
 ## 1.10.6
 
 - Reduced virtual-skylight work during block updates: changes that do not affect light opacity no longer invalidate cached light volumes.

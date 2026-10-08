@@ -226,6 +226,15 @@ public final class SelectiveRenderState {
 
     public static int unfilteredLightCeiling(int minX, int minY, int minZ, int maxX, int maxZ) {
         VisibilitySnapshot snapshot = visibility;
+        // A block filter can remove an occluder even inside an enclosing region.
+        for (FilteredRegion filtered : snapshot.filteredRegions()) {
+            BlockRegion region = filtered.region();
+            if (!filtered.rules().isEmpty() && region.maxY() >= minY
+                    && region.minX() <= maxX && region.maxX() >= minX
+                    && region.minZ() <= maxZ && region.maxZ() >= minZ) {
+                return Integer.MIN_VALUE;
+            }
+        }
         return VirtualLightBounds.visibleCeiling(snapshot.enabled(), snapshot.visibleRegions(),
                 snapshot.hideEnabled() ? snapshot.hiddenRegions() : List.of(),
                 minX, minY, minZ, maxX, maxZ);
@@ -466,6 +475,7 @@ public final class SelectiveRenderState {
 
     public static void invalidateVirtualSkyLight(int blockX, int blockY, int blockZ) {
         if (!filteringActive()) return;
+        TerrainSkyLightCache.INSTANCE.invalidateColumn(blockX >> 4, blockZ >> 4);
         VirtualSkyLightSampler.invalidateBlock(blockX, blockY, blockZ);
     }
 
@@ -497,11 +507,13 @@ public final class SelectiveRenderState {
 
     public static void invalidateLightCacheChunk(int chunkX, int chunkZ) {
         if (!filteringActive()) return;
+        TerrainSkyLightCache.INSTANCE.invalidateColumn(chunkX, chunkZ);
         visibleOccluderCache.removeChunk(chunkX, chunkZ);
         VirtualSkyLightSampler.invalidateChunk(chunkX, chunkZ);
     }
 
     public static void resetForDisconnect() {
+        TerrainSkyLightCache.INSTANCE.clear();
         first = null;
         second = null;
         selection = null;

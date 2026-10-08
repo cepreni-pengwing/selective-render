@@ -279,6 +279,8 @@ public final class VirtualSkyLightSampler {
                 int nextIndex = SCRATCH.index(nextX, nextY, nextZ);
                 int existingLight = Byte.toUnsignedInt(SCRATCH.light[nextIndex]);
                 if (!VirtualLightPropagation.canImprove(currentLight, existingLight)) continue;
+                if (!VirtualLightPropagation.canPass(currentLight, existingLight,
+                        Byte.toUnsignedInt(SCRATCH.opacity[nextIndex]))) continue;
                 if (!SelectiveRenderState.shouldPropagateVirtualSkyLight(
                         SCRATCH.visible[currentIndex] != 0, SCRATCH.visible[nextIndex] != 0,
                         currentPos.getX(), currentPos.getY(), currentPos.getZ(),

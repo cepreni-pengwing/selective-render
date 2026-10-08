@@ -6,6 +6,9 @@ import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.BooleanOp;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,9 +21,21 @@ abstract class WorldRendererMixin {
     private void selectiverender$invalidateLightColumn(BlockPos pos,
             BlockState oldState, BlockState newState, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
-        int oldDampening = oldState.getLightDampening();
-        int newDampening = newState.getLightDampening();
-        if (oldDampening != newDampening) {
+        BlockState oldVisible = SelectiveRenderState.shouldRender(oldState,
+                pos.getX(), pos.getY(), pos.getZ()) ? oldState : Blocks.AIR.defaultBlockState();
+        BlockState newVisible = SelectiveRenderState.shouldRender(newState,
+                pos.getX(), pos.getY(), pos.getZ()) ? newState : Blocks.AIR.defaultBlockState();
+        boolean oldShaped = oldState.canOcclude() && oldState.useShapeForLightOcclusion();
+        boolean newShaped = newState.canOcclude() && newState.useShapeForLightOcclusion();
+        boolean changed = oldState.getLightDampening() != newState.getLightDampening()
+                || oldVisible.getLightDampening() != newVisible.getLightDampening()
+                || (oldVisible == oldState) != (newVisible == newState)
+                || oldShaped != newShaped;
+        if (!changed && (oldShaped || newShaped)) {
+            changed = Shapes.joinIsNotEmpty(oldState.getOcclusionShape(),
+                    newState.getOcclusionShape(), BooleanOp.NOT_SAME);
+        }
+        if (changed) {
             SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
         }
