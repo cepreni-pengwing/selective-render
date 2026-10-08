@@ -3,9 +3,36 @@ package de.selectiverender;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class LightVolumeInfluenceTest {
+    @Test
+    void horizontalSectionBoundsIncludeOnlySectionsWithinTheLightRadius() {
+        assertEquals(-1, LightVolumeInfluence.minHorizontalSection(0, 14));
+        assertEquals(0, LightVolumeInfluence.maxHorizontalSection(0, 14));
+        assertEquals(-1, LightVolumeInfluence.minHorizontalSection(7, 14));
+        assertEquals(1, LightVolumeInfluence.maxHorizontalSection(7, 14));
+        assertEquals(-2, LightVolumeInfluence.minHorizontalSection(-17, 14));
+        assertEquals(-1, LightVolumeInfluence.maxHorizontalSection(-17, 14));
+        assertEquals(-134217729,
+                LightVolumeInfluence.minHorizontalSection(Integer.MIN_VALUE, 14));
+    }
+
+    @Test
+    void horizontalBoundsMatchTheExistingInfluencePredicateAcrossNegativeCoordinates() {
+        for (int block = -128; block <= 128; block++) {
+            int min = LightVolumeInfluence.minHorizontalSection(block, 14);
+            int max = LightVolumeInfluence.maxHorizontalSection(block, 14);
+            for (int section = -12; section <= 12; section++) {
+                boolean candidate = section >= min && section <= max;
+                boolean affected = LightVolumeInfluence.blockAffectsSection(
+                        section, 0, 0, block, 0, 0, 14);
+                assertEquals(affected, candidate, "block=" + block + ", section=" + section);
+            }
+        }
+    }
+
     @Test
     void blockInvalidationIncludesTheHaloAndSkylightColumnAbove() {
         assertTrue(LightVolumeInfluence.blockAffectsSection(0, 0, 0, -14, -14, -14, 14));

@@ -2,7 +2,9 @@ package de.selectiverender;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.world.ClientWorld;
@@ -24,6 +26,8 @@ public final class VirtualSkyLightSampler {
     private static final Direction[] DIRECTIONS = Direction.values();
     private static final Long2ObjectLinkedOpenHashMap<CoreVolume> VOLUMES =
             new Long2ObjectLinkedOpenHashMap<>();
+    private static final Long2ObjectOpenHashMap<LongOpenHashSet> VOLUMES_BY_COLUMN =
+            new Long2ObjectOpenHashMap<>();
     private static final LongLinkedOpenHashSet DIRTY_VOLUMES = new LongLinkedOpenHashSet();
     private static final Scratch SCRATCH = new Scratch();
     private static ClientWorld cachedWorld;
@@ -42,8 +46,7 @@ public final class VirtualSkyLightSampler {
 
         int generation = SelectiveRenderState.visibilityGeneration();
         if (world != cachedWorld || generation != cachedGeneration) {
-            VOLUMES.clear();
-            DIRTY_VOLUMES.clear();
+            clearVolumes();
             rebuildDelay = 0;
             cachedWorld = world;
             cachedGeneration = generation;
@@ -56,10 +59,12 @@ public final class VirtualSkyLightSampler {
         if (volume == null) {
             volume = build(world, sectionX, sectionY, sectionZ);
             VOLUMES.putAndMoveToLast(key, volume);
+            indexVolume(key);
             if (VOLUMES.size() > MAX_VOLUMES) {
                 long evicted = VOLUMES.firstLongKey();
                 VOLUMES.removeFirst();
                 DIRTY_VOLUMES.remove(evicted);
+                unindexVolume(evicted);
             }
         }
         return volume.sample(pos);
@@ -74,8 +79,7 @@ public final class VirtualSkyLightSampler {
         }
         int generation = SelectiveRenderState.visibilityGeneration();
         if (generation != cachedGeneration) {
-            VOLUMES.clear();
-            DIRTY_VOLUMES.clear();
+            clearVolumes();
             rebuildDelay = 0;
             cachedGeneration = generation;
             return;
@@ -88,22 +92,32 @@ public final class VirtualSkyLightSampler {
     }
 
     public static void invalidate() {
-        VOLUMES.clear();
-        DIRTY_VOLUMES.clear();
+        clearVolumes();
         rebuildDelay = 0;
     }
 
     public static void invalidateBlock(int blockX, int blockY, int blockZ) {
+        if (VOLUMES.isEmpty()) return;
         boolean affected = false;
-        var iterator = VOLUMES.long2ObjectEntrySet().fastIterator();
-        while (iterator.hasNext()) {
-            Long2ObjectMap.Entry<CoreVolume> entry = iterator.next();
-            long key = entry.getLongKey();
-            if (LightVolumeInfluence.blockAffectsSection(
-                    ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key),
-                    ChunkSectionPos.unpackZ(key), blockX, blockY, blockZ, RADIUS)) {
-                DIRTY_VOLUMES.add(key);
-                affected = true;
+        int minSectionX = LightVolumeInfluence.minHorizontalSection(blockX, RADIUS);
+        int maxSectionX = LightVolumeInfluence.maxHorizontalSection(blockX, RADIUS);
+        int minSectionZ = LightVolumeInfluence.minHorizontalSection(blockZ, RADIUS);
+        int maxSectionZ = LightVolumeInfluence.maxHorizontalSection(blockZ, RADIUS);
+        for (int sectionX = minSectionX; sectionX <= maxSectionX; sectionX++) {
+            for (int sectionZ = minSectionZ; sectionZ <= maxSectionZ; sectionZ++) {
+                LongOpenHashSet column = VOLUMES_BY_COLUMN.get(columnKey(sectionX, sectionZ));
+                if (column == null) continue;
+                var keys = column.iterator();
+                while (keys.hasNext()) {
+                    long key = keys.nextLong();
+                    if (DIRTY_VOLUMES.contains(key)) continue;
+                    if (LightVolumeInfluence.blockAffectsSection(
+                            ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackY(key),
+                            ChunkSectionPos.unpackZ(key), blockX, blockY, blockZ, RADIUS)) {
+                        DIRTY_VOLUMES.add(key);
+                        affected = true;
+                    }
+                }
             }
         }
         // Do not restart an active countdown for every block update. Continuous mining
@@ -119,6 +133,7 @@ public final class VirtualSkyLightSampler {
             if (LightVolumeInfluence.chunkAffectsSection(
                     ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key),
                     chunkX, chunkZ, RADIUS)) {
+                unindexVolume(key);
                 iterator.remove();
                 DIRTY_VOLUMES.remove(key);
             }
@@ -131,6 +146,34 @@ public final class VirtualSkyLightSampler {
     }
 
     public record CacheStatus(boolean present, boolean dirty, int rebuildDelay) { }
+
+    private static long columnKey(int sectionX, int sectionZ) {
+        return (sectionX & 0xffffffffL) | ((long) sectionZ << 32);
+    }
+
+    private static void indexVolume(long key) {
+        long columnKey = columnKey(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key));
+        LongOpenHashSet column = VOLUMES_BY_COLUMN.get(columnKey);
+        if (column == null) {
+            column = new LongOpenHashSet();
+            VOLUMES_BY_COLUMN.put(columnKey, column);
+        }
+        column.add(key);
+    }
+
+    private static void unindexVolume(long key) {
+        long columnKey = columnKey(ChunkSectionPos.unpackX(key), ChunkSectionPos.unpackZ(key));
+        LongOpenHashSet column = VOLUMES_BY_COLUMN.get(columnKey);
+        if (column == null) return;
+        column.remove(key);
+        if (column.isEmpty()) VOLUMES_BY_COLUMN.remove(columnKey);
+    }
+
+    private static void clearVolumes() {
+        VOLUMES.clear();
+        VOLUMES_BY_COLUMN.clear();
+        DIRTY_VOLUMES.clear();
+    }
 
     private static CoreVolume build(ClientWorld world, int sectionX, int sectionY, int sectionZ) {
         int coreMinX = sectionX << 4;

@@ -3,6 +3,14 @@ package de.selectiverender;
 final class LightVolumeInfluence {
     private LightVolumeInfluence() { }
 
+    static int minHorizontalSection(int block, int radius) {
+        return (int) Math.floorDiv((long) block - radius, 16L);
+    }
+
+    static int maxHorizontalSection(int block, int radius) {
+        return (int) Math.floorDiv((long) block + radius, 16L);
+    }
+
     static boolean blockAffectsSection(int sectionX, int sectionY, int sectionZ,
                                        int blockX, int blockY, int blockZ, int radius) {
         return inside(blockX, sectionX, radius)
