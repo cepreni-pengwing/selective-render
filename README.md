@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.9.24**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.0**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -62,6 +62,15 @@ Available short commands:
   is always required and must not already exist.
 - `/sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]` creates and activates a complete
   cuboid preset in one command. The context defaults to `render`.
+- `/sr c NAME [render|hidden]` (or `/sr create`) imports the current WorldEdit
+  cuboid selection without coordinates. It creates the same inclusive, activated preset
+  and never overwrites an existing name. SR's own pos1/pos2 selection is unchanged.
+  WorldEdit or a compatible server implementation must send CUI selection updates;
+  no SR server addon is needed. WorldEditCUI is optional: when installed, SR observes
+  its selection events without replacing its receiver. Otherwise SR receives CUI updates
+  directly. If no complete selection has arrived, reselect the corners or run `/we cui`.
+  Non-cuboid selections are rejected rather than imported as oversized bounding boxes.
+  The imported preset is a snapshot, not linked to later WorldEdit selection changes.
 - `/sr r NAME` redefines an existing preset from the current pos1/pos2 selection while
   preserving its context and active state.
 - `/sr t NAME` toggles a preset in the render context. Using it on a hide preset

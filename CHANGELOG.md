@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0
+
+- Added client-side WorldEdit cuboid selection import with `/sr c NAME [render|hidden]`
+  and `/sr create NAME [render|hidden]`. Explicit-coordinate commands still work.
+- Receive WorldEdit CUI updates directly, or observe an installed WorldEditCUI without
+  replacing its network receiver. No SR server addon is needed.
+- Reject incomplete, malformed and non-cuboid selections instead of creating incorrect
+  regions. Clear the temporary selection mirror on disconnect and world changes.
+- Applied the integration to Minecraft 1.20.1, 1.21.1 and 26.2, with selection regression tests.
+
 ## 1.9.24
 
 - Avoided building Sodium virtual-skylight volumes inside regions when the entire light halo

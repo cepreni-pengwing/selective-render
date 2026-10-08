@@ -3,6 +3,7 @@
   "package": "de.selectiverender.mixin",
   "compatibilityLevel": "JAVA_25",
   "client": [
+    "worldedit.CuiEventDispatcherMixin",
     "WorldRendererMixin",
     "LightCoordsMixin",
     "ClientChunkManagerMixin",

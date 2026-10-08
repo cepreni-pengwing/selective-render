@@ -98,6 +98,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 });
         RegionBorderRenderer.initialize();
         PlotSquaredClient.initialize();
+        WorldEditClient.initialize();
         KeyBindingHelper.registerKeyBinding(TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(HIDE_TOGGLE_KEY);
         KeyBindingHelper.registerKeyBinding(POS1_KEY);
@@ -141,6 +142,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     public static void worldChanged(MinecraftClient client, ClientWorld world) {
+        WorldEditClient.worldChanged(world);
         WORLD_SESSION.switchTo(world, () -> {
             PlotSquaredClient.leaveWorld();
             SelectiveRenderConfig.endSession();
@@ -347,6 +349,27 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         BlockRegion region = new BlockRegion(Math.min(x1, x2), Math.max(x1, x2),
                 Math.min(y1, y2), Math.max(y1, y2),
                 Math.min(z1, z2), Math.max(z1, z2));
+        return createRegion(source, name, region, hidden);
+    }
+
+    private static int createFromWorldEdit(FabricClientCommandSource source, String name, boolean hidden) {
+        if (SelectiveRenderConfig.isReservedName(name)) {
+            feedback(source, message(aqua(name), red(" is reserved")));
+            return 0;
+        }
+        if (SelectiveRenderConfig.presetExists(name)) {
+            feedback(source, presetExists(name));
+            return 0;
+        }
+        BlockRegion region = WorldEditClient.selection();
+        if (region == null) {
+            feedback(source, message(red(WorldEditClient.problem())));
+            return 0;
+        }
+        return createRegion(source, name, region, hidden);
+    }
+
+    private static int createRegion(FabricClientCommandSource source, String name, BlockRegion region, boolean hidden) {
         SelectiveRenderConfig.saveRegion(MinecraftClient.getInstance(), name, region, hidden);
         feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
                 green(" created"), white(" · " + region.blockCount() + " blocks · "),
@@ -524,6 +547,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> createCommand(String name) {
         return ClientCommandManager.literal(name)
+                .then(ClientCommandManager.argument("name", StringArgumentType.word())
+                        .executes(context -> createFromWorldEdit(context.getSource(),
+                                StringArgumentType.getString(context, "name"), false))
+                        .then(ClientCommandManager.literal("render")
+                                .executes(context -> createFromWorldEdit(context.getSource(),
+                                        StringArgumentType.getString(context, "name"), false)))
+                        .then(ClientCommandManager.literal("hidden")
+                                .executes(context -> createFromWorldEdit(context.getSource(),
+                                        StringArgumentType.getString(context, "name"), true))))
                 .then(ClientCommandManager.argument("x1", IntegerArgumentType.integer())
                 .then(ClientCommandManager.argument("y1", IntegerArgumentType.integer())
                 .then(ClientCommandManager.argument("z1", IntegerArgumentType.integer())

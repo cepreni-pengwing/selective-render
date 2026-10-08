@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   world-join:
-    name: Minecraft ${{ matrix.minecraft }} world join
+    name: Minecraft ${{ matrix.minecraft }} / ${{ matrix.profile }} world join
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     strategy:
@@ -23,23 +23,53 @@ jobs:
       matrix:
         include:
           - minecraft: 1.20.1
+            profile: baseline
             java: 17
             fabric_api: 0.92.2
             build: ./gradlew build --stacktrace
             jar_dir: build/libs
             sodium: mc1.20.1-0.5.13-fabric
           - minecraft: 1.21.1
+            profile: baseline
             java: 21
             fabric_api: 0.116.17
             build: ./gradlew -p versions/mc1.21.1 build --stacktrace
             jar_dir: versions/mc1.21.1/build/libs
             sodium: mc1.21.1-0.8.13-fabric
           - minecraft: 26.2
+            profile: baseline
             java: 25
             fabric_api: 0.159.0
             build: ./versions/mc26.2/gradlew -p versions/mc26.2 build --stacktrace
             jar_dir: versions/mc26.2/build/libs
             sodium: mc26.2-0.9.2-fabric
+          - minecraft: 1.20.1
+            profile: worldedit-cui
+            java: 17
+            fabric_api: 0.92.2
+            build: ./gradlew build --stacktrace
+            jar_dir: build/libs
+            sodium: mc1.20.1-0.5.13-fabric
+            worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/Wrlqaul6/worldedit-mod-7.2.15.jar
+            worldedit_sha: 2c41dcd9a622f948ed5409eecc485018fbf274945bdd1a9c0fdf4c4954f9a47dc311e6e0f9e445180d8b771e4a40947533d67bd66feb4ab8c8f87c2880dba7ef
+          - minecraft: 1.21.1
+            profile: worldedit
+            java: 21
+            fabric_api: 0.116.17
+            build: ./gradlew -p versions/mc1.21.1 build --stacktrace
+            jar_dir: versions/mc1.21.1/build/libs
+            sodium: mc1.21.1-0.8.13-fabric
+            worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/WTAFvuRx/worldedit-mod-7.3.8.jar
+            worldedit_sha: e039492df0b486e7ce76d0eaf8cb11eadad2e78220600b8498ab8eef4642a29e310a6bcb4378257553b3639c6d0bc1ebf0f73df3a7a677c6af6baf86716b0bc7
+          - minecraft: 26.2
+            profile: worldedit
+            java: 25
+            fabric_api: 0.159.0
+            build: ./versions/mc26.2/gradlew -p versions/mc26.2 build --stacktrace
+            jar_dir: versions/mc26.2/build/libs
+            sodium: mc26.2-0.9.2-fabric
+            worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/6YnCYPwc/worldedit-mod-7.4.5.jar
+            worldedit_sha: 611ff7cc00d78c63a284ef26b6fbc806af295c469375e5e71e4d7e993aa6ea3fa90945e46511c99b6157a01ed5c3868a2a6419b47a38114cc1e67b32c20f7ca3
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -70,6 +100,21 @@ jobs:
             --output "run/mods/sodium-${{ matrix.sodium }}.jar" \
             "https://api.modrinth.com/maven/maven/modrinth/sodium/${{ matrix.sodium }}/sodium-${{ matrix.sodium }}.jar"
 
+      - name: Stage optional WorldEdit compatibility profile
+        if: matrix.worldedit_url
+        shell: bash
+        env:
+          WORLDEDIT_URL: ${{ matrix.worldedit_url }}
+          WORLDEDIT_SHA: ${{ matrix.worldedit_sha }}
+        run: |
+          curl --fail --location --retry 3 --output run/mods/worldedit.jar "$WORLDEDIT_URL"
+          echo "$WORLDEDIT_SHA  run/mods/worldedit.jar" | sha512sum --check
+          if [[ '${{ matrix.profile }}' == 'worldedit-cui' ]]; then
+            curl --fail --location --retry 3 --output run/mods/worldeditcui.jar \
+              'https://cdn.modrinth.com/data/NSLJJooQ/versions/2tNTyKzy/WorldEditCUI-1.20%2B01.jar'
+            echo '69bc3930d79b440ce39e135739970ce9e94fa0aea9fb10b0a4b136b0983f5e8a691d926c9d693c905a6f1822a32564bfd5127056acb14a7d9082862e840cd88c  run/mods/worldeditcui.jar' | sha512sum --check
+          fi
+
       - name: Start client and join a singleplayer world
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
         with:
@@ -82,14 +127,21 @@ jobs:
           cache-mc: github
           xvfb: true
 
+      - name: Check WorldEdit adapter initialization
+        shell: bash
+        run: |
+          if grep -E 'WorldEdit selection synchronization unavailable|Could not initialize WorldEdit selection synchronization' run/logs/latest.log; then
+            echo "The WorldEdit adapter failed to initialize." >&2
+            exit 1
+          fi
+
       - name: Upload client logs and screenshots
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: client-smoke-${{ matrix.minecraft }}
+          name: client-smoke-${{ matrix.minecraft }}-${{ matrix.profile }}
           if-no-files-found: ignore
           path: |
             run/logs/
             run/crash-reports/
             run/screenshots/
-
