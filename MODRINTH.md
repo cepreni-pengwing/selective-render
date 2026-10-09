@@ -93,7 +93,8 @@ Switching region rendering off restores normal interaction behavior by default, 
 continue following saved regions. Virtual skylight can enter from the top, sides, both, or neither,
 with separate controls for render boundaries and hidden regions.
 The settings screen also controls how aggressively affected sections are refreshed.
-Water, fire, and in-wall screen overlays disappear when the camera is inside hidden content.
+Water, fire, in-wall overlays, and underwater fog disappear when the camera is inside hidden
+content.
 
 ## PlotSquared integration
 

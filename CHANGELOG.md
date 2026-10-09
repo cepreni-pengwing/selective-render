@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.10.13
+
+- Suppressed underwater fog and fluid submersion effects when the camera is inside content hidden by Selective Render.
+- Applied the fix to Minecraft 1.20.1, 1.21.1, and 26.2.
+
 ## 1.10.12
 
 - Suppressed water, fire, and in-wall screen overlays when the camera is inside content hidden by Selective Render.
