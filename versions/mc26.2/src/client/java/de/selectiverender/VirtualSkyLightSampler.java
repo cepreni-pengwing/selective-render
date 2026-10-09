@@ -46,6 +46,7 @@ public final class VirtualSkyLightSampler {
 
         int generation = SelectiveRenderState.visibilityGeneration();
         if (world != cachedWorld || generation != cachedGeneration) {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.GENERATION_RESET, VOLUMES.size());
             clearVolumes();
             rebuildDelay = 0;
             cachedWorld = world;
@@ -57,14 +58,22 @@ public final class VirtualSkyLightSampler {
         long key = SectionPos.asLong(sectionX, sectionY, sectionZ);
         CoreVolume volume = VOLUMES.getAndMoveToLast(key);
         if (volume == null) {
-            volume = build(world, sectionX, sectionY, sectionZ);
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_MISS, 1);
+            volume = build(world, sectionX, sectionY, sectionZ,
+                    PerformanceDiagnostics.Metric.SAMPLER_COLD_BUILD);
             VOLUMES.putAndMoveToLast(key, volume);
             indexVolume(key);
             if (VOLUMES.size() > MAX_VOLUMES) {
                 long evicted = VOLUMES.firstLongKey();
+                PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_EVICTION, 1);
                 VOLUMES.removeFirst();
                 DIRTY_VOLUMES.remove(evicted);
                 unindexVolume(evicted);
+            }
+        } else {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_HIT, 1);
+            if (PerformanceDiagnostics.enabled() && DIRTY_VOLUMES.contains(key)) {
+                PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_DIRTY_HIT, 1);
             }
         }
         return volume.sample(pos);
@@ -72,6 +81,8 @@ public final class VirtualSkyLightSampler {
 
     /** Rebuilds at most one stale volume per client tick to avoid block-update frame spikes. */
     public static void tick(ClientLevel world) {
+        if (PerformanceDiagnostics.enabled()) PerformanceDiagnostics.count(
+                PerformanceDiagnostics.Metric.SAMPLER_DIRTY_QUEUE, DIRTY_VOLUMES.size());
         if (world == null || world != cachedWorld || DIRTY_VOLUMES.isEmpty()) return;
         if (rebuildDelay > 0) {
             rebuildDelay--;
@@ -86,7 +97,8 @@ public final class VirtualSkyLightSampler {
         }
         long key = DIRTY_VOLUMES.removeFirstLong();
         if (!VOLUMES.containsKey(key)) return;
-        CoreVolume volume = build(world, SectionPos.x(key), SectionPos.y(key), SectionPos.z(key));
+        CoreVolume volume = build(world, SectionPos.x(key), SectionPos.y(key), SectionPos.z(key),
+                PerformanceDiagnostics.Metric.SAMPLER_DIRTY_BUILD);
         VOLUMES.putAndMoveToLast(key, volume);
         // Building a halo volume is intentionally expensive. Pace rebuilds even when
         // a burst invalidated several adjacent volumes at once.
@@ -117,6 +129,7 @@ public final class VirtualSkyLightSampler {
                             SectionPos.x(key), SectionPos.y(key),
                             SectionPos.z(key), blockX, blockY, blockZ, RADIUS)) {
                         DIRTY_VOLUMES.add(key);
+                        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_INVALIDATION, 1);
                         affected = true;
                     }
                 }
@@ -149,6 +162,11 @@ public final class VirtualSkyLightSampler {
 
     public record CacheStatus(boolean present, boolean dirty, int rebuildDelay) { }
 
+    public static String diagnosticStatus() {
+        return "volumes=" + VOLUMES.size() + " dirty=" + DIRTY_VOLUMES.size()
+                + " indexed_columns=" + VOLUMES_BY_COLUMN.size() + " delay_ticks=" + rebuildDelay;
+    }
+
     private static long columnKey(int sectionX, int sectionZ) {
         return (sectionX & 0xffffffffL) | ((long) sectionZ << 32);
     }
@@ -177,7 +195,9 @@ public final class VirtualSkyLightSampler {
         DIRTY_VOLUMES.clear();
     }
 
-    private static CoreVolume build(ClientLevel world, int sectionX, int sectionY, int sectionZ) {
+    private static CoreVolume build(ClientLevel world, int sectionX, int sectionY, int sectionZ,
+                                    PerformanceDiagnostics.Metric reason) {
+        long totalStarted = PerformanceDiagnostics.startTimer();
         int coreMinX = sectionX << 4;
         int coreMinY = sectionY << 4;
         int coreMinZ = sectionZ << 4;
@@ -193,6 +213,7 @@ public final class VirtualSkyLightSampler {
         int cells = sizeX * sizeY * sizeZ;
         SCRATCH.prepare(cells, sizeX, sizeZ);
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
+        long phaseStarted = PerformanceDiagnostics.startTimer();
 
         for (int y = minY; y <= maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
@@ -206,6 +227,9 @@ public final class VirtualSkyLightSampler {
             }
         }
 
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.SAMPLER_STATES,
+                phaseStarted, cells, minX, minY, minZ);
+        phaseStarted = PerformanceDiagnostics.startTimer();
         int queueHead = 0;
         int queueTail = 0;
         int queueSize = 0;
@@ -250,13 +274,21 @@ public final class VirtualSkyLightSampler {
             }
         }
 
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.SAMPLER_COLUMNS,
+                phaseStarted, (long) sizeX * sizeZ, minX, minY, minZ);
+        phaseStarted = PerformanceDiagnostics.startTimer();
         queueSize = VirtualLightPropagation.seedFrontier(
                 SCRATCH.light, SCRATCH.queued, SCRATCH.queue, sizeX, sizeY, sizeZ);
         queueTail = queueSize % cells;
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.SAMPLER_FRONTIER,
+                phaseStarted, queueSize, minX, minY, minZ);
+        phaseStarted = PerformanceDiagnostics.startTimer();
+        int propagatedCells = 0;
 
         BlockPos.MutableBlockPos currentPos = above;
         BlockPos.MutableBlockPos nextPos = cursor;
         while (queueSize > 0) {
+            if (phaseStarted != 0) propagatedCells++;
             int currentIndex = SCRATCH.queue[queueHead];
             queueHead = (queueHead + 1) % cells;
             queueSize--;
@@ -300,6 +332,9 @@ public final class VirtualSkyLightSampler {
             }
         }
 
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.SAMPLER_PROPAGATION,
+                phaseStarted, propagatedCells, minX, minY, minZ);
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_PROPAGATED_CELLS, propagatedCells);
         byte[] coreLight = new byte[CORE_CELLS];
         int fromY = Math.max(world.getMinY(), coreMinY);
         int toY = Math.min(world.getMaxY(), coreMinY + 15);
@@ -312,6 +347,7 @@ public final class VirtualSkyLightSampler {
                 System.arraycopy(SCRATCH.light, source, coreLight, target, CORE_SIZE);
             }
         }
+        PerformanceDiagnostics.finish(reason, totalStarted, cells, coreMinX, coreMinY, coreMinZ);
         return new CoreVolume(coreMinX, coreMinY, coreMinZ, coreLight);
     }
 

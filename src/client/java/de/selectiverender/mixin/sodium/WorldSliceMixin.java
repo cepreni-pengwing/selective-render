@@ -3,6 +3,7 @@ package de.selectiverender.mixin.sodium;
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.SelectiveRenderSettings;
 import de.selectiverender.TerrainSkyLightCache;
+import de.selectiverender.PerformanceDiagnostics;
 import org.spongepowered.asm.mixin.injection.Coerce;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -39,6 +40,8 @@ abstract class WorldSliceMixin {
     @Unique private int selectiverender$sourceChunkMinX;
     @Unique private int selectiverender$sourceChunkMinZ;
     @Unique private int selectiverender$sourceChunkWidth;
+    @Unique private boolean selectiverender$diagnosticReads;
+    @Unique private long selectiverender$copiedReads, selectiverender$liveReads, selectiverender$chunkLookups;
     @Unique private byte[] selectiverender$queuedLight;
     @Unique private byte[] selectiverender$lightOpacity;
     @Unique private byte[] selectiverender$lightVisible;
@@ -154,6 +157,7 @@ abstract class WorldSliceMixin {
 
     @Unique
     private void selectiverender$prepareVirtualSkyLight() {
+        long totalStarted = PerformanceDiagnostics.startTimer();
         selectiverender$virtualSkyPrepared = true;
         int minX = volume.getMinX() - selectiverender$lightRadius;
         int maxX = volume.getMaxX() + selectiverender$lightRadius;
@@ -170,16 +174,24 @@ abstract class WorldSliceMixin {
         TerrainSkyLightCache.Key cacheKey = new TerrainSkyLightCache.Key(world,
                 SelectiveRenderState.visibilityGeneration(), selectiverender$lightPolicy(),
                 minX, minY, minZ, maxX, maxY, maxZ);
+        long phaseStarted = PerformanceDiagnostics.startTimer();
         TerrainSkyLightCache.Result cached = TerrainSkyLightCache.INSTANCE.get(
                 cacheKey, selectiverender$lightTicket);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_CACHE_LOOKUP,
+                phaseStarted, 0, minX, minY, minZ);
         if (cached != null) {
             selectiverender$vanillaSkyUnchanged = cached.vanilla();
             selectiverender$cachedSkyLight = cached.light();
             return;
         }
-        if (selectiverender$canUseVanillaSky(minX, minY, minZ, maxX, maxZ)) {
+        phaseStarted = PerformanceDiagnostics.startTimer();
+        boolean vanilla = selectiverender$canUseVanillaSky(minX, minY, minZ, maxX, maxZ);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_FAST_PATH_CHECK,
+                phaseStarted, 0, minX, minY, minZ);
+        if (vanilla) {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_VANILLA_FAST_PATH, 1);
             selectiverender$vanillaSkyUnchanged = true;
-            TerrainSkyLightCache.INSTANCE.put(cacheKey, selectiverender$lightTicket, null, 0);
+            selectiverender$publishLight(cacheKey, null, 0);
             return;
         }
         // The halo is mostly outside Sodium's copied slice. Resolve each live
@@ -190,6 +202,8 @@ abstract class WorldSliceMixin {
         int chunkDepth = (maxZ >> 4) - selectiverender$sourceChunkMinZ + 1;
         selectiverender$sourceChunks = new net.minecraft.world.chunk.WorldChunk[selectiverender$sourceChunkWidth * chunkDepth];
         int cellCount = selectiverender$lightSizeX * selectiverender$lightSizeY * selectiverender$lightSizeZ;
+        selectiverender$diagnosticReads = totalStarted != 0;
+        selectiverender$copiedReads = selectiverender$liveReads = selectiverender$chunkLookups = 0;
         if (selectiverender$virtualSkyLight == null || selectiverender$virtualSkyLight.length < cellCount) {
             selectiverender$virtualSkyLight = new byte[cellCount];
         } else {
@@ -217,6 +231,7 @@ abstract class WorldSliceMixin {
         int queueSize = 0;
         BlockPos.Mutable cursor = new BlockPos.Mutable();
 
+        phaseStarted = PerformanceDiagnostics.startTimer();
         for (int y = minY; y <= maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
@@ -231,6 +246,9 @@ abstract class WorldSliceMixin {
             }
         }
 
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_STATES,
+                phaseStarted, cellCount, minX, minY, minZ);
+        phaseStarted = PerformanceDiagnostics.startTimer();
         BlockPos.Mutable above = new BlockPos.Mutable();
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
@@ -273,15 +291,23 @@ abstract class WorldSliceMixin {
             }
         }
 
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_COLUMNS,
+                phaseStarted, (long) selectiverender$lightSizeX * selectiverender$lightSizeZ, minX, minY, minZ);
+        phaseStarted = PerformanceDiagnostics.startTimer();
         queueSize = de.selectiverender.VirtualLightPropagation.seedFrontier(
                 selectiverender$virtualSkyLight, selectiverender$queuedLight,
                 selectiverender$lightQueue, selectiverender$lightSizeX,
                 selectiverender$lightSizeY, selectiverender$lightSizeZ);
         queueTail = queueSize % cellCount;
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_FRONTIER,
+                phaseStarted, queueSize, minX, minY, minZ);
+        phaseStarted = PerformanceDiagnostics.startTimer();
+        int propagatedCells = 0;
 
         BlockPos.Mutable currentPos = above;
         BlockPos.Mutable nextPos = cursor;
         while (queueSize > 0) {
+            if (phaseStarted != 0) propagatedCells++;
             int currentIndex = selectiverender$lightQueue[queueHead];
             queueHead = (queueHead + 1) % cellCount;
             queueSize--;
@@ -335,8 +361,24 @@ abstract class WorldSliceMixin {
                 }
             }
         }
-        TerrainSkyLightCache.INSTANCE.put(cacheKey, selectiverender$lightTicket,
-                selectiverender$virtualSkyLight, cellCount);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_PROPAGATION,
+                phaseStarted, propagatedCells, minX, minY, minZ);
+        selectiverender$publishLight(cacheKey, selectiverender$virtualSkyLight, cellCount);
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_COPIED_READ, selectiverender$copiedReads);
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_LIVE_READ, selectiverender$liveReads);
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_CHUNK_LOOKUP, selectiverender$chunkLookups);
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_PROPAGATED_CELLS, propagatedCells);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_BUILD,
+                totalStarted, cellCount, minX, minY, minZ);
+        selectiverender$diagnosticReads = false;
+    }
+
+    @Unique
+    private void selectiverender$publishLight(TerrainSkyLightCache.Key key, byte[] light, int length) {
+        long started = PerformanceDiagnostics.startTimer();
+        TerrainSkyLightCache.INSTANCE.put(key, selectiverender$lightTicket, light, length);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.TERRAIN_CACHE_WRITE,
+                started, length, key.minX(), key.minY(), key.minZ());
     }
 
     @Unique
@@ -384,6 +426,7 @@ abstract class WorldSliceMixin {
                 && z >= volume.getMinZ() && z <= volume.getMaxZ()) {
             selectiverender$sourceRead = true;
             try {
+                if (selectiverender$diagnosticReads) selectiverender$copiedReads++;
                 state = getBlockState(x, y, z);
             } finally {
                 selectiverender$sourceRead = false;
@@ -399,9 +442,11 @@ abstract class WorldSliceMixin {
                     && chunkZ >= 0 && index < selectiverender$sourceChunks.length) {
                 net.minecraft.world.chunk.WorldChunk chunk = selectiverender$sourceChunks[index];
                 if (chunk == null) {
+                    if (selectiverender$diagnosticReads) selectiverender$chunkLookups++;
                     chunk = world.getChunk(x >> 4, z >> 4);
                     selectiverender$sourceChunks[index] = chunk;
                 }
+                if (selectiverender$diagnosticReads) selectiverender$liveReads++;
                 state = chunk.getBlockState(pos);
             }
         }

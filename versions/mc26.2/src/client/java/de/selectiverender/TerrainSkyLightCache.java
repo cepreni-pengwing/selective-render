@@ -35,17 +35,33 @@ public final class TerrainSkyLightCache {
 
     public synchronized Ticket ticket(Object context) { return contexts.get(context); }
 
+    public synchronized String diagnosticStatus() {
+        return "entries=" + entries.size() + " bytes=" + bytes + " columns=" + columns.size()
+                + " snapshots=" + contexts.size();
+    }
+
     public synchronized Result get(Key key, Ticket ticket) {
         long revision = revision(key);
-        if (!valid(key, ticket, revision)) return null;
+        if (!valid(key, ticket, revision)) {
+            PerformanceDiagnostics.count(ticket == null
+                    ? PerformanceDiagnostics.Metric.TERRAIN_CACHE_NO_TICKET
+                    : PerformanceDiagnostics.Metric.TERRAIN_CACHE_STALE, 1);
+            return null;
+        }
         Entry entry = entries.get(key);
-        return entry != null && entry.revision == revision ? entry.result : null;
+        boolean hit = entry != null && entry.revision == revision;
+        PerformanceDiagnostics.count(hit ? PerformanceDiagnostics.Metric.TERRAIN_CACHE_HIT
+                : PerformanceDiagnostics.Metric.TERRAIN_CACHE_MISS, 1);
+        return hit ? entry.result : null;
     }
 
     public synchronized void put(Key key, Ticket ticket, byte[] light, int length) {
         long revision = revision(key);
         // An update during the solve must never publish stale snapshot lighting.
-        if (!valid(key, ticket, revision)) return;
+        if (!valid(key, ticket, revision)) {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_CACHE_REJECTED_WRITE, 1);
+            return;
+        }
         Result result = new Result(light == null ? null : Arrays.copyOf(light, length));
         Entry previous = entries.put(key, new Entry(revision, result));
         if (previous != null) bytes -= size(previous);
@@ -54,10 +70,12 @@ public final class TerrainSkyLightCache {
             var iterator = entries.entrySet().iterator();
             bytes -= size(iterator.next().getValue());
             iterator.remove();
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_CACHE_EVICTION, 1);
         }
     }
 
     public synchronized void invalidateColumn(int chunkX, int chunkZ) {
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_COLUMN_INVALIDATION, 1);
         // Bound revision metadata even on very long exploration sessions.
         if (columns.size() >= 16384) clear();
         columns.put(column(chunkX, chunkZ), ++sequence);

@@ -46,6 +46,7 @@ public final class SelectiveRenderState {
     public static boolean plotRenderingEnabled() { return visibility.plotRenderingEnabled(); }
     public static List<BlockRegion> plotRegions() { return visibility.plotRegions(); }
     public static int visibilityGeneration() { return visibility.generation(); }
+    public static int filteredRegionCount() { return visibility.filteredRegions().size(); }
     public static boolean filteringActive() {
         VisibilitySnapshot snapshot = visibility;
         return snapshot.enabled() || snapshot.hideEnabled() || !snapshot.filteredRegions().isEmpty();
@@ -192,6 +193,19 @@ public final class SelectiveRenderState {
     }
 
     private static boolean matchesBlockFilters(VisibilitySnapshot snapshot, BlockState state,
+                                               int x, int y, int z) {
+        if (snapshot.filteredRegions().isEmpty()) return true;
+        long started = PerformanceDiagnostics.sampledFilterTimer();
+        if (started == 0) return matchesBlockFiltersUnchecked(snapshot, state, x, y, z);
+        try {
+            return matchesBlockFiltersUnchecked(snapshot, state, x, y, z);
+        } finally {
+            PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.FILTER_SAMPLE,
+                    started, 1, x, y, z);
+        }
+    }
+
+    private static boolean matchesBlockFiltersUnchecked(VisibilitySnapshot snapshot, BlockState state,
                                                int x, int y, int z) {
         if (snapshot.filteredRegions().isEmpty()) return true;
         boolean matchedRegion = false, allowed = false;
@@ -450,7 +464,8 @@ public final class SelectiveRenderState {
     public static int highestVisibleOccluder(ClientLevel world, int blockX, int blockZ) {
         VisibilitySnapshot snapshot = visibility;
         if (!snapshot.enabled() && !snapshot.hideEnabled()) return world.getMaxY();
-        return visibleOccluderCache.get(snapshot.generation(), blockX, blockZ, (x, z) -> {
+        long started = PerformanceDiagnostics.startTimer();
+        int result = visibleOccluderCache.get(snapshot.generation(), blockX, blockZ, (x, z) -> {
             int worldSurface = world.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
             int top = visibleColumnTop(snapshot, x, z,
                     Math.min(world.getMaxY(), worldSurface));
@@ -467,6 +482,9 @@ public final class SelectiveRenderState {
             }
             return Integer.MIN_VALUE;
         });
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.OCCLUDER_QUERY,
+                started, 1, blockX, 0, blockZ);
+        return result;
     }
 
     public static void invalidateVisibleOccluder(int blockX, int blockZ) {
@@ -507,12 +525,14 @@ public final class SelectiveRenderState {
 
     public static void invalidateLightCacheChunk(int chunkX, int chunkZ) {
         if (!filteringActive()) return;
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.CHUNK_INVALIDATION, 1);
         TerrainSkyLightCache.INSTANCE.invalidateColumn(chunkX, chunkZ);
         visibleOccluderCache.removeChunk(chunkX, chunkZ);
         VirtualSkyLightSampler.invalidateChunk(chunkX, chunkZ);
     }
 
     public static void resetForDisconnect() {
+        PerformanceDiagnostics.stop();
         TerrainSkyLightCache.INSTANCE.clear();
         first = null;
         second = null;
@@ -525,6 +545,7 @@ public final class SelectiveRenderState {
     }
 
     public static void refreshRenderer() {
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.FULL_RENDER_RELOAD, 1);
         Minecraft client = Minecraft.getInstance();
         if (client.levelRenderer != null && client.level != null) {
             client.levelExtractor.allChanged();
@@ -536,6 +557,7 @@ public final class SelectiveRenderState {
     }
 
     private static void refreshRegions(Collection<BlockRegion> regions, VisibilitySnapshot previous) {
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.REGION_REFRESH, regions.size());
         Minecraft client = Minecraft.getInstance();
         if (client.levelRenderer == null || client.level == null || (regions.isEmpty() && previous == null)) return;
 

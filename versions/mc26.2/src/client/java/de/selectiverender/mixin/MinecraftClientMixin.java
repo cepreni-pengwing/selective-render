@@ -2,6 +2,7 @@ package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderClient;
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.PerformanceDiagnostics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.world.phys.BlockHitResult;
@@ -14,6 +15,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Minecraft.class)
 abstract class MinecraftClientMixin {
+    @Inject(method = "runTick", at = @At("HEAD"))
+    private void selectiverender$measureFrameInterval(CallbackInfo ci) {
+        PerformanceDiagnostics.frame();
+    }
+
     @Inject(method = "setLevel", at = @At("TAIL"))
     private void selectiverender$loadDimensionConfig(ClientLevel world, CallbackInfo ci) {
         SelectiveRenderClient.worldChanged((Minecraft) (Object) this, world);

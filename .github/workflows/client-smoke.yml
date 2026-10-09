@@ -116,6 +116,8 @@ jobs:
           fi
 
       - name: Start client and join a singleplayer world
+        env:
+          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
         with:
           mc: ${{ matrix.minecraft }}
@@ -130,6 +132,10 @@ jobs:
       - name: Check WorldEdit adapter initialization
         shell: bash
         run: |
+          if ! grep -q '\[SR performance\] START' run/logs/latest.log; then
+            echo "Performance diagnostics did not initialize after joining the test world." >&2
+            exit 1
+          fi
           if grep -E 'WorldEdit selection synchronization unavailable|Could not initialize WorldEdit selection synchronization' run/logs/latest.log; then
             echo "The WorldEdit adapter failed to initialize." >&2
             exit 1

@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.8**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.9**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -22,6 +22,35 @@ restricted to the active regions.
 For requests regarding additional Minecraft versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 ## Usage
+
+### Performance diagnostics
+
+For virtual-skylight stutters, use `/sr diagnose start` (two minutes by default,
+or `/sr diagnose start 300` for five minutes). Reproduce normal editing, add
+phase markers with `/sr diagnose mark painting-full`, and finish with
+`/sr diagnose stop`. Recording stops automatically at the time limit or on
+disconnect. Send `logs/latest.log` after recording, before restarting Minecraft.
+
+Diagnostics are off by default, independent of debug boxes, and do not change
+lighting, cache policy, or rendering settings. Disable debug boxes during a
+measurement to avoid unrelated visual/logging overhead. Compare the same edits
+with virtual skylight enabled, disabled, and optionally SR rendering off.
+Five-second summaries include nested wall-time measurements for terrain and
+particle/entity light, cold/dirty light-volume builds, solver phases, Sodium
+mesh jobs and main-thread chunk scheduling/result processing, cache outcomes,
+block updates, renderer reloads, frame intervals, client ticks, heap usage and
+garbage collection. Slow operations include their thread and coordinates where
+available. Region coordinates and bounded example block updates are diagnostic
+data; logs are never uploaded automatically.
+
+Timing totals overlap and are **not additive CPU time**. A frame interval can
+also include VSync, an FPS cap, GPU waiting, and unrelated mods; missing metrics
+mean that path was not observed. Enabled instrumentation and logging have some
+overhead, so the diagnosis run is not itself a benchmark.
+
+Client smoke tests opt into automatic recording after world join with the
+`selectiverender.performance.auto` JVM property and verify its initialization.
+Normal launches leave that property unset; recording requires the command.
 
 `/sr` is the short alias for `/selectiverender`; both command names provide the
 same features.

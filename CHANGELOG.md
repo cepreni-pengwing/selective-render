@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.9
+
+- Added opt-in performance recording with `/sr diagnose start [seconds]`, `mark LABEL`, and `stop`; recordings automatically end and write bounded summaries to `logs/latest.log`.
+- Measure virtual-skylight solver phases, terrain cache behavior, particle/entity lighting, cold and dirty light-volume builds, Sodium chunk work, block updates, frame/tick timing, memory, and garbage collection.
+- Diagnostics are disabled by default and independent of debug boxes; this build does not change lighting behavior or claim another lag fix.
+- Available for Minecraft 1.20.1, 1.21.1, and 26.2.
+
 ## 1.10.8
 
 - Removed the legacy `rename` command alias so typing `/sr r` no longer suggests an unrelated rename operation.

@@ -27,7 +27,9 @@
     "sodium.FluidRendererMixin",
     "sodium.OcclusionCullerMixin",
     "sodium.VisibleChunkCollectorMixin",
-    "sodium.WorldSliceMixin"
+    "sodium.WorldSliceMixin",
+    "sodium.SectionManagerDiagnosticsMixin",
+    "sodium.MeshTaskDiagnosticsMixin"
   ],
   "injectors": {
     "defaultRequire": 1

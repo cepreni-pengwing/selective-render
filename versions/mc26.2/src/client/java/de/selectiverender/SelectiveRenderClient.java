@@ -117,9 +117,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(BOUNDARY_KEY);
         KeyMappingHelper.registerKeyMapping(CLEAR_PLOTS_KEY);
         KeyMappingHelper.registerKeyMapping(BLOCK_FILTERS_KEY);
+        ClientTickEvents.START_CLIENT_TICK.register(client -> PerformanceDiagnostics.tickStart());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             VirtualSkyLightSampler.tick(client.level);
             PlotSquaredClient.tick();
+            if (PerformanceDiagnostics.tickEnd()) logPerformanceContext();
             while (TOGGLE_KEY.consumeClick()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.consumeClick()) toggleHideFromKey(client);
             while (POS1_KEY.consumeClick()) setPositionFromKey(client, true);
@@ -160,6 +162,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             SelectiveRenderConfig.beginSession(client, next);
             PlotSquaredClient.enterWorld(client, next);
         });
+        // Opt-in smoke-test recording; ordinary launches never enable diagnostics.
+        if (world != null && Boolean.getBoolean("selectiverender.performance.auto")
+                && !PerformanceDiagnostics.enabled()) {
+            PerformanceDiagnostics.start(120, LOGGER::info);
+            logPerformanceContext();
+        }
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> command(String name) {
@@ -187,7 +195,65 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(filterCommand("filter"))
                 .then(filterCommand("f"))
                 .then(listCommand("list"))
-                .then(listCommand("l"));
+                .then(listCommand("l"))
+                .then(diagnosticsCommand("diagnose"))
+                .then(diagnosticsCommand("diag"));
+    }
+
+    private static LiteralArgumentBuilder<FabricClientCommandSource> diagnosticsCommand(String name) {
+        return ClientCommands.literal(name)
+                .executes(context -> {
+                    feedback(context.getSource(), message(white("Performance diagnostics: "),
+                            aqua(PerformanceDiagnostics.enabled() ? "ON" : "OFF"),
+                            white(" · /sr diagnose start [seconds] | mark LABEL | stop")));
+                    return Command.SINGLE_SUCCESS;
+                })
+                .then(ClientCommands.literal("start")
+                        .executes(context -> startPerformanceDiagnostics(context.getSource(), 120))
+                        .then(ClientCommands.argument("seconds", IntegerArgumentType.integer(10, 600))
+                                .executes(context -> startPerformanceDiagnostics(context.getSource(),
+                                        IntegerArgumentType.getInteger(context, "seconds")))))
+                .then(ClientCommands.literal("stop").executes(context -> {
+                    PerformanceDiagnostics.stop();
+                    feedback(context.getSource(), message(green("Diagnostics stopped"),
+                            white(" · send logs/latest.log")));
+                    return Command.SINGLE_SUCCESS;
+                }))
+                .then(ClientCommands.literal("mark")
+                        .then(ClientCommands.argument("label", StringArgumentType.greedyString())
+                                .executes(context -> {
+                                    PerformanceDiagnostics.mark(StringArgumentType.getString(context, "label"));
+                                    logPerformanceContext();
+                                    feedback(context.getSource(), message(green("Diagnostic marker saved")));
+                                    return Command.SINGLE_SUCCESS;
+                                })));
+    }
+
+    private static int startPerformanceDiagnostics(FabricClientCommandSource source, int seconds) {
+        PerformanceDiagnostics.start(seconds, LOGGER::info);
+        logPerformanceContext();
+        feedback(source, message(green("Diagnostics recording"), white(" · " + seconds
+                + " seconds · /sr diagnose stop · output: logs/latest.log")));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static void logPerformanceContext() {
+        var loader = net.fabricmc.loader.api.FabricLoader.getInstance();
+        LOGGER.info("[SR performance] CONTEXT sr={} sodium={} iris={} filtering={} render={} hidden={} render_regions={} hidden_regions={} generation={} skylight={} hidden_skylight={} boundary={} debug_boxes={}",
+                loader.getModContainer("selectiverender").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("unknown"),
+                loader.getModContainer("sodium").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("absent"),
+                loader.getModContainer("iris").map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("absent"),
+                SelectiveRenderState.filteringActive(), SelectiveRenderState.enabled(),
+                SelectiveRenderState.hideEnabled(), SelectiveRenderState.activeRegions().size(),
+                SelectiveRenderState.hiddenRegions().size(), SelectiveRenderState.visibilityGeneration(),
+                SelectiveRenderSettings.virtualLightMode(), SelectiveRenderSettings.hiddenVirtualLightMode(),
+                SelectiveRenderSettings.boundaryMode(), SelectiveRenderSettings.debugBoxes());
+        LOGGER.info("[SR performance] CACHE terrain={} sampler={} filtered_regions={}",
+                TerrainSkyLightCache.INSTANCE.diagnosticStatus(),
+                VirtualSkyLightSampler.diagnosticStatus(), SelectiveRenderState.filteredRegionCount());
+        LOGGER.info("[SR performance] REGION_SAMPLE render={} hidden={}",
+                SelectiveRenderState.activeRegions().stream().limit(4).toList(),
+                SelectiveRenderState.hiddenRegions().stream().limit(4).toList());
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> filterCommand(String name) {

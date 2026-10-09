@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.PerformanceDiagnostics;
 import de.selectiverender.VirtualSkyLightSampler;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.VertexConsumerProvider;
@@ -33,7 +34,10 @@ abstract class WorldRendererMixin {
                 || !(world instanceof ClientWorld clientWorld)
                 || (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())
                 || !SelectiveRenderState.shouldRender(pos)) return;
+        long started = PerformanceDiagnostics.startTimer();
         int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.BLOCK_ENTITY_LIGHT,
+                started, 1, pos.getX(), pos.getY(), pos.getZ());
         if (virtualLight < 0) return;
         cir.setReturnValue(LightmapTextureManager.pack(
                 Math.max(LightmapTextureManager.getSkyLightCoordinates(light), virtualLight),
@@ -45,6 +49,7 @@ abstract class WorldRendererMixin {
                                                         BlockState oldState, BlockState newState,
                                                         int flags, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
+        long updateStarted = PerformanceDiagnostics.startTimer();
         // Compare the states that virtual light actually sees, including ID/tag filters.
         BlockState oldVisible = SelectiveRenderState.shouldRender(oldState,
                 pos.getX(), pos.getY(), pos.getZ()) ? oldState : Blocks.AIR.getDefaultState();
@@ -67,9 +72,14 @@ abstract class WorldRendererMixin {
                             newState.getCullingShape(world, pos), BooleanBiFunction.NOT_SAME);
         }
         if (changed) {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.OPTICAL_UPDATE, 1);
             SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
+        } else {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.LIGHT_EQUIVALENT_UPDATE, 1);
         }
+        PerformanceDiagnostics.blockUpdate(updateStarted, changed,
+                pos.getX(), pos.getY(), pos.getZ(), oldState, newState);
     }
 
     @Inject(method = "isRenderingReady", at = @At("HEAD"), cancellable = true)

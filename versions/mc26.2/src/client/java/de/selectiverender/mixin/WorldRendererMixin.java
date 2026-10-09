@@ -1,6 +1,7 @@
 package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
+import de.selectiverender.PerformanceDiagnostics;
 import net.minecraft.client.renderer.extract.LevelExtractor;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
@@ -21,6 +22,7 @@ abstract class WorldRendererMixin {
     private void selectiverender$invalidateLightColumn(BlockPos pos,
             BlockState oldState, BlockState newState, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
+        long updateStarted = PerformanceDiagnostics.startTimer();
         BlockState oldVisible = SelectiveRenderState.shouldRender(oldState,
                 pos.getX(), pos.getY(), pos.getZ()) ? oldState : Blocks.AIR.defaultBlockState();
         BlockState newVisible = SelectiveRenderState.shouldRender(newState,
@@ -36,9 +38,14 @@ abstract class WorldRendererMixin {
                     newState.getOcclusionShape(), BooleanOp.NOT_SAME);
         }
         if (changed) {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.OPTICAL_UPDATE, 1);
             SelectiveRenderState.invalidateVirtualSkyLight(pos.getX(), pos.getY(), pos.getZ());
             SelectiveRenderState.invalidateVisibleOccluder(pos.getX(), pos.getZ());
+        } else {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.LIGHT_EQUIVALENT_UPDATE, 1);
         }
+        PerformanceDiagnostics.blockUpdate(updateStarted, changed,
+                pos.getX(), pos.getY(), pos.getZ(), oldState, newState);
     }
 
     @Inject(method = "isEntityVisible", at = @At("HEAD"), cancellable = true)

@@ -46,6 +46,7 @@ public final class SelectiveRenderState {
     public static boolean plotRenderingEnabled() { return visibility.plotRenderingEnabled(); }
     public static List<BlockRegion> plotRegions() { return visibility.plotRegions(); }
     public static int visibilityGeneration() { return visibility.generation(); }
+    public static int filteredRegionCount() { return visibility.filteredRegions().size(); }
     public static boolean filteringActive() {
         VisibilitySnapshot snapshot = visibility;
         return snapshot.enabled() || snapshot.hideEnabled() || !snapshot.filteredRegions().isEmpty();
@@ -192,6 +193,19 @@ public final class SelectiveRenderState {
     }
 
     private static boolean matchesBlockFilters(VisibilitySnapshot snapshot, BlockState state,
+                                               int blockX, int blockY, int blockZ) {
+        if (snapshot.filteredRegions().isEmpty()) return true;
+        long started = PerformanceDiagnostics.sampledFilterTimer();
+        if (started == 0) return matchesBlockFiltersUnchecked(snapshot, state, blockX, blockY, blockZ);
+        try {
+            return matchesBlockFiltersUnchecked(snapshot, state, blockX, blockY, blockZ);
+        } finally {
+            PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.FILTER_SAMPLE,
+                    started, 1, blockX, blockY, blockZ);
+        }
+    }
+
+    private static boolean matchesBlockFiltersUnchecked(VisibilitySnapshot snapshot, BlockState state,
                                                int blockX, int blockY, int blockZ) {
         if (snapshot.filteredRegions().isEmpty()) return true;
         boolean inFilteredRegion = false;
@@ -451,7 +465,8 @@ public final class SelectiveRenderState {
     public static int highestVisibleOccluder(ClientWorld world, int blockX, int blockZ) {
         VisibilitySnapshot snapshot = visibility;
         if (!snapshot.enabled() && !snapshot.hideEnabled()) return world.getTopY() - 1;
-        return visibleOccluderCache.get(snapshot.generation(), blockX, blockZ, (x, z) -> {
+        long started = PerformanceDiagnostics.startTimer();
+        int result = visibleOccluderCache.get(snapshot.generation(), blockX, blockZ, (x, z) -> {
             int worldSurface = world.getTopY(Heightmap.Type.WORLD_SURFACE, x, z) - 1;
             int top = visibleColumnTop(snapshot, x, z,
                     Math.min(world.getTopY() - 1, worldSurface));
@@ -468,6 +483,9 @@ public final class SelectiveRenderState {
             }
             return Integer.MIN_VALUE;
         });
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.OCCLUDER_QUERY,
+                started, 1, blockX, 0, blockZ);
+        return result;
     }
 
     public static void invalidateVisibleOccluder(int blockX, int blockZ) {
@@ -508,12 +526,14 @@ public final class SelectiveRenderState {
 
     public static void invalidateLightCacheChunk(int chunkX, int chunkZ) {
         if (!filteringActive()) return;
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.CHUNK_INVALIDATION, 1);
         TerrainSkyLightCache.INSTANCE.invalidateColumn(chunkX, chunkZ);
         visibleOccluderCache.removeChunk(chunkX, chunkZ);
         VirtualSkyLightSampler.invalidateChunk(chunkX, chunkZ);
     }
 
     public static void resetForDisconnect() {
+        PerformanceDiagnostics.stop();
         TerrainSkyLightCache.INSTANCE.clear();
         first = null;
         second = null;
@@ -526,6 +546,7 @@ public final class SelectiveRenderState {
     }
 
     public static void refreshRenderer() {
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.FULL_RENDER_RELOAD, 1);
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.worldRenderer != null && client.world != null) {
             client.worldRenderer.reload();
@@ -537,6 +558,7 @@ public final class SelectiveRenderState {
     }
 
     private static void refreshRegions(Collection<BlockRegion> regions, VisibilitySnapshot previous) {
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.REGION_REFRESH, regions.size());
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.worldRenderer == null || client.world == null || (regions.isEmpty() && previous == null)) return;
 

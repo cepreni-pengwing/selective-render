@@ -2,6 +2,7 @@ package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.VirtualSkyLightSampler;
+import de.selectiverender.PerformanceDiagnostics;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.LightCoordsUtil;
@@ -21,7 +22,10 @@ abstract class LightCoordsMixin {
                 || !SelectiveRenderState.shouldRender(pos)) return;
         int light = cir.getReturnValueI();
         if (LightCoordsUtil.sky(light) >= 15) return;
+        long started = PerformanceDiagnostics.startTimer();
         int virtual = VirtualSkyLightSampler.sample(level, pos);
+        PerformanceDiagnostics.finish(PerformanceDiagnostics.Metric.BLOCK_ENTITY_LIGHT,
+                started, 1, pos.getX(), pos.getY(), pos.getZ());
         if (virtual >= 0) cir.setReturnValue(LightCoordsUtil.pack(LightCoordsUtil.block(light),
                 Math.max(LightCoordsUtil.sky(light), virtual)));
     }
