@@ -2,345 +2,82 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.12**. See
-[CHANGELOG.md](CHANGELOG.md) for release notes.
+Selective Render is a client-side Fabric mod for focusing the view on selected parts of a Minecraft world. Create block-accurate regions, hide unwanted areas, filter particular blocks, or work with a server's plot integration. It changes what your client draws and targets; it does not change world data, collision, or server chunk loading.
 
-<p align="center">
-  <img src="docs/images/selective-render-on.png" width="49%" alt="Selective Render ON">
-  <img src="docs/images/selective-render-off.png" width="49%" alt="Selective Render OFF">
-</p>
+## Getting started
 
-Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2. Each
-Minecraft version has its own clearly labelled JAR in the same release. Selective Render keeps loaded
-chunks, network traffic, world state, and collision unchanged while removing
-supported content outside selected three-dimensional block regions from the render lists.
-This prevents hidden buildings and terrain from contributing geometry, lighting,
-or shader shadows outside the selected area. Player visibility is configurable;
-other entities, block entities, particles, block models, and fluids are
-restricted to the active regions.
+Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with the `#` key on a German keyboard, or open the Selective Render category in Controls to change bindings.
 
-For requests regarding additional Minecraft versions, contact [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
+To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then save it with `/sr save NAME`. You can also create a region from coordinates in one command, or use a cuboid selection supplied by WorldEdit. Saved regions can be enabled together, hidden, filtered, and organized independently.
 
-## Usage
+## Commands
 
-### Performance diagnostics
+`/sr` is the short form of `/selectiverender`. Every command below works with either root. Arguments in square brackets are optional. Commands have no dedicated keybind unless a default is listed; group keybinds affect the whole group, not a single named region.
 
-For virtual-skylight stutters, use `/sr diagnose start` (two minutes by default,
-or `/sr diagnose start 300` for five minutes). Reproduce normal editing, add
-phase markers with `/sr diagnose mark painting-full`, and finish with
-`/sr diagnose stop`. Recording stops automatically at the time limit or on
-disconnect. Send `logs/latest.log` after recording, before restarting Minecraft.
+| Priority | Command | What it does | Keybind (default) |
+|---|---|---|---|
+| Basic | `/sr pos1` (`/sr 1`) | Set the first corner at your current block. | Unassigned |
+| Basic | `/sr pos2` (`/sr 2`) | Set the opposite corner at your current block. | Unassigned |
+| Basic | `/sr save NAME` (`/sr s NAME`) | Save the marked cuboid as a region and enable it. | None |
+| Basic | `/sr toggle NAME` (`/sr t NAME`) | Add or remove one saved region from the render group. | None; `F9` toggles the whole render group |
+| Basic | `/sr toggle` (`/sr t`) | Enable or disable the render group without changing its members. | `F9` |
+| Basic | `/sr hide NAME` (`/sr h NAME`) | Add a saved region to the hide group or toggle its hidden state. | None; `F10` toggles the whole hide group |
+| Basic | `/sr hide` (`/sr h`) | Enable or disable the hide group without changing its members. | `F10` |
+| Create regions | `/sr create NAME [render\|hidden]` (`/sr c NAME ...`) | Create a region from the current WorldEdit cuboid selection. | None |
+| Create regions | `/sr create X1 Y1 Z1 X2 Y2 Z2 NAME [render\|hidden]` (`/sr c ...`) | Create a region directly from two block corners. | None |
+| Manage regions | `/sr redefine NAME` (`/sr r NAME`) | Replace a saved region's bounds with the current marked corners. | None |
+| Manage regions | `/sr name OLDNAME NEWNAME` (`/sr n ...`) | Rename a saved region. | None |
+| Manage regions | `/sr delete NAME` (`/sr d NAME`) | Permanently delete a saved region. | None |
+| Manage regions | `/sr toggle all` (`/sr t all`, `/sr t a`) | Select all render regions, or clear the render selection if any are selected. | None; `F9` toggles the group on/off |
+| Manage regions | `/sr hide all` (`/sr h all`, `/sr h a`) | Select all hide regions, or clear the hide selection if any are selected. | None; `F10` toggles the group on/off |
+| Manage regions | `/sr list` (`/sr l`) | List saved render regions. | None |
+| Manage regions | `/sr list hidden` (`/sr l hidden`, `/sr list h`, `/sr l h`) | List saved hide regions. | None |
+| Block filters | `/sr filter NAME hide id:...` (`/sr f ...`) | Hide matching block IDs inside a region. | None; global filter toggle is unassigned |
+| Block filters | `/sr filter NAME only tag:...` (`/sr f ...`) | Keep only blocks matching a block ID or tag inside a region. | None; global filter toggle is unassigned |
+| Block filters | `/sr filter NAME` (`/sr f NAME`) | Show the region's current filter rules. | None |
+| Block filters | `/sr filter NAME clear` (`/sr f NAME clear`) | Remove that region's filter rules. | None |
+| Server plots | `/sr plot [minY] [maxY] [xzMargin]` (`/sr p ...`) | Add or remove the plot beneath you in the temporary plot group. | `Backspace` |
+| Server plots | `/sr plot clear` (`/sr p clear`) | Clear the temporary plot group. | Unassigned |
+| Server plots | `/sr plot save NAME [minY] [maxY] [xzMargin]` (`/sr p save` or `/sr p s ...`) | Save the current plot as a regular region and enable it. | None |
+| Diagnostics | `/sr diagnose` (`/sr diag`) | Show whether performance diagnostics are recording. | None |
+| Diagnostics | `/sr diagnose start [seconds]` | Record performance data; defaults to 120 seconds. | None |
+| Diagnostics | `/sr diagnose mark LABEL` | Add a marker to the diagnostic log. | None |
+| Diagnostics | `/sr diagnose stop` | Stop recording. | None |
 
-Diagnostics are off by default, independent of debug boxes, and do not change
-lighting, cache policy, or rendering settings. Disable debug boxes during a
-measurement to avoid unrelated visual/logging overhead. Compare the same edits
-with virtual skylight enabled, disabled, and optionally SR rendering off.
-Five-second summaries include nested wall-time measurements for terrain and
-particle/entity light, cold/dirty light-volume builds, solver phases, Sodium
-mesh jobs and main-thread chunk scheduling/result processing, cache outcomes,
-block updates, renderer reloads, frame intervals, client ticks, heap usage and
-garbage collection. Slow operations include their thread and coordinates where
-available. Region coordinates and bounded example block updates are diagnostic
-data; logs are never uploaded automatically.
+The default settings key is `#` on German layouts (the apostrophe key in Minecraft's key notation). `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Position, player visibility, interaction, boundary, block-filter, and clear-plot bindings are initially unassigned. All bindings can be changed under **Options → Controls → Selective Render**.
 
-Timing totals overlap and are **not additive CPU time**. A frame interval can
-also include VSync, an FPS cap, GPU waiting, and unrelated mods; missing metrics
-mean that path was not observed. Enabled instrumentation and logging have some
-overhead, so the diagnosis run is not itself a benchmark.
+Filters accept block IDs and block tags known to the client. A built-in `selectiverender:beams` tag covers supported beam, lintel, and pole blocks from Conquest Reforged and Architects. Filtered blocks can follow the hidden-region interaction setting. Filters are visual/client-side and do not change server state or collision.
 
-Client smoke tests opt into automatic recording after world join with the
-`selectiverender.performance.auto` JVM property and verify its initialization.
-Normal launches leave that property unset; recording requires the command.
+## Server plot integration
 
-`/sr` is the short alias for `/selectiverender`; both command names provide the
-same features.
+The optional [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots) server add-on supplies exact plot outlines to the client. The commands above are client commands; the server add-on has no separate player command. The first plot added to an empty group enables isolation automatically. Further plots can be added or removed independently, and the temporary group survives reconnects and dimension changes during the current Minecraft session. `/sr plot save` turns a plot into a normal saved region.
 
-1. Stand at one corner of the desired cuboid and run `/sr pos1`.
-2. Stand at the diagonally opposite corner and run `/sr pos2`.
-3. Run `/sr s NAME` to save the inclusive cuboid and activate it immediately.
-4. Save additional regions or use `/sr t NAME` to add existing presets to the render group.
-5. Run `/sr t` to enable or disable the complete render group at once.
+Optional Y limits are inclusive. When omitted, the minimum comes from the Selective Render setting (default `-64`) and the maximum is `400`. A positive X/Z margin expands the plot; a negative margin shrinks it. If a margin would remove the entire plot, it is rejected. Servers using LuckPerms or another permission manager must grant `selectiverender.plot.solo` to players allowed to use the integration.
 
-Both positions use whole-block X, Y, and Z coordinates. Make sure the two corners
-cover the full width, height, and depth you want to render. For example, one
-position can be the lower north-west corner and the other the upper south-east
-corner. The order of `pos1` and `pos2` does not matter, and both boundary blocks
-are included.
+## Settings and behavior
 
-Available short commands:
+- Player visibility has six modes, including local-player-only and everyone-except-local-player; player hitboxes follow the same policy.
+- Interactions can be limited to regions, allowed outside them, or left unrestricted. A separate option controls interactions with hidden regions and filtered blocks.
+- Boundary faces can be normal, black, or culled. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
+- Virtual skylight can reach render and hidden regions from above, from the sides, from both, or from neither, with separate settings for hidden regions.
+- The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
+- When filtering is inactive and no render or hide regions are active, the renderer and interaction hooks take their normal no-op paths.
+- Water, fire, in-wall overlays, and underwater fog are suppressed when the camera is inside content the mod hides.
 
-```text
-/sr pos1  # alias: /sr 1
-/sr pos2  # alias: /sr 2
-/sr s NAME
-/sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]
-/sr t NAME
-/sr t all  # alias: /sr t a
-/sr h NAME
-/sr h
-/sr h all  # alias: /sr h a
-/sr d NAME
-/sr r NAME
-/sr n OLDNAME NEWNAME
-/sr f NAME hide id:minecraft:stone
-/sr f NAME only tag:minecraft:slabs
-/sr f NAME hide tag:selectiverender:beams
-/sr f NAME
-/sr f NAME clear
-/sr list
-/sr list h
-/sr l h
-```
+## Compatibility and limitations
 
-- `/sr s NAME` saves the current selection and immediately activates it. A name
-  is always required and must not already exist.
-- `/sr c X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]` creates and activates a complete
-  cuboid preset in one command. The context defaults to `render`.
-- `/sr c NAME [render|hidden]` (or `/sr create`) imports the current WorldEdit
-  cuboid selection without coordinates. It creates the same inclusive, activated preset
-  and never overwrites an existing name. SR's own pos1/pos2 selection is unchanged.
-  WorldEdit or a compatible server implementation must send CUI selection updates;
-  no SR server addon is needed. WorldEditCUI is optional: when installed, SR observes
-  its selection events without replacing its receiver. Otherwise SR receives CUI updates
-  directly. If no complete selection has arrived, reselect the corners or run `/we cui`.
-  Non-cuboid selections are rejected rather than imported as oversized bounding boxes.
-  The imported preset is a snapshot, not linked to later WorldEdit selection changes.
-- `/sr r NAME` redefines an existing preset from the current pos1/pos2 selection while
-  preserving its context and active state.
-- `/sr t NAME` toggles a preset in the render context. Using it on a hide preset
-  moves that preset back to the regular render context.
-- `/sr t` enables or disables the entire render group while preserving its members.
-- `/sr t all` or `/sr t a` deselects every regular preset when any are selected; when none are
-  selected, it selects all regular presets.
-- Global render toggles and the render keybind use a HUD overlay instead of chat.
-- `/sr h NAME` registers a preset in the hide context and toggles its selected state.
-- `/sr h` enables or disables the entire hide group while preserving its members.
-- `/sr h all` or `/sr h a` deselects every hide preset when any are selected; when none are
-  selected, it selects all registered hide presets.
-  Global hide toggles and the hide keybind use a HUD overlay instead of chat.
-- `/sr d NAME` permanently deletes a preset.
-- `/sr f NAME hide id:namespace:block` hides matching blocks inside that active render region.
-  Replace `id:` with `tag:` to filter by a registered block tag; suggestions include tags
-  available to the client, including Axiom tags when Axiom provides them. The built-in
-  `tag:selectiverender:beams` selector matches Conquest Reforged and Architects beams, lintels,
-  poles, and related stripped-log variants. Add multiple rules as needed. `only` keeps only matching blocks, and
-  `clear` removes all filters for that region.
-  Running `/sr f NAME` lists that region's current rules.
-  Saved filters remain active independently of whether their render toggle is on; use the
-  unassigned filter keybind to pause all block filters.
-  Overlapping active regions combine as a union: a block stays visible if any containing region
-  allows it. Filters affect visuals only, not collision or server-side interactions.
-- `/sr n OLDNAME NEWNAME` renames a preset while preserving its group memberships.
-- `/sr list` displays regular presets on separate lines with status and a corner coordinate.
-- `/sr list h`, `/sr list hidden`, `/sr l h`, or `/sr l hidden` exclusively displays hide-group regions in the same format.
+Selective Render has builds for Minecraft 1.20.1, 1.21.1, and 26.2. Use the matching JAR; these builds are not interchangeable. The 1.20.1 and 1.21.1 builds target their corresponding Java/Fabric environments, and the 26.2 build targets Java 25. See the release assets and project metadata for exact dependency requirements.
 
-The long `save`, `create`, `redefine`, `toggle`, `hide`, `delete`, and `name` subcommands remain
-available. Use `/sr name OLDNAME NEWNAME` or `/sr n OLDNAME NEWNAME` to rename;
-the old `rename` alias is no longer registered, keeping `r` reserved for redefining.
+The mod does not reduce render distance, server-sent chunks, or network traffic. Selected content must already be within the normal client render distance. Distant Horizons LODs and some custom mod renderers may not be filtered. Conquest Reforged extension-toggle boundaries are not fully supported in black/culled modes. Particle and dropped-item lighting can briefly be inaccurate under filtered roofs.
 
-All regions in the enabled render group are combined. A block is rendered when
-it is inside at least one of them, so separate areas can be visible at the same
-time. Active hide regions are then subtracted from that result. When the normal
-render group is disabled, the hide group can remove regions from the full world.
+## Building and contributing
 
-Default keybinds:
-
-- `F9`: toggle the render group
-- `F10`: toggle the hide group
-- `Backspace`: toggle the current PlotSquared region
-- `#`: open settings (the non-US key next to Enter on German layouts)
-- Unassigned: set Pos1, set Pos2, cycle all six player visibility modes, clear temporary plots
-  (`/sr p clear`), cycle interactions and boundary faces, and toggle all block filters
-
-All keybinds can be reassigned in Minecraft's Controls settings under the
-Selective Render category.
-Existing custom bindings are preserved. The settings screen is also available through Mod Menu
-when installed. Keybinds and the settings screen change the same options.
-
-Preset arguments support tab completion for toggle, hide, delete, and rename
-commands. Chat feedback uses a compact `SR:` prefix; list entries are grouped
-under a single header without repeating the prefix on every line.
-The preset names `all` and `a` are reserved for group commands.
-
-## PlotSquared integration
-
-Servers running the optional [Selective Render Plots](https://github.com/cepreni-pengwing/selective-render-plots)
-can provide their exact PlotSquared regions, including merged and non-rectangular plots.
-Plot integration is part of the normal Selective Render command tree:
-
-- `/selectiverender plot` or `/sr plot` adds the plot under the player to temporary isolation using
-  the configured minimum Y (initially `-64`) and maximum Y `400`. Use it again on that plot to remove only that plot.
-- `/sr p [minY] [maxY] [xzMargin]` does the same with inclusive vertical bounds. A positive margin
-  expands the outline; a negative margin shrinks the complete plot shape.
-- `/sr p clear` clears all temporarily selected plots.
-- The first plot in an empty temporary selection enables isolation. After switching it off with
-  `/sr t`, you can add more plots without switching it back on; `/sr t` then shows the whole selection.
-- `/selectiverender plot save NAME [minY] [maxY] [xzMargin]` permanently saves the exact plot shape as one
-  normal preset and immediately activates it. The Y boundaries are inclusive, and the X/Z margin
-  adjusts the complete PlotSquared shape without creating seams between merged parts.
-
-`p` is the short alias for `plot`, and `s` is the short alias for `save`, so
-`/sr p s NAME minY maxY xzMargin` is equivalent. Omitted Y values use the configured minimum
-(initially `-64`) and maximum `400`;
-omitting `xzMargin` preserves the exact PlotSquared X/Z bounds.
-
-Plot mode is temporary for the current Minecraft session and is remembered across reconnects and
-dimension changes for the same server/world and dimension. It does not alter saved presets, and active hide regions
-continue to be subtracted from the plot regions. A saved merged or irregular plot
-appears as one entry in `/sr list`, even though it contains multiple internal cuboids.
-
-Servers using LuckPerms or another permission manager must ensure that users or groups allowed to
-use SRP have `selectiverender.plot.solo`. Grant it explicitly on Fabric or whenever a Paper
-permission policy overrides the plugin's default. For example:
-
-```text
-/lp user PLAYER permission set selectiverender.plot.solo true
-```
-
-Presets, render-group membership, and the group's enabled state are stored per server or single-player world
-and dimension in `config/selectiverender/<sha256>.json`. The configuration is loaded
-automatically when joining or changing dimensions. The hashed file name prevents server
-addresses from being exposed as file names.
-The JSON contents are portable, but the file name is derived from the server address or absolute
-single-player save path together with the dimension ID. Between instances, the same multiplayer
-address and dimension use the same name. For a different address, save path, or dimension, let SR
-create the target context's file, close Minecraft, then replace its JSON contents with the copied
-configuration while keeping the target-generated file name.
-Writes are atomic and preserve the previous file as a `.json.bak` backup. If the
-primary file is damaged, Selective Render attempts to recover the latest valid
-backup automatically.
-
-Players can be rendered nowhere, inside regions, outside regions, everywhere, only for the local
-player, or for every player except the local player. Their debug hitboxes follow the same setting. Every other entity, block entity, and particle is hidden outside
-the combined active regions.
-
-The settings screen cycles block faces directly adjacent to invisible space through normal exposed
-cut faces, fully opaque black faces, and culled faces. Boundaries created by hide regions always
-remain normal. Region wireframe boxes remain available as a separate off/on debug option.
-
-Interactions can be allowed nowhere, inside regions, outside regions, or everywhere. This covers
-block breaking and use, placement, entity attacks and use, pick block, and the matching client
-raycasts. Vanilla crosshair targets and outlines follow the same mode, and Axiom's Orbit Camera
-and brush raycasts are supported. Collision is unchanged.
-
-By default, switching all rendering off restores completely vanilla interaction behavior. Enable
-`Interactions while rendering is off: Filtered` to keep the selected Inside/Outside/None policy
-using the retained region selection while the world remains fully visible.
-Filtered mode uses every saved region, including presets that are not currently selected. A separate
-toggle controls whether hidden regions and blocks removed by region filters remain interactable;
-disabling it also removes their hitboxes and blocks targeting and interaction, including in the
-otherwise unrestricted Everywhere mode.
-
-Virtual skylight can enter cut regions from the top and sides, only the top, only the sides, or
-nowhere. Render boundaries and hidden regions have separate controls. Top and sides is the default;
-these options do not alter vanilla lighting while filtering is inactive.
-
-Water, fire, in-wall overlays, and underwater fog are suppressed when the camera is inside
-content Selective Render hides.
-
-The settings screen also provides the default `/sr p` minimum Y and the number of affected render
-sections that may be rebuilt locally before SR chooses a full renderer reload. Higher thresholds
-avoid visible full reloads but can schedule more localized work at once; lower values may suit
-weaker hardware. The default is 8,192 sections; there is no additional percentage-based limit.
-This also applies when switching rendering off: previously hidden loaded sections may need rebuilding,
-so the affected area can be much larger than the selected region. An unavailable Flywheel refresh API
-still requires a full-reload compatibility fallback. Resource reloads remain controlled by Minecraft.
-
-New settings default to players and interactions everywhere, normal boundary faces, and debug
-boxes off. When enabled, debug boxes outline every saved region, including inactive and hidden
-presets, plus temporary PlotSquared regions. Updating the mod preserves your saved settings.
-
-## Implementation
-
-- Vanilla sections are filtered in `WorldRenderer.addBuiltChunk` before terrain
-  render lists and chunk rebuild work are created. Boundary chunks are retained,
-  then individual block models and fluids are filtered by X/Y/Z block position.
-- Sodium 0.5.x sections are filtered through `VisibleChunkCollector` before
-  render lists, draw commands, and rebuild queues are created. While the filter
-  is active, graph traversal remains independent of occlusion data from
-  unrendered outer sections, allowing the region to remain visible from outside.
-  Sodium's render-only world slice exposes blocks outside the cuboid as air, so
-  standard and custom-rendered terrain is clipped at the exact block boundaries.
-  Light samples beyond those boundaries use unobstructed sky light, preventing
-  hidden terrain from darkening newly exposed cut faces. Vertical skylight is
-  recalculated against occluding blocks inside the selected Y range, so roofs
-  above the cuboid cannot leave baked darkness behind.
-- Iris normal and shadow passes use the already filtered Vanilla or Sodium
-  terrain lists, so geometry outside the region never enters a shadow pass.
-- Entities, block entities, and particle geometry use separate render filters.
-  Player, entity, and block-entity lightmaps use the same shape-aware virtual skylight as terrain,
-  preventing mismatched brightness below filtered roofs and around partial blocks. Compact cached
-  section results are invalidated only where block or chunk changes can affect them.
-- Region edits rebuild intersecting 16 x 16 x 16 render sections plus the
-  virtual-light influence area; whitelist on/off transitions also rebuild the changed complement.
-  Large updates automatically fall back to a full
-  renderer reload.
-- Flywheel/Create visualizations receive their own reset after visibility changes instead of forcing
-  a full Minecraft terrain reload.
-- Black and Culled boundaries inspect final Fabric Renderer/Indium quad positions for flat cut-plane
-  faces. Conquest Reforged extension toggles are not reliably supported yet; this compatibility work
-  is deferred.
-- With no render or hide regions active, hot render and lighting hooks immediately use their
-  normal game paths; unrestricted player and interaction settings do the same.
-
-The mod does not change render distance, server packets, chunk loading, game
-logic, or collision. Optional Flywheel integration uses a cached reflective API lookup.
-
-The selected regions must still be within the normal Minecraft render distance.
-All region boundaries use inclusive whole-block coordinates. Existing horizontal
-presets are migrated without a vertical limit so their previous behavior is kept.
-
-## Building
-
-Requirements: JDK 17 or newer and internet access for the first build.
-
-```bash
-./gradlew build
-```
-
-On Windows:
+Use JDK 17 or newer and run:
 
 ```powershell
 .\gradlew.bat build
 ```
 
-The installable file is generated in `build/libs`.
-Fabric Loader, Fabric API, and Sodium are required. Iris is optional. Download the JAR whose
-file name matches your Minecraft version; the three JARs are not interchangeable.
+The installable JAR is generated in `build/libs`. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Report issues with the requested logs and game/mod versions. Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
-## Target versions
-
-- Minecraft 1.20.1
-- Fabric API 0.92.2+1.20.1 or newer for Minecraft 1.20.1
-- Sodium 0.5.13: build-compatible and tested in game
-- Sodium 0.5.8 and 0.5.11: compile-checked by CI, but not claimed as fully tested in game
-- Iris for Minecraft 1.20.1
-- Minecraft 1.21.1 with Java 21
-- Fabric API 0.116.17+1.21.1 and Sodium 0.8.13+ for Minecraft 1.21.1
-- Minecraft 26.2 with Java 25
-- Fabric API 0.159.0+26.2 and Sodium 0.9.2 for Minecraft 26.2
-
-## Known limitations
-
-- Selective Render does not change render distance, chunk loading, or server network traffic.
-- Selected regions must already be inside the normal client render distance.
-- Selective filtering deliberately changes which sections participate in occlusion culling.
-- Very large or numerous simultaneous region changes can still increase section
-  rebuild and virtual-light work while the new visibility state is applied.
-- Distant Horizons LOD geometry is not filtered outside selected regions.
-- Custom mod renderers may require dedicated compatibility support; not every mod is covered.
-- Conquest Reforged extension-toggle boundaries are not reliably supported by Black/Culled modes.
-- Breaking particles and newly dropped items can occasionally remain too dark for a short time
-  under filtered roofs while virtual skylight updates.
-
-## Support and contributing
-
-Read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Use the GitHub issue forms for
-crashes, rendering bugs, and compatibility reports, and include the requested logs and versions.
-Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
-
-Release history is maintained in [CHANGELOG.md](CHANGELOG.md).
-
-## License
-
-GNU General Public License v3.0 only. See `LICENSE`.
+Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
