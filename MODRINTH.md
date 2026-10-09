@@ -47,8 +47,6 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 |  |  | Toggle hide group. | `F10` |
 |  |  | Toggle render group. | `F9` |
 
-Keybinds shown in the table are defaults. The settings key is `#`, hide-group toggle is `F10`, and render-group toggle is `F9`. All other keybinds are Not Bound by default and can be changed in Minecraft's Controls settings.
-
 ## Optional server plot support
 
 The [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots) add-on can provide exact server plot outlines. It is optional. Manually created regions work without server setup. Plot groups are temporary for the current Minecraft session, while saved plots become regular regions.
