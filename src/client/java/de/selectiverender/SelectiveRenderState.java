@@ -2,7 +2,6 @@ package de.selectiverender;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.block.BlockState;
-import net.minecraft.registry.Registries;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.world.Heightmap;
 import net.minecraft.entity.Entity;
@@ -210,18 +209,13 @@ public final class SelectiveRenderState {
         if (snapshot.filteredRegions().isEmpty()) return true;
         boolean inFilteredRegion = false;
         boolean matchesAny = false;
-        String blockId = null;
-        Set<String> tags = null;
+        BlockFilterMetadata metadata = null;
         for (FilteredRegion filtered : snapshot.filteredRegions()) {
             if (!filtered.region().contains(blockX, blockY, blockZ)) continue;
             inFilteredRegion = true;
             if (filtered.rules().isEmpty()) return true;
-            if (blockId == null) {
-                blockId = Registries.BLOCK.getId(state.getBlock()).toString();
-                tags = state.getBlock().getRegistryEntry().streamTags()
-                        .map(tag -> tag.id().toString()).collect(java.util.stream.Collectors.toSet());
-            }
-            if (BlockFilterRule.allows(filtered.rules(), blockId, tags)) matchesAny = true;
+            if (metadata == null) metadata = BlockFilterMetadata.of(state.getBlock());
+            if (BlockFilterRule.allows(filtered.rules(), metadata.id(), metadata.tags())) matchesAny = true;
         }
         return !inFilteredRegion || matchesAny;
     }

@@ -418,6 +418,7 @@ abstract class WorldSliceMixin {
         cursor.set(x, y, z);
         if (!SelectiveRenderState.shouldRender(cursor)) return Blocks.AIR.getDefaultState();
         BlockState state = selectiverender$getSourceBlockState(cursor);
+        if (state == null) state = Blocks.AIR.getDefaultState();
         return SelectiveRenderState.shouldRender(state, x, y, z) ? state : Blocks.AIR.getDefaultState();
     }
 
@@ -476,7 +477,10 @@ abstract class WorldSliceMixin {
                     BlockState[] section = selectiverender$sourceSections[sectionIndex];
                     if (section != null) {
                         int sectionBlockIndex = ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
-                        return section[sectionBlockIndex];
+                        BlockState cachedState = section[sectionBlockIndex];
+                        if (cachedState != null) return cachedState;
+                        // A partial/unavailable chunk section may contain nulls. Fall back
+                        // to the live chunk/world lookup instead of leaking null to filters.
                     }
                 }
                 state = chunk.getBlockState(pos);

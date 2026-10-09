@@ -93,6 +93,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     @Override
                     public void reload(ResourceManager manager) {
                         BoundaryColorTexture.invalidate();
+                        BlockFilterMetadata.clear();
                     }
 
                     @Override
@@ -150,6 +151,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     public static void worldChanged(MinecraftClient client, ClientWorld world) {
+        BlockFilterMetadata.clear();
         WorldEditClient.worldChanged(world);
         WORLD_SESSION.switchTo(world, () -> {
             PlotSquaredClient.leaveWorld();

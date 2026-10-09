@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.11
+
+- Prevented a Sodium/Indium chunk-meshing crash when a cached source section contains a null block state; the renderer now falls back to the live chunk data.
+- Applied the same crash guard to Minecraft 1.20.1, 1.21.1, and 26.2.
+- Cached block IDs and tags used by filters instead of rebuilding them for every sampled block during virtual-skylight scans; cache is cleared on resource reload and world changes.
+- Kept the opt-in performance recording commands and cache counters available for follow-up diagnosis.
+
 ## 1.10.10
 
 - Reuse captured source-block data across overlapping virtual-skylight volumes for entities, particles, and block entities, with bounded memory and block/chunk invalidation.

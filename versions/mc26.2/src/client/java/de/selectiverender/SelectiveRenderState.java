@@ -12,7 +12,6 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.levelgen.Heightmap;
 
@@ -209,19 +208,13 @@ public final class SelectiveRenderState {
                                                int x, int y, int z) {
         if (snapshot.filteredRegions().isEmpty()) return true;
         boolean matchedRegion = false, allowed = false;
-        String blockId = null;
-        Set<String> tags = null;
+        BlockFilterMetadata metadata = null;
         for (FilteredRegion filtered : snapshot.filteredRegions()) {
             if (!filtered.region().contains(x, y, z)) continue;
             matchedRegion = true;
             if (filtered.rules().isEmpty()) return true;
-            if (blockId == null) {
-                blockId = BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString();
-                tags = BuiltInRegistries.BLOCK.wrapAsHolder(state.getBlock()).tags()
-                        .map(tag -> tag.location().toString())
-                        .collect(java.util.stream.Collectors.toSet());
-            }
-            if (BlockFilterRule.allows(filtered.rules(), blockId, tags)) allowed = true;
+            if (metadata == null) metadata = BlockFilterMetadata.of(state.getBlock());
+            if (BlockFilterRule.allows(filtered.rules(), metadata.id(), metadata.tags())) allowed = true;
         }
         return !matchedRegion || allowed;
     }
