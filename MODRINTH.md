@@ -10,42 +10,43 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional. Install th
 
 Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated default binding.
 
-| Alias | Expanded command | Purpose | Key |
-|---|---|---|---|
-| `/sr 1` | `pos1` | Mark corner 1. | Not Bound |
-| `/sr 2` | `pos2` | Mark corner 2. | Not Bound |
-| `/sr s` | `save NAME` | Save and activate region. |  |
-| `/sr c` | `create NAME [mode]` | Use WorldEdit selection. Mode: `render` or `hidden`. |  |
-| `/sr c` | <small>`create X1 Y1 Z1 X2 Y2 Z2 NAME [mode]`</small> | Create from two corners. Mode: `render` or `hidden`. |  |
-| `/sr t` | `toggle` | Toggle render group. | `F9` |
-| `/sr t` | `toggle NAME` | Toggle one render region. |  |
-| `/sr t` | `toggle all` (`a` alias) | Select all render regions or clear selection. |  |
-| `/sr h` | `hide` | Toggle hide group. | `F10` |
-| `/sr h` | `hide NAME` | Toggle one hidden region. |  |
-| `/sr h` | `hide all` (`a` alias) | Select all hide regions or clear selection. |  |
-| `/sr l` | `list` | List render regions. |  |
-| `/sr l` | `list hidden` (`h` alias) | List hidden regions. |  |
-| `/sr r` | `redefine NAME` | Update bounds from marked corners. |  |
-| `/sr n` | `name OLDNAME NEWNAME` | Rename region. |  |
-| `/sr d` | `delete NAME` | Delete saved region. |  |
-| `/sr f` | `filter NAME` | View region filters. |  |
-| `/sr f` | `filter NAME hide SELECTOR` | Hide matches by block ID or tag. |  |
-| `/sr f` | `filter NAME only SELECTOR` | Keep only matches by block ID or tag. |  |
-| `/sr f` | `filter NAME clear` | Clear region filters. |  |
-| `/sr p` | <small>`plot [minY] [maxY] [xzMargin]`</small> | Add or remove current plot. | Not Bound |
-| `/sr p` | `plot clear` | Clear temporary plots. | Not Bound |
-| `/sr p` | <small>`plot save NAME [minY] [maxY] [xzMargin]` (`s` alias)</small> | Save plot as a region. |  |
-|  |  | Clear temporary plots. | Not Bound |
-|  |  | Cycle boundary faces. | Not Bound |
-|  |  | Cycle interaction mode. | Not Bound |
-|  |  | Cycle player visibility. | Not Bound |
-|  |  | Open settings. | `#` |
-|  |  | Set selection position 1. | Not Bound |
-|  |  | Set selection position 2. | Not Bound |
-|  |  | Toggle current plot region. | Not Bound |
-|  |  | Toggle all block filters. | Not Bound |
-|  |  | Toggle hide group. | `F10` |
-|  |  | Toggle render group. | `F9` |
+<table>
+<thead><tr><th>Alias</th><th>Expanded command</th><th>Purpose</th><th>Key</th></tr></thead>
+<tbody>
+<tr><td><code>/sr 1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td>Not Bound</td></tr>
+<tr><td><code>/sr 2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td>Not Bound</td></tr>
+<tr><td><code>/sr s</code></td><td><code>save NAME</code></td><td>Save and activate region</td><td></td></tr>
+<tr><td rowspan="2"><code>/sr c</code></td><td><code>create NAME [mode]</code></td><td>Use WorldEdit selection; mode is <code>render</code> or <code>hidden</code></td><td></td></tr>
+<tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [mode]</code></td><td>Create from two corners; mode is <code>render</code> or <code>hidden</code></td><td></td></tr>
+<tr><td rowspan="3"><code>/sr t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
+<tr><td><code>toggle NAME</code></td><td>Toggle one render region</td><td></td></tr>
+<tr><td><code>toggle all</code> (<code>a</code> alias)</td><td>Select all render regions or clear selection</td><td></td></tr>
+<tr><td rowspan="3"><code>/sr h</code></td><td><code>hide</code></td><td>Toggle hide group</td><td><code>F10</code></td></tr>
+<tr><td><code>hide NAME</code></td><td>Toggle one hidden region</td><td></td></tr>
+<tr><td><code>hide all</code> (<code>a</code> alias)</td><td>Select all hide regions or clear selection</td><td></td></tr>
+<tr><td rowspan="2"><code>/sr l</code></td><td><code>list</code></td><td>List render regions</td><td></td></tr>
+<tr><td><code>list hidden</code> (<code>h</code> alias)</td><td>List hidden regions</td><td></td></tr>
+<tr><td><code>/sr r</code></td><td><code>redefine NAME</code></td><td>Update bounds from marked corners</td><td></td></tr>
+<tr><td><code>/sr n</code></td><td><code>name OLDNAME NEWNAME</code></td><td>Rename region</td><td></td></tr>
+<tr><td><code>/sr d</code></td><td><code>delete NAME</code></td><td>Delete saved region</td><td></td></tr>
+<tr><td rowspan="4"><code>/sr f</code></td><td><code>filter NAME</code></td><td>View region filters</td><td></td></tr>
+<tr><td><code>filter NAME hide SELECTOR</code></td><td>Hide matches by block ID or tag</td><td></td></tr>
+<tr><td><code>filter NAME only SELECTOR</code></td><td>Keep only matches by block ID or tag</td><td></td></tr>
+<tr><td><code>filter NAME clear</code></td><td>Clear region filters</td><td></td></tr>
+<tr><td rowspan="3"><code>/sr p</code></td><td><code>plot [minY] [maxY] [xzMargin]</code></td><td>Add or remove current plot</td><td>Not Bound</td></tr>
+<tr><td><code>plot clear</code></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
+<tr><td><code>plot save NAME [minY] [maxY] [xzMargin]</code> (<code>s</code> alias)</td><td>Save plot as a region</td><td></td></tr>
+<tr><td></td><td></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Cycle boundary faces</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Cycle interaction mode</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Cycle player visibility</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Open settings</td><td><code>#</code></td></tr>
+<tr><td></td><td></td><td>Set selection position 1</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Set selection position 2</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Toggle current plot region</td><td>Not Bound</td></tr>
+<tr><td></td><td></td><td>Toggle all block filters</td><td>Not Bound</td></tr>
+</tbody>
+</table>
 
 ## Optional server plot support
 
