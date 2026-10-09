@@ -20,10 +20,10 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]</code></td><td>Create from two corners; defaults to <code>render</code></td><td></td></tr>
 <tr><td rowspan="3"><code>/sr&nbsp;t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
 <tr><td><code>toggle NAME</code></td><td>Toggle one render region</td><td></td></tr>
-<tr><td><code>toggle all</code> (<code>a</code> alias)</td><td>Select all render regions or clear selection</td><td></td></tr>
+<tr><td><code>toggle all</code></td><td>Select all render regions or clear selection</td><td></td></tr>
 <tr><td rowspan="3"><code>/sr&nbsp;h</code></td><td><code>hide</code></td><td>Toggle hide group</td><td><code>F10</code></td></tr>
 <tr><td><code>hide NAME</code></td><td>Toggle one hidden region</td><td></td></tr>
-<tr><td><code>hide all</code> (<code>a</code> alias)</td><td>Select all hide regions or clear selection</td><td></td></tr>
+<tr><td><code>hide all</code></td><td>Select all hide regions or clear selection</td><td></td></tr>
 <tr><td rowspan="2"><code>/sr&nbsp;l</code></td><td><code>list</code></td><td>List render regions</td><td></td></tr>
 <tr><td><code>list hidden</code> (<code>h</code> alias)</td><td>List hidden regions</td><td></td></tr>
 <tr><td><code>/sr&nbsp;r</code></td><td><code>redefine NAME</code></td><td>Update bounds from marked corners</td><td></td></tr>
