@@ -10,25 +10,34 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional. Install th
 
 Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated default binding.
 
-| Command | Purpose | Keybind (default) |
-|---|---|---|
-| `/sr pos1` (`/sr 1`) | Mark the first region corner. | Unassigned |
-| `/sr pos2` (`/sr 2`) | Mark the opposite corner. | Unassigned |
-| `/sr save NAME` (`/sr s NAME`) | Save and show the marked region. | None |
-| `/sr create NAME [render\|hidden]` (`/sr c ...`) | Make a region from a WorldEdit selection. | None |
-| `/sr create X1 Y1 Z1 X2 Y2 Z2 NAME [render\|hidden]` | Make a region from coordinates. | None |
-| `/sr toggle [NAME\|all]` (`/sr t ...`, `all` alias `a`) | Show or hide a region, or manage the render group. | `F9` toggles the whole group |
-| `/sr hide [NAME\|all]` (`/sr h ...`, `all` alias `a`) | Hide a region or manage the hide group. | `F10` toggles the whole group |
-| `/sr redefine NAME` (`/sr r NAME`) | Update a region from the marked corners. | None |
-| `/sr name OLDNAME NEWNAME` (`/sr n ...`) | Rename a region. | None |
-| `/sr delete NAME` (`/sr d NAME`) | Delete a saved region. | None |
-| `/sr list [hidden]` (`/sr l ...`, hidden alias `h`) | List saved regions. | None |
-| `/sr filter NAME hide id:...` or `only tag:...` (`/sr f ...`) | Hide matching blocks or keep only matching blocks in a region. | Unassigned global filter toggle |
-| `/sr filter NAME` / `/sr filter NAME clear` | View or clear a region's filters. | None |
-| `/sr plot [minY] [maxY] [xzMargin]` (`/sr p ...`) | Add or remove the plot beneath you from a temporary group. | `Backspace` |
-| `/sr plot clear` (`/sr p clear`) | Clear the temporary plot group. | Unassigned |
-| `/sr plot save NAME [minY] [maxY] [xzMargin]` (`/sr p s ...`) | Save the plot as a regular region. | None |
-| `/sr diagnose [start [seconds]\|mark LABEL\|stop]` (`/sr diag ...`) | Record or mark performance information for troubleshooting. | None |
+| Command aliases | Full command (without `/sr`) | Purpose | Keybind (default) |
+|---|---|---|---|
+| `/sr pos1`, `/sr 1` | `pos1` | Mark the first region corner. | Unassigned |
+| `/sr pos2`, `/sr 2` | `pos2` | Mark the opposite corner. | Unassigned |
+| `/sr s`, `/sr save` | `save NAME` | Save and show the marked region. |  |
+| `/sr c`, `/sr create` | `create NAME [render\|hidden]` | Make a region from a WorldEdit selection. |  |
+| `/sr c`, `/sr create` | `create X1 Y1 Z1 X2 Y2 Z2 NAME [render\|hidden]` | Make a region from coordinates. |  |
+| `/sr t`, `/sr toggle` | `toggle` | Enable or disable the render group. | `F9` |
+| `/sr t`, `/sr toggle` | `toggle NAME` | Add or remove a region from the render group. |  |
+| `/sr t`, `/sr toggle` | `toggle all` (`a` alias) | Select all render regions or clear that selection. |  |
+| `/sr h`, `/sr hide` | `hide` | Enable or disable the hide group. | `F10` |
+| `/sr h`, `/sr hide` | `hide NAME` | Add a region to the hide group or toggle it. |  |
+| `/sr h`, `/sr hide` | `hide all` (`a` alias) | Select all hide regions or clear that selection. |  |
+| `/sr l`, `/sr list` | `list` | List saved render regions. |  |
+| `/sr l`, `/sr list` | `list hidden` (`h` alias) | List saved hide regions. |  |
+| `/sr r`, `/sr redefine` | `redefine NAME` | Update a region from the marked corners. |  |
+| `/sr n`, `/sr name` | `name OLDNAME NEWNAME` | Rename a region. |  |
+| `/sr d`, `/sr delete` | `delete NAME` | Delete a saved region. |  |
+| `/sr f`, `/sr filter` | `filter NAME` | View the region's filters. |  |
+| `/sr f`, `/sr filter` | `filter NAME hide\|only SELECTOR` | Hide matching blocks or keep only matches. `SELECTOR` is an `id:...` block ID or `tag:...` block tag. |  |
+| `/sr f`, `/sr filter` | `filter NAME clear` | Clear that region's filters. |  |
+| `/sr p`, `/sr plot` | `plot [minY] [maxY] [xzMargin]` | Add or remove the plot beneath you. | `Backspace` |
+| `/sr p`, `/sr plot` | `plot clear` | Clear the temporary plot group. | Unassigned |
+| `/sr p`, `/sr plot` | `plot save NAME [minY] [maxY] [xzMargin]` (`s` alias) | Save a plot as a regular region. |  |
+| `/sr diag`, `/sr diagnose` | `diagnose` | Show whether diagnostics are recording. |  |
+| `/sr diag`, `/sr diagnose` | `diagnose start [seconds]` | Start recording (120 seconds by default). |  |
+| `/sr diag`, `/sr diagnose` | `diagnose mark LABEL` | Add a diagnostic marker. |  |
+| `/sr diag`, `/sr diagnose` | `diagnose stop` | Stop recording. |  |
 
 The settings key defaults to `#` on German layouts. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Other optional controls start unassigned and can be changed in Minecraft's Controls settings.
 
