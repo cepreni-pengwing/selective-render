@@ -20,8 +20,8 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 <tr><td><code>/sr 1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td>Not Bound</td></tr>
 <tr><td><code>/sr 2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td>Not Bound</td></tr>
 <tr><td><code>/sr s</code></td><td><code>save NAME</code></td><td>Save and activate region</td><td></td></tr>
-<tr><td rowspan="2"><code>/sr c</code></td><td><code>create NAME [mode]</code></td><td>Use WorldEdit selection; mode is <code>render</code> or <code>hidden</code></td><td></td></tr>
-<tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [mode]</code></td><td>Create from two corners; mode is <code>render</code> or <code>hidden</code></td><td></td></tr>
+<tr><td rowspan="2"><code>/sr c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the WorldEdit selection; defaults to <code>render</code></td><td></td></tr>
+<tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]</code></td><td>Create from two corners; defaults to <code>render</code></td><td></td></tr>
 <tr><td rowspan="3"><code>/sr t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
 <tr><td><code>toggle NAME</code></td><td>Toggle one render region</td><td></td></tr>
 <tr><td><code>toggle all</code> (<code>a</code> alias)</td><td>Select all render regions or clear selection</td><td></td></tr>
