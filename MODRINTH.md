@@ -36,7 +36,7 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 | `/sr p` | `plot clear` | Clear temporary plots. | Unassigned |
 | `/sr p` | <small>`plot save NAME [minY] [maxY] [xzMargin]` (`s` alias)</small> | Save plot as a region. |  |
 
-The settings key defaults to `#` on German layouts. Keybinds shown in the table are defaults. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Other optional controls start unassigned and can be changed in Minecraft's Controls settings.
+The settings key defaults to `#`. Keybinds shown in the table are defaults. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Other optional controls start unassigned and can be changed in Minecraft's Controls settings.
 
 ## Optional server plot support
 

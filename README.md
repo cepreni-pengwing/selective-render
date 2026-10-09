@@ -6,7 +6,7 @@ Selective Render is a client-side Fabric mod for focusing the view on selected p
 
 ## Getting started
 
-Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with the `#` key on a German keyboard, or open the Selective Render category in Controls to change bindings.
+Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with its default keybind, or open the Selective Render category in Controls to change bindings.
 
 To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then save it with `/sr save NAME`. You can also create a region from coordinates in one command, or use a cuboid selection supplied by WorldEdit. Saved regions can be enabled together, hidden, filtered, and organized independently.
 
@@ -44,7 +44,7 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 | `/sr diag` | `diagnose mark LABEL` | Add diagnostic marker. |  |
 | `/sr diag` | `diagnose stop` | Stop recording. |  |
 
-The settings key defaults to `#` on German layouts. Keybinds shown in the table are defaults. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Position, player visibility, interaction, boundary, block-filter, and clear-plot bindings are initially unassigned. All bindings can be changed under **Options → Controls → Selective Render**.
+The settings key defaults to `#`. Keybinds shown in the table are defaults. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Position, player visibility, interaction, boundary, block-filter, and clear-plot bindings are initially unassigned. All bindings can be changed under **Options → Controls → Selective Render**.
 
 Filters accept block IDs and block tags known to the client. A built-in `selectiverender:beams` tag covers supported beam, lintel, and pole blocks from Conquest Reforged and Architects. Filtered blocks can follow the hidden-region interaction setting. Filters are visual/client-side and do not change server state or collision.
 
