@@ -35,10 +35,6 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 | `/sr p` | <small>`plot [minY] [maxY] [xzMargin]`</small> | Add or remove current plot. | `Backspace` |
 | `/sr p` | `plot clear` | Clear temporary plots. | Unassigned |
 | `/sr p` | <small>`plot save NAME [minY] [maxY] [xzMargin]` (`s` alias)</small> | Save plot as a region. |  |
-| `/sr diag` | `diagnose` | Show diagnostic status. |  |
-| `/sr diag` | `diagnose start [seconds]` | Start recording (120 seconds by default). |  |
-| `/sr diag` | `diagnose mark LABEL` | Add diagnostic marker. |  |
-| `/sr diag` | `diagnose stop` | Stop recording. |  |
 
 The settings key defaults to `#` on German layouts. Keybinds shown in the table are defaults. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Other optional controls start unassigned and can be changed in Minecraft's Controls settings.
 
