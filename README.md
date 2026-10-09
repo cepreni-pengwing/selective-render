@@ -14,34 +14,35 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 
 `/sr` is the short form of `/selectiverender`. Every command below works with either root. Arguments in square brackets are optional. Commands have no dedicated keybind unless a default is listed; group keybinds affect the whole group, not a single named region.
 
-| Command aliases | Full command (without `/sr`) | What it does | Keybind (default) |
+| Short alias | Full command (without `/sr`) | What it does | Keybind (default) |
 |---|---|---|---|
-| `/sr pos1`, `/sr 1` | `pos1` | Set the first corner at your current block. | Unassigned |
-| `/sr pos2`, `/sr 2` | `pos2` | Set the opposite corner at your current block. | Unassigned |
-| `/sr s`, `/sr save` | `save NAME` | Save the marked cuboid as a region and enable it. |  |
-| `/sr c`, `/sr create` | `create NAME [render\|hidden]` | Create a region from the current WorldEdit cuboid selection. |  |
-| `/sr c`, `/sr create` | `create X1 Y1 Z1 X2 Y2 Z2 NAME [render\|hidden]` | Create a region directly from two block corners. |  |
-| `/sr t`, `/sr toggle` | `toggle` | Enable or disable the render group without changing its members. | `F9` |
-| `/sr t`, `/sr toggle` | `toggle NAME` | Add or remove one saved region from the render group. |  |
-| `/sr t`, `/sr toggle` | `toggle all` (`a` alias) | Select all render regions, or clear the render selection if any are selected. |  |
-| `/sr h`, `/sr hide` | `hide` | Enable or disable the hide group without changing its members. | `F10` |
-| `/sr h`, `/sr hide` | `hide NAME` | Add a saved region to the hide group or toggle its hidden state. |  |
-| `/sr h`, `/sr hide` | `hide all` (`a` alias) | Select all hide regions, or clear the hide selection if any are selected. |  |
-| `/sr l`, `/sr list` | `list` | List saved render regions. |  |
-| `/sr l`, `/sr list` | `list hidden` (`h` alias) | List saved hide regions. |  |
-| `/sr r`, `/sr redefine` | `redefine NAME` | Replace a saved region's bounds with the current marked corners. |  |
-| `/sr n`, `/sr name` | `name OLDNAME NEWNAME` | Rename a saved region. |  |
-| `/sr d`, `/sr delete` | `delete NAME` | Permanently delete a saved region. |  |
-| `/sr f`, `/sr filter` | `filter NAME` | Show the region's current filter rules. |  |
-| `/sr f`, `/sr filter` | `filter NAME hide\|only SELECTOR` | Hide matching blocks or keep only matches. `SELECTOR` is an `id:...` block ID or `tag:...` block tag. |  |
-| `/sr f`, `/sr filter` | `filter NAME clear` | Remove that region's filter rules. |  |
-| `/sr p`, `/sr plot` | `plot [minY] [maxY] [xzMargin]` | Add or remove the plot beneath you in the temporary plot group. | `Backspace` |
-| `/sr p`, `/sr plot` | `plot clear` | Clear the temporary plot group. | Unassigned |
-| `/sr p`, `/sr plot` | `plot save NAME [minY] [maxY] [xzMargin]` (`s` alias) | Save the current plot as a regular region and enable it. |  |
-| `/sr diag`, `/sr diagnose` | `diagnose` | Show whether performance diagnostics are recording. |  |
-| `/sr diag`, `/sr diagnose` | `diagnose start [seconds]` | Record performance data; defaults to 120 seconds. |  |
-| `/sr diag`, `/sr diagnose` | `diagnose mark LABEL` | Add a marker to the diagnostic log. |  |
-| `/sr diag`, `/sr diagnose` | `diagnose stop` | Stop recording. |  |
+| `/sr 1` | `pos1` | Set the first corner at your current block. | Unassigned |
+| `/sr 2` | `pos2` | Set the opposite corner at your current block. | Unassigned |
+| `/sr s` | `save NAME` | Save the marked cuboid as a region and enable it. |  |
+| `/sr c` | `create NAME [render\|hidden]` | Create a region from the current WorldEdit cuboid selection. |  |
+| `/sr c` | `create X1 Y1 Z1 X2 Y2 Z2 NAME [render\|hidden]` | Create a region directly from two block corners. |  |
+| `/sr t` | `toggle` | Enable or disable the render group without changing its members. | `F9` |
+| `/sr t` | `toggle NAME` | Add or remove one saved region from the render group. |  |
+| `/sr t a` | `toggle all` | Select all render regions, or clear the render selection if any are selected. |  |
+| `/sr h` | `hide` | Enable or disable the hide group without changing its members. | `F10` |
+| `/sr h` | `hide NAME` | Add a saved region to the hide group or toggle its hidden state. |  |
+| `/sr h a` | `hide all` | Select all hide regions, or clear the hide selection if any are selected. |  |
+| `/sr l` | `list` | List saved render regions. |  |
+| `/sr l h` | `list hidden` | List saved hide regions. |  |
+| `/sr r` | `redefine NAME` | Replace a saved region's bounds with the current marked corners. |  |
+| `/sr n` | `name OLDNAME NEWNAME` | Rename a saved region. |  |
+| `/sr d` | `delete NAME` | Permanently delete a saved region. |  |
+| `/sr f` | `filter NAME` | Show the region's current filter rules. |  |
+| `/sr f` | `filter NAME hide SELECTOR` | Hide matching blocks. `SELECTOR` is an `id:...` block ID or `tag:...` block tag. |  |
+| `/sr f` | `filter NAME only SELECTOR` | Keep only matching blocks. `SELECTOR` is an `id:...` block ID or `tag:...` block tag. |  |
+| `/sr f` | `filter NAME clear` | Remove that region's filter rules. |  |
+| `/sr p` | `plot [minY] [maxY] [xzMargin]` | Add or remove the plot beneath you in the temporary plot group. | `Backspace` |
+| `/sr p clear` | `plot clear` | Clear the temporary plot group. | Unassigned |
+| `/sr p s` | `plot save NAME [minY] [maxY] [xzMargin]` | Save the current plot as a regular region and enable it. |  |
+| `/sr diag` | `diagnose` | Show whether performance diagnostics are recording. |  |
+| `/sr diag` | `diagnose start [seconds]` | Record performance data; defaults to 120 seconds. |  |
+| `/sr diag` | `diagnose mark LABEL` | Add a marker to the diagnostic log. |  |
+| `/sr diag` | `diagnose stop` | Stop recording. |  |
 
 The default settings key is `#` on German layouts (the apostrophe key in Minecraft's key notation). `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Position, player visibility, interaction, boundary, block-filter, and clear-plot bindings are initially unassigned. All bindings can be changed under **Options → Controls → Selective Render**.
 
