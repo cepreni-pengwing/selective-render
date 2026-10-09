@@ -25,7 +25,7 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <tr><td><code>hide NAME</code></td><td>Toggle one hidden region</td><td></td></tr>
 <tr><td><code>hide all</code></td><td>Select all hide regions or clear selection</td><td></td></tr>
 <tr><td rowspan="2"><code>/sr&nbsp;l</code></td><td><code>list</code></td><td>List render regions</td><td></td></tr>
-<tr><td><code>list hidden</code> (<code>h</code> alias)</td><td>List hidden regions</td><td></td></tr>
+<tr><td><code>list hidden</code></td><td>List hidden regions</td><td></td></tr>
 <tr><td><code>/sr&nbsp;r</code></td><td><code>redefine NAME</code></td><td>Update bounds from marked corners</td><td></td></tr>
 <tr><td><code>/sr&nbsp;n</code></td><td><code>name OLDNAME NEWNAME</code></td><td>Rename region</td><td></td></tr>
 <tr><td><code>/sr&nbsp;d</code></td><td><code>delete NAME</code></td><td>Delete saved region</td><td></td></tr>
@@ -35,7 +35,7 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <tr><td><code>filter NAME clear</code></td><td>Clear region filters</td><td></td></tr>
 <tr><td rowspan="3"><code>/sr&nbsp;p</code></td><td><code>plot [minY] [maxY] [xzMargin]</code></td><td>Add or remove current plot</td><td>Not Bound</td></tr>
 <tr><td><code>plot clear</code></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
-<tr><td><code>plot save NAME [minY] [maxY] [xzMargin]</code> (<code>s</code> alias)</td><td>Save plot as a region</td><td></td></tr>
+<tr><td><code>plot save NAME [minY] [maxY] [xzMargin]</code></td><td>Save plot as a region</td><td></td></tr>
 <tr><td></td><td></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Cycle boundary faces</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Cycle interaction mode</td><td>Not Bound</td></tr>
