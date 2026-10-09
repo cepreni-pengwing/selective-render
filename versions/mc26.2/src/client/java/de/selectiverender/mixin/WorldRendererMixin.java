@@ -2,6 +2,7 @@ package de.selectiverender.mixin;
 
 import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.PerformanceDiagnostics;
+import de.selectiverender.VirtualSkyLightSampler;
 import net.minecraft.client.renderer.extract.LevelExtractor;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.core.BlockPos;
@@ -22,6 +23,7 @@ abstract class WorldRendererMixin {
     private void selectiverender$invalidateLightColumn(BlockPos pos,
             BlockState oldState, BlockState newState, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
+        VirtualSkyLightSampler.invalidateSourceBlock(pos.getX(), pos.getY(), pos.getZ());
         long updateStarted = PerformanceDiagnostics.startTimer();
         BlockState oldVisible = SelectiveRenderState.shouldRender(oldState,
                 pos.getX(), pos.getY(), pos.getZ()) ? oldState : Blocks.AIR.defaultBlockState();

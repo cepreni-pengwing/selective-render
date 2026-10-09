@@ -2,6 +2,8 @@ package de.selectiverender;
 
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 
 class TerrainSkyLightCacheTest {
     private final TerrainSkyLightCache cache = new TerrainSkyLightCache();
@@ -13,6 +15,13 @@ class TerrainSkyLightCacheTest {
         Object context = new Object();
         cache.capture(context, generation, policy);
         return cache.ticket(context);
+    }
+
+    private Supplier<Object[]> sourceStates(AtomicInteger loads) {
+        return () -> {
+            loads.incrementAndGet();
+            return new Object[4096];
+        };
     }
 
     @Test void identicalOpticsReuseAnImmutableResultAcrossMeshJobs() {
@@ -80,5 +89,39 @@ class TerrainSkyLightCacheTest {
         assertFalse(VirtualLightPropagation.canPass(14, 10, 4));
         assertTrue(VirtualLightPropagation.canPass(15, 0, 0));
         assertTrue(VirtualLightPropagation.canPass(15, 9, 4));
+    }
+
+    @Test void sourceSectionsAreReusedUntilTheirOwnChunkChanges() {
+        AtomicInteger loads = new AtomicInteger();
+        var firstTicket = capture(1, 0);
+        var first = cache.sourceSection(world, 1, 0, 0, 2, 0, firstTicket, sourceStates(loads));
+        assertNotNull(first);
+
+        cache.invalidateColumn(10, 10);
+        var unrelatedUpdateTicket = capture(1, 0);
+        var reused = cache.sourceSection(world, 1, 0, 0, 2, 0,
+                unrelatedUpdateTicket, sourceStates(loads));
+        assertSame(first, reused);
+        assertEquals(1, loads.get());
+
+        cache.invalidateColumn(0, 0);
+        var changedChunkTicket = capture(1, 0);
+        var rebuilt = cache.sourceSection(world, 1, 0, 0, 2, 0,
+                changedChunkTicket, sourceStates(loads));
+        assertNotSame(first, rebuilt);
+        assertEquals(2, loads.get());
+    }
+
+    @Test void sourceSectionBuiltAcrossAnUpdateIsNotPublished() {
+        AtomicInteger loads = new AtomicInteger();
+        var staleTicket = capture(1, 0);
+        cache.sourceSection(world, 1, 0, 0, 2, 0, staleTicket, () -> {
+            cache.invalidateColumn(0, 0);
+            return sourceStates(loads).get();
+        });
+
+        var currentTicket = capture(1, 0);
+        cache.sourceSection(world, 1, 0, 0, 2, 0, currentTicket, sourceStates(loads));
+        assertEquals(2, loads.get());
     }
 }

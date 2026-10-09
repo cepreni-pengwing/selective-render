@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.9**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.10**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">

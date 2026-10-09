@@ -1,10 +1,13 @@
 package de.selectiverender;
 
+import net.minecraft.block.BlockState;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.WeakHashMap;
+import java.util.function.Supplier;
 
 /**
  * Bounded, thread-safe terrain light results. Tickets are captured when Sodium
@@ -14,9 +17,12 @@ public final class TerrainSkyLightCache {
     public static final TerrainSkyLightCache INSTANCE = new TerrainSkyLightCache();
     private static final long MAX_BYTES = 12L * 1024 * 1024;
     private static final int MAX_ENTRIES = 128;
+    private static final int MAX_SOURCE_SECTIONS = 256;
     private final Map<Long, Long> columns = new HashMap<>();
     private final Map<Object, Ticket> contexts = new WeakHashMap<>();
     private final LinkedHashMap<Key, Entry> entries = new LinkedHashMap<>(16, .75f, true);
+    private final LinkedHashMap<SourceKey, Object> sourceSections =
+            new LinkedHashMap<>(16, .75f, true);
     private long sequence;
     private long epoch;
     private long bytes;
@@ -28,6 +34,8 @@ public final class TerrainSkyLightCache {
         public boolean vanilla() { return light == null; }
     }
     private record Entry(long revision, Result result) {}
+    private record SourceKey(Object world, int generation, int policy,
+                             int chunkX, int sectionY, int chunkZ, long revision) {}
 
     public synchronized void capture(Object context, int generation, int policy) {
         if (context != null) contexts.put(context, new Ticket(epoch, sequence, generation, policy));
@@ -36,8 +44,53 @@ public final class TerrainSkyLightCache {
     public synchronized Ticket ticket(Object context) { return contexts.get(context); }
 
     public synchronized String diagnosticStatus() {
-        return "entries=" + entries.size() + " bytes=" + bytes + " columns=" + columns.size()
+        return "entries=" + entries.size() + " bytes=" + bytes
+                + " source_sections=" + sourceSections.size() + " columns=" + columns.size()
                 + " snapshots=" + contexts.size();
+    }
+
+    /**
+     * Returns a bounded snapshot for a chunk section. The loader runs outside
+     * the cache lock; revision checks prevent caching data across a world update.
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T sourceSection(Object world, int generation, int policy,
+                               int chunkX, int sectionY, int chunkZ, Ticket ticket,
+                               Supplier<T> loader) {
+        if (ticket == null) return null;
+        long revision;
+        SourceKey key;
+        synchronized (this) {
+            revision = columns.getOrDefault(column(chunkX, chunkZ), 0L);
+            if (ticket.epoch != epoch || ticket.sequence < revision
+                    || ticket.generation != generation || ticket.policy != policy) return null;
+            key = new SourceKey(world, generation, policy, chunkX, sectionY, chunkZ, revision);
+            Object cached = sourceSections.get(key);
+            if (cached != null) {
+                PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_SOURCE_CACHE_HIT, 1);
+                return (T) cached;
+            }
+        }
+        Object loaded = loader.get();
+        if (!(loaded instanceof Object[] states) || states.length != 4096) return null;
+        synchronized (this) {
+            if (ticket.epoch == epoch && ticket.sequence >= revision
+                    && ticket.generation == generation && ticket.policy == policy
+                    && columns.getOrDefault(column(chunkX, chunkZ), 0L) == revision) {
+                Object concurrent = sourceSections.get(key);
+                if (concurrent != null) loaded = concurrent;
+                else {
+                    sourceSections.put(key, loaded);
+                    while (sourceSections.size() > MAX_SOURCE_SECTIONS) {
+                        sourceSections.remove(sourceSections.keySet().iterator().next());
+                        PerformanceDiagnostics.count(
+                                PerformanceDiagnostics.Metric.TERRAIN_SOURCE_CACHE_EVICTION, 1);
+                    }
+                }
+            }
+        }
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_SOURCE_CACHE_MISS, 1);
+        return (T) loaded;
     }
 
     public synchronized Result get(Key key, Ticket ticket) {
@@ -87,6 +140,7 @@ public final class TerrainSkyLightCache {
         columns.clear();
         contexts.clear();
         entries.clear();
+        sourceSections.clear();
         bytes = 0;
     }
 

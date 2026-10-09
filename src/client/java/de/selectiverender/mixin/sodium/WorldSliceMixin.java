@@ -37,6 +37,10 @@ abstract class WorldSliceMixin {
     @Unique private byte[] selectiverender$cachedSkyLight;
     @Unique private TerrainSkyLightCache.Ticket selectiverender$lightTicket;
     @Unique private net.minecraft.world.chunk.WorldChunk[] selectiverender$sourceChunks;
+    @Unique private BlockState[][] selectiverender$sourceSections;
+    @Unique private byte[] selectiverender$sourceSectionStatus;
+    @Unique private int selectiverender$sourceSectionMinY;
+    @Unique private int selectiverender$sourceSectionCountY;
     @Unique private int selectiverender$sourceChunkMinX;
     @Unique private int selectiverender$sourceChunkMinZ;
     @Unique private int selectiverender$sourceChunkWidth;
@@ -64,6 +68,8 @@ abstract class WorldSliceMixin {
         selectiverender$vanillaSkyUnchanged = false;
         selectiverender$cachedSkyLight = null;
         selectiverender$sourceChunks = null;
+        selectiverender$sourceSections = null;
+        selectiverender$sourceSectionStatus = null;
         selectiverender$lightTicket = SelectiveRenderState.filteringActive()
                 ? TerrainSkyLightCache.INSTANCE.ticket(context) : null;
     }
@@ -201,6 +207,11 @@ abstract class WorldSliceMixin {
         selectiverender$sourceChunkWidth = (maxX >> 4) - selectiverender$sourceChunkMinX + 1;
         int chunkDepth = (maxZ >> 4) - selectiverender$sourceChunkMinZ + 1;
         selectiverender$sourceChunks = new net.minecraft.world.chunk.WorldChunk[selectiverender$sourceChunkWidth * chunkDepth];
+        selectiverender$sourceSectionMinY = minY >> 4;
+        selectiverender$sourceSectionCountY = (maxY >> 4) - selectiverender$sourceSectionMinY + 1;
+        selectiverender$sourceSections = new BlockState[
+                selectiverender$sourceChunkWidth * chunkDepth * selectiverender$sourceSectionCountY][];
+        selectiverender$sourceSectionStatus = new byte[selectiverender$sourceSections.length];
         int cellCount = selectiverender$lightSizeX * selectiverender$lightSizeY * selectiverender$lightSizeZ;
         selectiverender$diagnosticReads = totalStarted != 0;
         selectiverender$copiedReads = selectiverender$liveReads = selectiverender$chunkLookups = 0;
@@ -447,10 +458,49 @@ abstract class WorldSliceMixin {
                     selectiverender$sourceChunks[index] = chunk;
                 }
                 if (selectiverender$diagnosticReads) selectiverender$liveReads++;
+                int sectionY = y >> 4;
+                int localSectionY = sectionY - selectiverender$sourceSectionMinY;
+                if (localSectionY >= 0 && localSectionY < selectiverender$sourceSectionCountY) {
+                    int sectionIndex = localSectionY * selectiverender$sourceChunks.length + index;
+                    if (selectiverender$sourceSectionStatus[sectionIndex] == 0) {
+                        selectiverender$sourceSectionStatus[sectionIndex] = 2;
+                        net.minecraft.world.chunk.WorldChunk sourceChunk = chunk;
+                        selectiverender$sourceSections[sectionIndex] = TerrainSkyLightCache.INSTANCE.sourceSection(
+                                world, SelectiveRenderState.visibilityGeneration(), selectiverender$lightPolicy(),
+                                x >> 4, sectionY, z >> 4, selectiverender$lightTicket,
+                                () -> selectiverender$captureSourceSection(sourceChunk, sectionY));
+                        if (selectiverender$sourceSections[sectionIndex] != null) {
+                            selectiverender$sourceSectionStatus[sectionIndex] = 1;
+                        }
+                    }
+                    BlockState[] section = selectiverender$sourceSections[sectionIndex];
+                    if (section != null) {
+                        int sectionBlockIndex = ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
+                        return section[sectionBlockIndex];
+                    }
+                }
                 state = chunk.getBlockState(pos);
             }
         }
         if (state == null) state = world.getBlockState(pos);
         return state == null ? Blocks.AIR.getDefaultState() : state;
+    }
+
+    @Unique
+    private BlockState[] selectiverender$captureSourceSection(
+            net.minecraft.world.chunk.WorldChunk chunk, int sectionY) {
+        BlockState[] states = new BlockState[4096];
+        BlockPos.Mutable cursor = new BlockPos.Mutable();
+        int minY = sectionY << 4;
+        for (int localY = 0; localY < 16; localY++) {
+            for (int localZ = 0; localZ < 16; localZ++) {
+                for (int localX = 0; localX < 16; localX++) {
+                    cursor.set((chunk.getPos().x << 4) + localX, minY + localY,
+                            (chunk.getPos().z << 4) + localZ);
+                    states[(localY << 8) | (localZ << 4) | localX] = chunk.getBlockState(cursor);
+                }
+            }
+        }
+        return states;
     }
 }

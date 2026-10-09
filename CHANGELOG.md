@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.10
+
+- Reuse captured source-block data across overlapping virtual-skylight volumes for entities, particles, and block entities, with bounded memory and block/chunk invalidation.
+- Reuse chunk-section block snapshots across Sodium terrain-light mesh builds; cache entries are tied to chunk revisions so edits cannot reuse stale source data.
+- Added diagnostic cache hit/miss counters to help compare future performance recordings. This is a performance test build; in-game profiling is still needed to measure the improvement.
+- Applied the changes consistently to Minecraft 1.20.1, 1.21.1, and 26.2.
+
 ## 1.10.9
 
 - Added opt-in performance recording with `/sr diagnose start [seconds]`, `mark LABEL`, and `stop`; recordings automatically end and write bounded summaries to `logs/latest.log`.

@@ -22,9 +22,13 @@ public final class VirtualSkyLightSampler {
     private static final int CORE_SIZE = 16;
     private static final int CORE_CELLS = CORE_SIZE * CORE_SIZE * CORE_SIZE;
     private static final int MAX_VOLUMES = 128;
+    private static final int MAX_SOURCE_SECTIONS = 256;
     private static final int REBUILD_DELAY_TICKS = 4;
     private static final Direction[] DIRECTIONS = Direction.values();
     private static final Long2ObjectLinkedOpenHashMap<CoreVolume> VOLUMES =
+            new Long2ObjectLinkedOpenHashMap<>();
+    /** Reuses captured block/light inputs shared by overlapping sampler volumes. */
+    private static final Long2ObjectLinkedOpenHashMap<SourceSection> SOURCE_SECTIONS =
             new Long2ObjectLinkedOpenHashMap<>();
     private static final Long2ObjectOpenHashMap<LongOpenHashSet> VOLUMES_BY_COLUMN =
             new Long2ObjectOpenHashMap<>();
@@ -111,6 +115,7 @@ public final class VirtualSkyLightSampler {
     }
 
     public static void invalidateBlock(int blockX, int blockY, int blockZ) {
+        invalidateSourceBlock(blockX, blockY, blockZ);
         if (VOLUMES.isEmpty()) return;
         boolean affected = false;
         int minSectionX = LightVolumeInfluence.minHorizontalSection(blockX, RADIUS);
@@ -140,7 +145,17 @@ public final class VirtualSkyLightSampler {
         if (affected && rebuildDelay == 0) rebuildDelay = REBUILD_DELAY_TICKS;
     }
 
+    /** Drop the captured inputs for the changed section without forcing a light rebuild. */
+    public static void invalidateSourceBlock(int blockX, int blockY, int blockZ) {
+        SOURCE_SECTIONS.remove(SectionPos.asLong(blockX >> 4, blockY >> 4, blockZ >> 4));
+    }
+
     public static void invalidateChunk(int chunkX, int chunkZ) {
+        var sourceIterator = SOURCE_SECTIONS.long2ObjectEntrySet().fastIterator();
+        while (sourceIterator.hasNext()) {
+            long key = sourceIterator.next().getLongKey();
+            if (SectionPos.x(key) == chunkX && SectionPos.z(key) == chunkZ) sourceIterator.remove();
+        }
         var iterator = VOLUMES.long2ObjectEntrySet().fastIterator();
         while (iterator.hasNext()) {
             Long2ObjectMap.Entry<CoreVolume> entry = iterator.next();
@@ -164,6 +179,7 @@ public final class VirtualSkyLightSampler {
 
     public static String diagnosticStatus() {
         return "volumes=" + VOLUMES.size() + " dirty=" + DIRTY_VOLUMES.size()
+                + " source_sections=" + SOURCE_SECTIONS.size()
                 + " indexed_columns=" + VOLUMES_BY_COLUMN.size() + " delay_ticks=" + rebuildDelay;
     }
 
@@ -191,6 +207,7 @@ public final class VirtualSkyLightSampler {
 
     private static void clearVolumes() {
         VOLUMES.clear();
+        SOURCE_SECTIONS.clear();
         VOLUMES_BY_COLUMN.clear();
         DIRTY_VOLUMES.clear();
     }
@@ -212,6 +229,23 @@ public final class VirtualSkyLightSampler {
         int sizeZ = maxZ - minZ + 1;
         int cells = sizeX * sizeY * sizeZ;
         SCRATCH.prepare(cells, sizeX, sizeZ);
+        int minSectionX = minX >> 4;
+        int minSectionY = minY >> 4;
+        int minSectionZ = minZ >> 4;
+        int sectionCountX = (maxX >> 4) - minSectionX + 1;
+        int sectionCountY = (maxY >> 4) - minSectionY + 1;
+        int sectionCountZ = (maxZ >> 4) - minSectionZ + 1;
+        SourceSection[] sourceSections = new SourceSection[sectionCountX * sectionCountY * sectionCountZ];
+        for (int localSectionY = 0; localSectionY < sectionCountY; localSectionY++) {
+            for (int localSectionX = 0; localSectionX < sectionCountX; localSectionX++) {
+                for (int localSectionZ = 0; localSectionZ < sectionCountZ; localSectionZ++) {
+                    int index = (localSectionY * sectionCountX + localSectionX) * sectionCountZ + localSectionZ;
+                    sourceSections[index] = sourceSection(world,
+                            minSectionX + localSectionX, minSectionY + localSectionY,
+                            minSectionZ + localSectionZ);
+                }
+            }
+        }
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
         long phaseStarted = PerformanceDiagnostics.startTimer();
 
@@ -219,10 +253,14 @@ public final class VirtualSkyLightSampler {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
                     int index = SCRATCH.index(x - minX, y - minY, z - minZ);
-                    BlockState state = sourceState(world, cursor, x, y, z);
-                    SCRATCH.states[index] = state;
-                    SCRATCH.visible[index] = (byte) (SelectiveRenderState.shouldRender(x, y, z) ? 1 : 0);
-                    SCRATCH.opacity[index] = (byte) opacity(world, state, cursor);
+                    int sectionIndex = (((y >> 4) - minSectionY) * sectionCountX
+                            + (x >> 4) - minSectionX) * sectionCountZ + (z >> 4) - minSectionZ;
+                    int localIndex = ((y & 15) << 8) | ((z & 15) << 4) | (x & 15);
+                    SourceSection source = sourceSections[sectionIndex];
+                    captureSourceCell(world, source, localIndex, x, y, z, cursor, totalStarted != 0);
+                    SCRATCH.states[index] = source.states[localIndex];
+                    SCRATCH.visible[index] = source.visible[localIndex];
+                    SCRATCH.opacity[index] = source.opacity[localIndex];
                 }
             }
         }
@@ -360,6 +398,48 @@ public final class VirtualSkyLightSampler {
                 ? Blocks.AIR.defaultBlockState() : state;
     }
 
+    private static SourceSection sourceSection(ClientLevel world,
+                                               int sectionX, int sectionY, int sectionZ) {
+        long key = SectionPos.asLong(sectionX, sectionY, sectionZ);
+        SourceSection cached = SOURCE_SECTIONS.getAndMoveToLast(key);
+        if (cached != null) {
+            PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_SOURCE_SECTION_HIT, 1);
+            return cached;
+        }
+        PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.SAMPLER_SOURCE_SECTION_MISS, 1);
+        SourceSection result = new SourceSection(new BlockState[4096], new byte[4096],
+                new byte[4096], new byte[4096]);
+        SOURCE_SECTIONS.putAndMoveToLast(key, result);
+        while (SOURCE_SECTIONS.size() > MAX_SOURCE_SECTIONS) SOURCE_SECTIONS.removeFirst();
+        return result;
+    }
+
+    private static void captureSourceCell(ClientLevel world, SourceSection source, int index,
+                                          int x, int y, int z, BlockPos.MutableBlockPos cursor,
+                                          boolean diagnose) {
+        if (source.captured[index] != 0) {
+            if (diagnose) PerformanceDiagnostics.count(
+                    PerformanceDiagnostics.Metric.SAMPLER_SOURCE_CELL_HIT, 1);
+            return;
+        }
+        BlockState state = Blocks.AIR.defaultBlockState();
+        boolean coordinateVisible = SelectiveRenderState.shouldRender(x, y, z);
+        if (coordinateVisible && y >= world.getMinY() && y <= world.getMaxY()) {
+            cursor.set(x, y, z);
+            state = world.getBlockState(cursor);
+            if (state == null || !SelectiveRenderState.shouldRender(state, x, y, z)) {
+                state = Blocks.AIR.defaultBlockState();
+            }
+        }
+        cursor.set(x, y, z);
+        source.states[index] = state;
+        source.visible[index] = (byte) (coordinateVisible ? 1 : 0);
+        source.opacity[index] = (byte) opacity(world, state, cursor);
+        source.captured[index] = 1;
+        if (diagnose) PerformanceDiagnostics.count(
+                PerformanceDiagnostics.Metric.SAMPLER_SOURCE_CELL_MISS, 1);
+    }
+
     private static int opacity(ClientLevel world, BlockState state, BlockPos pos) {
         return Math.min(15, Math.max(0, state.getLightDampening()));
     }
@@ -372,6 +452,8 @@ public final class VirtualSkyLightSampler {
             return Byte.toUnsignedInt(light[(localY * CORE_SIZE + localZ) * CORE_SIZE + localX]);
         }
     }
+
+    private record SourceSection(BlockState[] states, byte[] visible, byte[] opacity, byte[] captured) { }
 
     private static final class Scratch {
         private byte[] light = new byte[0];

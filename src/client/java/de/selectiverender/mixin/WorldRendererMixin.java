@@ -49,6 +49,7 @@ abstract class WorldRendererMixin {
                                                         BlockState oldState, BlockState newState,
                                                         int flags, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()) return;
+        VirtualSkyLightSampler.invalidateSourceBlock(pos.getX(), pos.getY(), pos.getZ());
         long updateStarted = PerformanceDiagnostics.startTimer();
         // Compare the states that virtual light actually sees, including ID/tag filters.
         BlockState oldVisible = SelectiveRenderState.shouldRender(oldState,
