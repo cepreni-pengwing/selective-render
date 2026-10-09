@@ -51,6 +51,13 @@ public final class SelectiveRenderState {
         return snapshot.enabled() || snapshot.hideEnabled() || !snapshot.filteredRegions().isEmpty();
     }
 
+    public static boolean virtualSkyLightActive() {
+        VisibilitySnapshot snapshot = visibility;
+        return VirtualSkyActivation.isActive(snapshot.enabled(), snapshot.hideEnabled(),
+                SelectiveRenderSettings.filterInteractionsWhenInactive(),
+                snapshot.filteredRegions().size());
+    }
+
     static VisibilitySnapshot snapshot() { return visibility; }
 
     static void refreshChange(VisibilitySnapshot previous) {
@@ -234,12 +241,14 @@ public final class SelectiveRenderState {
     public static int unfilteredLightCeiling(int minX, int minY, int minZ, int maxX, int maxZ) {
         VisibilitySnapshot snapshot = visibility;
         // A block filter can remove an occluder even inside an enclosing region.
-        for (FilteredRegion filtered : snapshot.filteredRegions()) {
-            BlockRegion region = filtered.region();
-            if (!filtered.rules().isEmpty() && region.maxY() >= minY
-                    && region.minX() <= maxX && region.maxX() >= minX
-                    && region.minZ() <= maxZ && region.maxZ() >= minZ) {
-                return Integer.MIN_VALUE;
+        if (virtualSkyLightActive()) {
+            for (FilteredRegion filtered : snapshot.filteredRegions()) {
+                BlockRegion region = filtered.region();
+                if (!filtered.rules().isEmpty() && region.maxY() >= minY
+                        && region.minX() <= maxX && region.maxX() >= minX
+                        && region.minZ() <= maxZ && region.maxZ() >= minZ) {
+                    return Integer.MIN_VALUE;
+                }
             }
         }
         return VirtualLightBounds.visibleCeiling(snapshot.enabled(), snapshot.visibleRegions(),
@@ -251,10 +260,12 @@ public final class SelectiveRenderState {
         if (SelectiveRenderSettings.virtualLightMode()
                 == SelectiveRenderSettings.VirtualLightMode.NONE) return false;
         VisibilitySnapshot snapshot = visibility;
+        boolean includeFiltered = virtualSkyLightActive();
         return lightInfluenceCache.get().get(snapshot.generation(),
                 blockX >> 4, blockZ >> 4,
                 snapshot.enabled() ? snapshot.visibleRegions() : List.of(),
-                snapshot.hideEnabled() ? snapshot.hiddenRegions() : List.of());
+                snapshot.hideEnabled() ? snapshot.hiddenRegions() : List.of(),
+                includeFiltered ? snapshot.filteredRegions() : List.of());
     }
 
     public static int visibleColumnTop(int blockX, int blockZ, int worldTop) {
@@ -675,14 +686,16 @@ public final class SelectiveRenderState {
         private final boolean[] values = new boolean[SIZE];
 
         private boolean get(int generation, int sectionX, int sectionZ,
-                            List<BlockRegion> includedRegions, List<BlockRegion> hidden) {
+                            List<BlockRegion> includedRegions, List<BlockRegion> hidden,
+                            List<FilteredRegion> filteredRegions) {
             int index = SectionClassificationCache.mix(sectionX, 0, sectionZ) & (SIZE - 1);
             if (generations[index] == generation
                     && sectionXs[index] == sectionX
                     && sectionZs[index] == sectionZ) return values[index];
 
             boolean value = intersectsExpandedChunk(includedRegions, sectionX, sectionZ)
-                    || intersectsExpandedChunk(hidden, sectionX, sectionZ);
+                    || intersectsExpandedChunk(hidden, sectionX, sectionZ)
+                    || intersectsFilteredChunk(filteredRegions, sectionX, sectionZ);
             sectionXs[index] = sectionX;
             sectionZs[index] = sectionZ;
             values[index] = value;
@@ -695,6 +708,15 @@ public final class SelectiveRenderState {
             for (BlockRegion region : regions) {
                 if (SelectiveRenderState.intersectsExpandedChunk(
                         region, sectionX, sectionZ, VIRTUAL_LIGHT_RADIUS)) return true;
+            }
+            return false;
+        }
+
+        private static boolean intersectsFilteredChunk(List<FilteredRegion> regions,
+                                                       int sectionX, int sectionZ) {
+            for (FilteredRegion filtered : regions) {
+                if (SelectiveRenderState.intersectsExpandedChunk(
+                        filtered.region(), sectionX, sectionZ, VIRTUAL_LIGHT_RADIUS)) return true;
             }
             return false;
         }

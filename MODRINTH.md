@@ -1,6 +1,6 @@
 # Selective Render
 
-Current stable version: **1.9.4**. Latest test version: **1.10.11**.
+Current stable version: **1.9.4**. Latest test version: **1.10.12**.
 
 Selective Render is a client-side Fabric mod for Minecraft 1.20.1, 1.21.1, and 26.2 that renders
 only chosen three-dimensional block regions. It is intended for builders and
@@ -93,6 +93,7 @@ Switching region rendering off restores normal interaction behavior by default, 
 continue following saved regions. Virtual skylight can enter from the top, sides, both, or neither,
 with separate controls for render boundaries and hidden regions.
 The settings screen also controls how aggressively affected sections are refreshed.
+Water, fire, and in-wall screen overlays disappear when the camera is inside hidden content.
 
 ## PlotSquared integration
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.12
+
+- Suppressed water, fire, and in-wall screen overlays when the camera is inside content hidden by Selective Render.
+- Made virtual skylight follow saved block filters while rendering is off only in `Filtered` mode; `Vanilla` mode keeps the no-op behavior.
+- Applied both changes to Minecraft 1.20.1, 1.21.1, and 26.2; added regression coverage for the virtual-light no-op policy.
+
 ## 1.10.11
 
 - Prevented a Sodium/Indium chunk-meshing crash when a cached source section contains a null block state; the renderer now falls back to the live chunk data.

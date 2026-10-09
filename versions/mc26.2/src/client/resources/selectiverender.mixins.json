@@ -13,6 +13,7 @@
     "RaycastContextMixin",
     "EntityRendererMixin",
     "GameRendererMixin",
+    "ScreenEffectVisibilityMixin",
     "LocalPlayerTargetMixin",
     "BlockRenderManagerMixin",
     "BlockModelRendererMixin",

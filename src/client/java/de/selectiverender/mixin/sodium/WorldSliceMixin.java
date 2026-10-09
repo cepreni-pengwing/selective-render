@@ -141,7 +141,7 @@ abstract class WorldSliceMixin {
 
     @Unique
     private int selectiverender$getVirtualSkyLight(BlockPos pos) {
-        if (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled()) {
+        if (!SelectiveRenderState.virtualSkyLightActive()) {
             return -1;
         }
         if (!world.getDimension().hasSkyLight()) return -1;

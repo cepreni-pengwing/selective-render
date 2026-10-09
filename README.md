@@ -2,7 +2,7 @@
 
 [Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
 
-Current stable version: **1.9.4**. Latest test version: **1.10.11**. See
+Current stable version: **1.9.4**. Latest test version: **1.10.12**. See
 [CHANGELOG.md](CHANGELOG.md) for release notes.
 
 <p align="center">
@@ -234,6 +234,9 @@ otherwise unrestricted Everywhere mode.
 Virtual skylight can enter cut regions from the top and sides, only the top, only the sides, or
 nowhere. Render boundaries and hidden regions have separate controls. Top and sides is the default;
 these options do not alter vanilla lighting while filtering is inactive.
+
+Water, fire, and in-wall screen overlays are also suppressed when the camera is inside a block
+Selective Render hides.
 
 The settings screen also provides the default `/sr p` minimum Y and the number of affected render
 sections that may be rebuilt locally before SR chooses a full renderer reload. Higher thresholds

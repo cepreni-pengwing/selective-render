@@ -41,8 +41,7 @@ public final class VirtualSkyLightSampler {
     private VirtualSkyLightSampler() { }
 
     public static int sample(ClientWorld world, BlockPos pos) {
-        if (!world.getDimension().hasSkyLight()
-                || (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())) return -1;
+        if (!world.getDimension().hasSkyLight() || !SelectiveRenderState.virtualSkyLightActive()) return -1;
         if (!SelectiveRenderState.shouldRender(pos)) return 15;
         if (pos.getY() >= world.getTopY()) return 15;
         if (pos.getY() < world.getBottomY()) return 0;

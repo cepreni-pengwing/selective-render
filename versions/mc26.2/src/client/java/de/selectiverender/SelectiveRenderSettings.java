@@ -114,6 +114,9 @@ public final class SelectiveRenderSettings {
         if (filterInteractionsWhenInactive == value) return;
         filterInteractionsWhenInactive = value;
         save();
+        SelectiveRenderConfig.refreshBlockFilters();
+        VirtualSkyLightSampler.invalidate();
+        if (SelectiveRenderState.filteringActive()) SelectiveRenderState.refreshRenderer();
     }
 
     public static void setBlockFiltersEnabled(boolean value) {
