@@ -16,8 +16,8 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 
 | Alias | Expanded command | Purpose | Key |
 |---|---|---|---|
-| `/sr 1` | `pos1` | Mark corner 1. | Unassigned |
-| `/sr 2` | `pos2` | Mark corner 2. | Unassigned |
+| `/sr 1` | `pos1` | Mark corner 1. | Not Bound |
+| `/sr 2` | `pos2` | Mark corner 2. | Not Bound |
 | `/sr s` | `save NAME` | Save and activate region. |  |
 | `/sr c` | `create NAME [mode]` | Use WorldEdit selection. Mode: `render` or `hidden`. |  |
 | `/sr c` | <small>`create X1 Y1 Z1 X2 Y2 Z2 NAME [mode]`</small> | Create from two corners. Mode: `render` or `hidden`. |  |
@@ -36,15 +36,26 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 | `/sr f` | `filter NAME hide SELECTOR` | Hide matches by block ID or tag. |  |
 | `/sr f` | `filter NAME only SELECTOR` | Keep only matches by block ID or tag. |  |
 | `/sr f` | `filter NAME clear` | Clear region filters. |  |
-| `/sr p` | <small>`plot [minY] [maxY] [xzMargin]`</small> | Add or remove current plot. | `Backspace` |
-| `/sr p` | `plot clear` | Clear temporary plots. | Unassigned |
+| `/sr p` | <small>`plot [minY] [maxY] [xzMargin]`</small> | Add or remove current plot. | Not Bound |
+| `/sr p` | `plot clear` | Clear temporary plots. | Not Bound |
 | `/sr p` | <small>`plot save NAME [minY] [maxY] [xzMargin]` (`s` alias)</small> | Save plot as a region. |  |
 | `/sr diag` | `diagnose` | Show diagnostic status. |  |
 | `/sr diag` | `diagnose start [seconds]` | Start recording (120 seconds by default). |  |
 | `/sr diag` | `diagnose mark LABEL` | Add diagnostic marker. |  |
 | `/sr diag` | `diagnose stop` | Stop recording. |  |
+|  |  | Clear temporary plots. | Not Bound |
+|  |  | Cycle boundary faces. | Not Bound |
+|  |  | Cycle interaction mode. | Not Bound |
+|  |  | Cycle player visibility. | Not Bound |
+|  |  | Open settings. | `#` |
+|  |  | Set selection position 1. | Not Bound |
+|  |  | Set selection position 2. | Not Bound |
+|  |  | Toggle current plot region. | Not Bound |
+|  |  | Toggle all block filters. | Not Bound |
+|  |  | Toggle hide group. | `F10` |
+|  |  | Toggle render group. | `F9` |
 
-The settings key defaults to `#`. Keybinds shown in the table are defaults. `F9` toggles rendering, `F10` toggles hiding, and `Backspace` toggles the current plot. Position, player visibility, interaction, boundary, block-filter, and clear-plot bindings are initially unassigned. All bindings can be changed under **Options → Controls → Selective Render**.
+Keybinds shown in the table are defaults. The settings key is `#`, hide-group toggle is `F10`, and render-group toggle is `F9`. All other keybinds are Not Bound by default. Change them under **Options → Controls → Selective Render**.
 
 Filters accept block IDs and block tags known to the client. A built-in `selectiverender:beams` tag covers supported beam, lintel, and pole blocks from Conquest Reforged and Architects. Filtered blocks can follow the hidden-region interaction setting. Filters are visual/client-side and do not change server state or collision.
 
