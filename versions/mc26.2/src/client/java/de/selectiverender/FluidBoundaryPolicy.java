@@ -14,7 +14,6 @@ public final class FluidBoundaryPolicy {
                                      FluidState fluidState, Direction face) {
         if (!SelectiveRenderSettings.cullWaterBoundaryFaces()
                 || !SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode() == SelectiveRenderSettings.BoundaryMode.NORMAL
                 || !fluidState.is(FluidTags.WATER)) return false;
         if (face == Direction.UP && fluidState.getHeight(world, position) < 0.9999f) return false;
 

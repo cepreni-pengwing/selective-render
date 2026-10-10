@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.15
+- Water boundary face culling now works independently of the Normal, Black, or Culled block boundary mode in all three Minecraft builds.
+
 ## 1.10.14
 - Added an optional setting to cull water boundary faces, including flowing and waterlogged water.
 
