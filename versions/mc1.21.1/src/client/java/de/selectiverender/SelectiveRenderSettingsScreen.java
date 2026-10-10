@@ -11,6 +11,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private ButtonWidget playerButton;
     private ButtonWidget interactionButton;
     private ButtonWidget boundaryButton;
+    private ButtonWidget waterBoundaryButton;
     private ButtonWidget debugButton;
     private ButtonWidget inactiveInteractionsButton;
     private ButtonWidget hiddenInteractionsButton;
@@ -42,37 +43,42 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.boundaryMode().next());
             button.setMessage(boundaryText());
         }).dimensions(left, y + 44, 200, 20).build());
+        waterBoundaryButton = addDrawableChild(ButtonWidget.builder(waterBoundaryText(), button -> {
+            SelectiveRenderSettings.setCullWaterBoundaryFaces(
+                    !SelectiveRenderSettings.cullWaterBoundaryFaces());
+            button.setMessage(waterBoundaryText());
+        }).dimensions(left, y + 66, 200, 20).build());
         debugButton = addDrawableChild(ButtonWidget.builder(debugText(), button -> {
             SelectiveRenderSettings.setDebugBoxes(!SelectiveRenderSettings.debugBoxes());
             button.setMessage(debugText());
-        }).dimensions(left, y + 66, 200, 20).build());
+        }).dimensions(left, y + 88, 200, 20).build());
         inactiveInteractionsButton = addDrawableChild(ButtonWidget.builder(inactiveInteractionsText(), button -> {
             SelectiveRenderSettings.setFilterInteractionsWhenInactive(
                     !SelectiveRenderSettings.filterInteractionsWhenInactive());
             button.setMessage(inactiveInteractionsText());
-        }).dimensions(left, y + 88, 200, 20).build());
+        }).dimensions(left, y + 110, 200, 20).build());
         hiddenInteractionsButton = addDrawableChild(ButtonWidget.builder(hiddenInteractionsText(), button -> {
             SelectiveRenderSettings.setInteractWithHiddenRegions(
                     !SelectiveRenderSettings.interactWithHiddenRegions());
             button.setMessage(hiddenInteractionsText());
-        }).dimensions(left, y + 110, 200, 20).build());
+        }).dimensions(left, y + 132, 200, 20).build());
         virtualLightButton = addDrawableChild(ButtonWidget.builder(virtualLightText(), button -> {
             SelectiveRenderSettings.setVirtualLightMode(
                     SelectiveRenderSettings.virtualLightMode().next());
             button.setMessage(virtualLightText());
-        }).dimensions(left, y + 132, 200, 20).build());
+        }).dimensions(left, y + 154, 200, 20).build());
         hiddenVirtualLightButton = addDrawableChild(ButtonWidget.builder(hiddenVirtualLightText(), button -> {
             SelectiveRenderSettings.setHiddenVirtualLightMode(
                     SelectiveRenderSettings.hiddenVirtualLightMode().next());
             button.setMessage(hiddenVirtualLightText());
-        }).dimensions(left, y + 154, 200, 20).build());
+        }).dimensions(left, y + 176, 200, 20).build());
 
-        reloadThresholdField = integerField(left, y + 187,
+        reloadThresholdField = integerField(left, y + 209,
                 Integer.toString(SelectiveRenderSettings.fullReloadThreshold()), false);
-        plotMinYField = integerField(left, y + 223,
+        plotMinYField = integerField(left, y + 245,
                 Integer.toString(SelectiveRenderSettings.defaultPlotMinY()), true);
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-                .dimensions(left, y + 249, 200, 20).build());
+                .dimensions(left, y + 271, 200, 20).build());
     }
 
     @Override
@@ -120,6 +126,11 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     private Text boundaryText() {
         return Text.literal("Boundary faces: " + SelectiveRenderSettings.boundaryMode().label());
+    }
+
+    private Text waterBoundaryText() {
+        return Text.literal("Cull water boundary faces: "
+                + (SelectiveRenderSettings.cullWaterBoundaryFaces() ? "On" : "Off"));
     }
 
     private Text interactionText() {

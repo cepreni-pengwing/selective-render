@@ -1,11 +1,6 @@
 package de.selectiverender.mixin.sodium;
 
-import de.selectiverender.SelectiveRenderState;
 import de.selectiverender.FluidBoundaryPolicy;
-import net.minecraft.block.BlockState;
-import me.jellysquid.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
-import me.jellysquid.mods.sodium.client.render.chunk.compile.pipeline.FluidRenderer;
-import me.jellysquid.mods.sodium.client.world.WorldSlice;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
@@ -14,12 +9,12 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Pseudo
-@Mixin(value = FluidRenderer.class, remap = false)
-abstract class FluidRendererMixin {
+@Mixin(targets = "net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.DefaultFluidRenderer",
+        remap = false)
+abstract class DefaultFluidRendererBoundaryMixin {
     @Inject(method = "isSideExposed", at = @At("RETURN"), cancellable = true)
     private void selectiverender$cullWaterBoundarySide(BlockRenderView world,
             int x, int y, int z, Direction face, float height,
@@ -30,13 +25,5 @@ abstract class FluidRendererMixin {
         if (FluidBoundaryPolicy.shouldCull(world, position, fluidState, face)) {
             cir.setReturnValue(false);
         }
-    }
-
-    @Inject(method = "render", at = @At("HEAD"), cancellable = true)
-    private void selectiverender$filterFluid(WorldSlice world, FluidState fluidState,
-                                             BlockPos pos, BlockPos offset,
-                                             ChunkBuildBuffers buffers, CallbackInfo ci) {
-        BlockState state = world.getBlockState(pos);
-        if (!SelectiveRenderState.shouldRender(state, pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 }

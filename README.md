@@ -71,6 +71,7 @@ Optional Y limits are inclusive. When omitted, the minimum comes from the Select
 - Player visibility has six modes, including local-player-only and everyone-except-local-player; player hitboxes follow the same policy.
 - Interactions can be limited to regions, allowed outside them, or left unrestricted. A separate option controls interactions with hidden regions and filtered blocks.
 - Boundary faces can be normal, black, or culled. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
+- An optional water-boundary setting can hide water faces cut by a render boundary, including flowing and waterlogged states.
 - Virtual skylight can reach render and hidden regions from above, from the sides, from both, or from neither, with separate settings for hidden regions.
 - The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
 - When filtering is inactive and no render or hide regions are active, the renderer and interaction hooks take their normal no-op paths.

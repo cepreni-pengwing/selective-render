@@ -1,6 +1,6 @@
 # Selective Render
 
-Selective Render is a client-side Fabric mod that lets you create block-accurate regions anywhere in a Minecraft world and choose what stays visible. Render selected areas, hide regions you do not want to see, or filter individual block types by their IDs or tags. Hiding large parts of the world can also improve FPS, depending on what is hidden and your setup. It changes what you see and target, not the world itself.
+Selective Render is a client-side Fabric mod that lets you create block-accurate regions anywhere in a Minecraft world and choose what stays visible. Render selected areas, hide regions you do not want to see, or filter individual block types by their IDs or tags. Hiding large parts of the world can also improve FPS, depending on what is hidden and your setup. An optional setting can also hide water along region edges, including waterlogged blocks. It changes what you see and target, not the world itself.
 
 ## Requirements
 

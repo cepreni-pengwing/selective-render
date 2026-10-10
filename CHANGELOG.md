@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.10.14
+- Added an optional setting to cull water boundary faces, including flowing and waterlogged water.
+
 ## 1.10.13
 
 - Suppressed underwater fog and fluid submersion effects when the camera is inside content hidden by Selective Render.

@@ -17,6 +17,7 @@
     "ScreenEffectVisibilityMixin",
     "LocalPlayerTargetMixin",
     "BlockRenderManagerMixin",
+    "FluidBoundaryRendererMixin",
     "BlockModelRendererMixin",
     "BlockEntityRenderDispatcherMixin",
     "ParticleManagerMixin",

@@ -28,6 +28,7 @@ public final class SelectiveRenderSettings {
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
     private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
+    private static volatile boolean cullWaterBoundaryFaces;
     private static volatile boolean debugBoxes;
     private static volatile boolean filterInteractionsWhenInactive;
     private static volatile boolean blockFiltersEnabled = true;
@@ -56,6 +57,7 @@ public final class SelectiveRenderSettings {
         interactionMode = stored.interactionMode == null
                 ? InteractionMode.EVERYWHERE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
+        cullWaterBoundaryFaces = stored.cullWaterBoundaryFaces;
         debugBoxes = stored.debugBoxes;
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
         blockFiltersEnabled = stored.blockFiltersEnabled == null || stored.blockFiltersEnabled;
@@ -75,6 +77,7 @@ public final class SelectiveRenderSettings {
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
     public static InteractionMode interactionMode() { return interactionMode; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
+    public static boolean cullWaterBoundaryFaces() { return cullWaterBoundaryFaces; }
     public static boolean debugBoxes() { return debugBoxes; }
     public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
     public static boolean blockFiltersEnabled() { return blockFiltersEnabled; }
@@ -101,6 +104,15 @@ public final class SelectiveRenderSettings {
         boundaryMode = value;
         save();
         if (SelectiveRenderState.enabled()) {
+            SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
+        }
+    }
+
+    public static void setCullWaterBoundaryFaces(boolean value) {
+        if (cullWaterBoundaryFaces == value) return;
+        cullWaterBoundaryFaces = value;
+        save();
+        if (SelectiveRenderState.filteringActive()) {
             SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
         }
     }
@@ -180,6 +192,7 @@ public final class SelectiveRenderSettings {
             stored.playerVisibility = playerVisibility;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
+            stored.cullWaterBoundaryFaces = cullWaterBoundaryFaces;
             stored.debugBoxes = debugBoxes;
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
             stored.blockFiltersEnabled = blockFiltersEnabled;
@@ -291,6 +304,7 @@ public final class SelectiveRenderSettings {
         PlayerVisibility playerVisibility;
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
+        boolean cullWaterBoundaryFaces;
         boolean debugBoxes;
         boolean filterInteractionsWhenInactive;
         Boolean blockFiltersEnabled;
