@@ -19,7 +19,6 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.command.CommandSource;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.util.Identifier;
@@ -175,8 +174,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommandManager.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
                 .then(ClientCommandManager.literal("1").executes(context -> setPosition(context.getSource(), true)))
                 .then(ClientCommandManager.literal("2").executes(context -> setPosition(context.getSource(), false)))
-                .then(saveCommand("save"))
-                .then(saveCommand("s"))
                 .then(createCommand("create"))
                 .then(createCommand("c"))
                 .then(toggleCommand("toggle"))
@@ -408,11 +405,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                 StringArgumentType.getString(context, "name"))));
     }
 
-    private static LiteralArgumentBuilder<FabricClientCommandSource> saveCommand(String name) {
-        return ClientCommandManager.literal(name)
-                .then(ClientCommandManager.argument("name", StringArgumentType.word())
-                        .executes(context -> save(context.getSource(), StringArgumentType.getString(context, "name"))));
-    }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> toggleCommand(String name) {
         return ClientCommandManager.literal(name)
@@ -469,24 +461,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 + position.getX() + ", " + position.getY() + ", " + position.getZ()));
     }
 
-    private static int save(FabricClientCommandSource source, String name) {
-        if (SelectiveRenderConfig.isReservedName(name)) {
-            feedback(source, message(aqua(name), red(" is reserved")));
-            return 0;
-        }
-        if (SelectiveRenderConfig.presetExists(name)) {
-            feedback(source, presetExists(name));
-            return 0;
-        }
-        if (!SelectiveRenderConfig.saveSelection(MinecraftClient.getInstance(), name)) {
-            feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
-            return 0;
-        }
-        BlockRegion region = SelectiveRenderState.selection();
-        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
-                green(" saved"), white(" · " + region.blockCount() + " blocks")));
-        return Command.SINGLE_SUCCESS;
-    }
 
     private static int create(FabricClientCommandSource source,
                               com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> context,
@@ -512,7 +486,17 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return createRegion(source, name, region, hidden);
     }
 
-    private static int createFromWorldEdit(FabricClientCommandSource source, String name, boolean hidden) {
+    private static BlockRegion commandSelection() {
+        if (SelectiveRenderSettings.worldEditSelection()) return WorldEditClient.selection();
+        return SelectiveRenderState.saveSelection() ? SelectiveRenderState.selection() : null;
+    }
+
+    private static String selectionProblem() {
+        return SelectiveRenderSettings.worldEditSelection()
+                ? WorldEditClient.problem() : "Set both SR selection positions first.";
+    }
+
+    private static int createFromSelection(FabricClientCommandSource source, String name, boolean hidden) {
         if (SelectiveRenderConfig.isReservedName(name)) {
             feedback(source, message(aqua(name), red(" is reserved")));
             return 0;
@@ -521,9 +505,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, presetExists(name));
             return 0;
         }
-        BlockRegion region = WorldEditClient.selection();
+        BlockRegion region = commandSelection();
         if (region == null) {
-            feedback(source, message(red(WorldEditClient.problem())));
+            feedback(source, message(red(selectionProblem())));
             return 0;
         }
         return createRegion(source, name, region, hidden);
@@ -542,11 +526,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, missingPreset(name));
             return 0;
         }
-        if (!SelectiveRenderConfig.redefinePreset(MinecraftClient.getInstance(), name)) {
+        BlockRegion region = commandSelection();
+        if (region == null) {
+            feedback(source, message(red(selectionProblem())));
+            return 0;
+        }
+        if (!SelectiveRenderConfig.redefinePreset(MinecraftClient.getInstance(), name, region)) {
             feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
             return 0;
         }
-        BlockRegion region = SelectiveRenderState.selection();
         feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
                 green(" redefined"), white(" · " + region.blockCount() + " blocks")));
         return Command.SINGLE_SUCCESS;
@@ -708,13 +696,13 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> createCommand(String name) {
         return ClientCommandManager.literal(name)
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
-                        .executes(context -> createFromWorldEdit(context.getSource(),
+                        .executes(context -> createFromSelection(context.getSource(),
                                 StringArgumentType.getString(context, "name"), false))
                         .then(ClientCommandManager.literal("render")
-                                .executes(context -> createFromWorldEdit(context.getSource(),
+                                .executes(context -> createFromSelection(context.getSource(),
                                         StringArgumentType.getString(context, "name"), false)))
                         .then(ClientCommandManager.literal("hidden")
-                                .executes(context -> createFromWorldEdit(context.getSource(),
+                                .executes(context -> createFromSelection(context.getSource(),
                                         StringArgumentType.getString(context, "name"), true))))
                 .then(ClientCommandManager.argument("x1", IntegerArgumentType.integer())
                 .then(ClientCommandManager.argument("y1", IntegerArgumentType.integer())
@@ -787,7 +775,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static MutableText message(Text... parts) {
-        MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
+        MutableText message = Text.empty();
         for (Text part : parts) message.append(part);
         return message;
     }
@@ -802,22 +790,22 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static MutableText white(String text) {
-        return Text.literal(text).formatted(Formatting.WHITE);
+        return Text.literal(text).styled(style -> style.withColor(UiStyle.TEXT));
     }
 
     private static MutableText gray(String text) {
-        return Text.literal(text).formatted(Formatting.GRAY);
+        return Text.literal(text).styled(style -> style.withColor(UiStyle.MUTED));
     }
 
     private static MutableText aqua(String text) {
-        return Text.literal(text).formatted(Formatting.AQUA);
+        return Text.literal(text).styled(style -> style.withColor(UiStyle.ACCENT));
     }
 
     private static MutableText green(String text) {
-        return Text.literal(text).formatted(Formatting.GREEN);
+        return Text.literal(text).styled(style -> style.withColor(UiStyle.SUCCESS));
     }
 
     private static MutableText red(String text) {
-        return Text.literal(text).formatted(Formatting.RED);
+        return Text.literal(text).styled(style -> style.withColor(UiStyle.ERROR));
     }
 }

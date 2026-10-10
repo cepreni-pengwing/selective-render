@@ -7,7 +7,6 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.ChatFormatting;
 import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -324,22 +323,22 @@ public final class PlotSquaredClient {
     private static void send(Component... parts) {
         Minecraft client = Minecraft.getInstance();
         if (client.player == null) return;
-        MutableComponent message = Component.literal("SR: ").withStyle(ChatFormatting.GRAY);
+        MutableComponent message = Component.empty();
         for (Component part : parts) message.append(part);
         client.gui.chatListener().handleSystemMessage(message, false);
     }
 
     private static void overlay(Component... parts) {
-        MutableComponent message = Component.literal("SR: ").withStyle(ChatFormatting.GRAY);
+        MutableComponent message = Component.empty();
         for (Component part : parts) message.append(part);
         SelectiveRenderClient.overlay(message);
     }
 
-    private static MutableComponent white(String text) { return Component.literal(text).withStyle(ChatFormatting.WHITE); }
-    private static MutableComponent gray(String text) { return Component.literal(text).withStyle(ChatFormatting.GRAY); }
-    private static MutableComponent aqua(String text) { return Component.literal(text).withStyle(ChatFormatting.AQUA); }
-    private static MutableComponent green(String text) { return Component.literal(text).withStyle(ChatFormatting.GREEN); }
-    private static MutableComponent red(String text) { return Component.literal(text).withStyle(ChatFormatting.RED); }
+    private static MutableComponent white(String text) { return Component.literal(text).withStyle(style -> style.withColor(UiStyle.TEXT)); }
+    private static MutableComponent gray(String text) { return Component.literal(text).withStyle(style -> style.withColor(UiStyle.MUTED)); }
+    private static MutableComponent aqua(String text) { return Component.literal(text).withStyle(style -> style.withColor(UiStyle.ACCENT)); }
+    private static MutableComponent green(String text) { return Component.literal(text).withStyle(style -> style.withColor(UiStyle.SUCCESS)); }
+    private static MutableComponent red(String text) { return Component.literal(text).withStyle(style -> style.withColor(UiStyle.ERROR)); }
 
     private record PlotIdentity(List<BlockRegion> rawRegions) { }
     private record PlotEntry(String name, List<BlockRegion> regions) { }

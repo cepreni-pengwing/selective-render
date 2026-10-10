@@ -13,7 +13,6 @@ import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -178,8 +177,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommands.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
                 .then(ClientCommands.literal("1").executes(context -> setPosition(context.getSource(), true)))
                 .then(ClientCommands.literal("2").executes(context -> setPosition(context.getSource(), false)))
-                .then(saveCommand("save"))
-                .then(saveCommand("s"))
                 .then(createCommand("create"))
                 .then(createCommand("c"))
                 .then(toggleCommand("toggle"))
@@ -378,22 +375,17 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                 StringArgumentType.getString(context, "name"))));
     }
 
-    private static LiteralArgumentBuilder<FabricClientCommandSource> saveCommand(String name) {
-        return ClientCommands.literal(name)
-                .then(ClientCommands.argument("name", StringArgumentType.word())
-                        .executes(context -> save(context.getSource(), StringArgumentType.getString(context, "name"))));
-    }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> createCommand(String name) {
         return ClientCommands.literal(name)
                 .then(ClientCommands.argument("name", StringArgumentType.word())
-                        .executes(context -> createFromWorldEdit(context.getSource(),
+                        .executes(context -> createFromSelection(context.getSource(),
                                 StringArgumentType.getString(context, "name"), false))
                         .then(ClientCommands.literal("render")
-                                .executes(context -> createFromWorldEdit(context.getSource(),
+                                .executes(context -> createFromSelection(context.getSource(),
                                         StringArgumentType.getString(context, "name"), false)))
                         .then(ClientCommands.literal("hidden")
-                                .executes(context -> createFromWorldEdit(context.getSource(),
+                                .executes(context -> createFromSelection(context.getSource(),
                                         StringArgumentType.getString(context, "name"), true))))
                 .then(ClientCommands.argument("x1", IntegerArgumentType.integer())
                 .then(ClientCommands.argument("y1", IntegerArgumentType.integer())
@@ -473,24 +465,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 + position.getX() + ", " + position.getY() + ", " + position.getZ()));
     }
 
-    private static int save(FabricClientCommandSource source, String name) {
-        if (SelectiveRenderConfig.isReservedName(name)) {
-            feedback(source, message(aqua(name), red(" is reserved")));
-            return 0;
-        }
-        if (SelectiveRenderConfig.presetExists(name)) {
-            feedback(source, presetExists(name));
-            return 0;
-        }
-        if (!SelectiveRenderConfig.saveSelection(Minecraft.getInstance(), name)) {
-            feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
-            return 0;
-        }
-        BlockRegion region = SelectiveRenderState.selection();
-        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
-                green(" saved"), white(" · " + region.blockCount() + " blocks")));
-        return Command.SINGLE_SUCCESS;
-    }
 
     private static int create(FabricClientCommandSource source,
                               com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> context,
@@ -516,7 +490,17 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return createRegion(source, name, region, hidden);
     }
 
-    private static int createFromWorldEdit(FabricClientCommandSource source, String name, boolean hidden) {
+    private static BlockRegion commandSelection() {
+        if (SelectiveRenderSettings.worldEditSelection()) return WorldEditClient.selection();
+        return SelectiveRenderState.saveSelection() ? SelectiveRenderState.selection() : null;
+    }
+
+    private static String selectionProblem() {
+        return SelectiveRenderSettings.worldEditSelection()
+                ? WorldEditClient.problem() : "Set both SR selection positions first.";
+    }
+
+    private static int createFromSelection(FabricClientCommandSource source, String name, boolean hidden) {
         if (SelectiveRenderConfig.isReservedName(name)) {
             feedback(source, message(aqua(name), red(" is reserved")));
             return 0;
@@ -525,9 +509,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, presetExists(name));
             return 0;
         }
-        BlockRegion region = WorldEditClient.selection();
+        BlockRegion region = commandSelection();
         if (region == null) {
-            feedback(source, message(red(WorldEditClient.problem())));
+            feedback(source, message(red(selectionProblem())));
             return 0;
         }
         return createRegion(source, name, region, hidden);
@@ -546,11 +530,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, missingPreset(name));
             return 0;
         }
-        if (!SelectiveRenderConfig.redefinePreset(Minecraft.getInstance(), name)) {
+        BlockRegion region = commandSelection();
+        if (region == null) {
+            feedback(source, message(red(selectionProblem())));
+            return 0;
+        }
+        if (!SelectiveRenderConfig.redefinePreset(Minecraft.getInstance(), name, region)) {
             feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
             return 0;
         }
-        BlockRegion region = SelectiveRenderState.selection();
         feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
                 green(" redefined"), white(" · " + region.blockCount() + " blocks")));
         return Command.SINGLE_SUCCESS;
@@ -757,7 +745,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static MutableComponent message(Component... parts) {
-        MutableComponent message = Component.literal("SR: ").withStyle(ChatFormatting.GRAY);
+        MutableComponent message = Component.empty();
         for (Component part : parts) message.append(part);
         return message;
     }
@@ -772,22 +760,22 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static MutableComponent white(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.WHITE);
+        return Component.literal(text).withStyle(style -> style.withColor(UiStyle.TEXT));
     }
 
     private static MutableComponent gray(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.GRAY);
+        return Component.literal(text).withStyle(style -> style.withColor(UiStyle.MUTED));
     }
 
     private static MutableComponent aqua(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.AQUA);
+        return Component.literal(text).withStyle(style -> style.withColor(UiStyle.ACCENT));
     }
 
     private static MutableComponent green(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.GREEN);
+        return Component.literal(text).withStyle(style -> style.withColor(UiStyle.SUCCESS));
     }
 
     private static MutableComponent red(String text) {
-        return Component.literal(text).withStyle(ChatFormatting.RED);
+        return Component.literal(text).withStyle(style -> style.withColor(UiStyle.ERROR));
     }
 }

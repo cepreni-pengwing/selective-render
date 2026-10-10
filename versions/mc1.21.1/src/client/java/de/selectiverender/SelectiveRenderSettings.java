@@ -29,6 +29,7 @@ public final class SelectiveRenderSettings {
     private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile boolean cullWaterBoundaryFaces;
+    private static volatile boolean worldEditSelection;
     private static volatile boolean debugBoxes;
     private static volatile boolean filterInteractionsWhenInactive;
     private static volatile boolean blockFiltersEnabled = true;
@@ -58,6 +59,7 @@ public final class SelectiveRenderSettings {
                 ? InteractionMode.EVERYWHERE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
         cullWaterBoundaryFaces = stored.cullWaterBoundaryFaces;
+        worldEditSelection = stored.worldEditSelection;
         debugBoxes = stored.debugBoxes;
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
         blockFiltersEnabled = stored.blockFiltersEnabled == null || stored.blockFiltersEnabled;
@@ -77,6 +79,14 @@ public final class SelectiveRenderSettings {
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
     public static InteractionMode interactionMode() { return interactionMode; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
+    public static boolean worldEditSelection() { return worldEditSelection; }
+
+    public static void setWorldEditSelection(boolean value) {
+        if (worldEditSelection == value) return;
+        worldEditSelection = value;
+        save();
+    }
+
     public static boolean cullWaterBoundaryFaces() { return cullWaterBoundaryFaces; }
     public static boolean debugBoxes() { return debugBoxes; }
     public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
@@ -193,6 +203,7 @@ public final class SelectiveRenderSettings {
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
             stored.cullWaterBoundaryFaces = cullWaterBoundaryFaces;
+            stored.worldEditSelection = worldEditSelection;
             stored.debugBoxes = debugBoxes;
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
             stored.blockFiltersEnabled = blockFiltersEnabled;
@@ -305,6 +316,7 @@ public final class SelectiveRenderSettings {
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
         boolean cullWaterBoundaryFaces;
+        boolean worldEditSelection;
         boolean debugBoxes;
         boolean filterInteractionsWhenInactive;
         Boolean blockFiltersEnabled;

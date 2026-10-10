@@ -15,8 +15,7 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <tbody>
 <tr><td><code>/sr&nbsp;1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td>Not Bound</td></tr>
 <tr><td><code>/sr&nbsp;2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td>Not Bound</td></tr>
-<tr><td><code>/sr&nbsp;s</code></td><td><code>save NAME</code></td><td>Save and activate region</td><td></td></tr>
-<tr><td rowspan="2"><code>/sr&nbsp;c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the WorldEdit selection; defaults to <code>render</code></td><td></td></tr>
+<tr><td rowspan="2"><code>/sr&nbsp;c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the selection source in settings; defaults to <code>render</code></td><td></td></tr>
 <tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]</code></td><td>Create from two corners; defaults to <code>render</code></td><td></td></tr>
 <tr><td rowspan="3"><code>/sr&nbsp;t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
 <tr><td><code>toggle NAME</code></td><td>Toggle one render region</td><td></td></tr>
@@ -26,7 +25,7 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <tr><td><code>hide all</code></td><td>Select all hide regions or clear selection</td><td></td></tr>
 <tr><td rowspan="2"><code>/sr&nbsp;l</code></td><td><code>list</code></td><td>List render regions</td><td></td></tr>
 <tr><td><code>list hidden</code></td><td>List hidden regions</td><td></td></tr>
-<tr><td><code>/sr&nbsp;r</code></td><td><code>redefine NAME</code></td><td>Update bounds from marked corners</td><td></td></tr>
+<tr><td><code>/sr&nbsp;r</code></td><td><code>redefine NAME</code></td><td>Update bounds from the selection source in settings</td><td></td></tr>
 <tr><td><code>/sr&nbsp;n</code></td><td><code>name OLDNAME NEWNAME</code></td><td>Rename region</td><td></td></tr>
 <tr><td><code>/sr&nbsp;d</code></td><td><code>delete NAME</code></td><td>Delete saved region</td><td></td></tr>
 <tr><td rowspan="4"><code>/sr&nbsp;f</code></td><td><code>filter NAME</code></td><td>View region filters</td><td></td></tr>
@@ -57,3 +56,5 @@ The [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots)
 For detailed setup, settings, limitations, and contribution information, see the [GitHub README](https://github.com/cepreni-pengwing/selective-render#readme). Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only.
+
+Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. Explicit coordinates work independently of this setting.

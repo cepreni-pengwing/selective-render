@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.10.16
+
+- Unified region creation under /sr create (/sr c); removed /sr save (/sr s).
+- Added a saved selection source setting for SR positions or WorldEdit, shared by create and redefine.
+- Refreshed command feedback and settings colors, and removed the SR prefix from notifications.
+
 ## 1.10.15
 - Water boundary face culling now works independently of the Normal, Black, or Culled block boundary mode in all three Minecraft builds.
 

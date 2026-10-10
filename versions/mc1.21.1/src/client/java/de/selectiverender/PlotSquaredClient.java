@@ -12,7 +12,6 @@ import net.minecraft.network.codec.PacketCodec;
 import net.minecraft.network.packet.CustomPayload;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 
@@ -301,7 +300,7 @@ public final class PlotSquaredClient {
     private static void send(Text... parts) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) return;
-        MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
+        MutableText message = Text.empty();
         for (Text part : parts) message.append(part);
         client.player.sendMessage(message, false);
     }
@@ -336,16 +335,16 @@ public final class PlotSquaredClient {
     }
 
     private static void overlay(Text... parts) {
-        MutableText message = Text.literal("SR: ").formatted(Formatting.GRAY);
+        MutableText message = Text.empty();
         for (Text part : parts) message.append(part);
         SelectiveRenderClient.overlay(message);
     }
 
-    private static MutableText white(String text) { return Text.literal(text).formatted(Formatting.WHITE); }
-    private static MutableText gray(String text) { return Text.literal(text).formatted(Formatting.GRAY); }
-    private static MutableText aqua(String text) { return Text.literal(text).formatted(Formatting.AQUA); }
-    private static MutableText green(String text) { return Text.literal(text).formatted(Formatting.GREEN); }
-    private static MutableText red(String text) { return Text.literal(text).formatted(Formatting.RED); }
+    private static MutableText white(String text) { return Text.literal(text).styled(style -> style.withColor(UiStyle.TEXT)); }
+    private static MutableText gray(String text) { return Text.literal(text).styled(style -> style.withColor(UiStyle.MUTED)); }
+    private static MutableText aqua(String text) { return Text.literal(text).styled(style -> style.withColor(UiStyle.ACCENT)); }
+    private static MutableText green(String text) { return Text.literal(text).styled(style -> style.withColor(UiStyle.SUCCESS)); }
+    private static MutableText red(String text) { return Text.literal(text).styled(style -> style.withColor(UiStyle.ERROR)); }
 
     private record PlotIdentity(List<BlockRegion> rawRegions) { }
     private record PlotEntry(String name, List<BlockRegion> regions) { }

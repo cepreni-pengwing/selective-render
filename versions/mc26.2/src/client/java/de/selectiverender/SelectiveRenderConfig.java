@@ -127,10 +127,10 @@ public final class SelectiveRenderConfig {
         return true;
     }
 
-    public static boolean redefinePreset(Minecraft client, String requestedName) {
+    public static boolean redefinePreset(Minecraft client, String requestedName, BlockRegion region) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name) || !SelectiveRenderState.saveSelection()) return false;
-        PRESETS.put(name, List.of(SelectiveRenderState.selection()));
+        if (!PRESETS.containsKey(name) || region == null) return false;
+        PRESETS.put(name, List.of(region));
         applyState();
         write(client);
         return true;

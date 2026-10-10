@@ -8,7 +8,7 @@ Selective Render is a client-side Fabric mod for focusing the view on selected p
 
 Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with its default keybind, or open the Selective Render category in Controls to change bindings.
 
-To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then save it with `/sr save NAME`. You can also create a region from coordinates in one command, or use a cuboid selection supplied by WorldEdit. Saved regions can be enabled together, hidden, filtered, and organized independently.
+To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then save it with `/sr create NAME`. You can also create a region from coordinates in one command, or use a cuboid selection supplied by WorldEdit. Saved regions can be enabled together, hidden, filtered, and organized independently.
 
 ## Commands
 
@@ -19,8 +19,7 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 <tbody>
 <tr><td><code>/sr 1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td>Not Bound</td></tr>
 <tr><td><code>/sr 2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td>Not Bound</td></tr>
-<tr><td><code>/sr s</code></td><td><code>save NAME</code></td><td>Save and activate region</td><td></td></tr>
-<tr><td rowspan="2"><code>/sr c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the WorldEdit selection; defaults to <code>render</code></td><td></td></tr>
+<tr><td rowspan="2"><code>/sr c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the selection source in settings; defaults to <code>render</code></td><td></td></tr>
 <tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]</code></td><td>Create from two corners; defaults to <code>render</code></td><td></td></tr>
 <tr><td rowspan="3"><code>/sr t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
 <tr><td><code>toggle NAME</code></td><td>Toggle one render region</td><td></td></tr>
@@ -30,7 +29,7 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 <tr><td><code>hide all</code></td><td>Select all hide regions or clear selection</td><td></td></tr>
 <tr><td rowspan="2"><code>/sr l</code></td><td><code>list</code></td><td>List render regions</td><td></td></tr>
 <tr><td><code>list hidden</code></td><td>List hidden regions</td><td></td></tr>
-<tr><td><code>/sr r</code></td><td><code>redefine NAME</code></td><td>Update bounds from marked corners</td><td></td></tr>
+<tr><td><code>/sr r</code></td><td><code>redefine NAME</code></td><td>Update bounds from the selection source in settings</td><td></td></tr>
 <tr><td><code>/sr n</code></td><td><code>name OLDNAME NEWNAME</code></td><td>Rename region</td><td></td></tr>
 <tr><td><code>/sr d</code></td><td><code>delete NAME</code></td><td>Delete saved region</td><td></td></tr>
 <tr><td rowspan="4"><code>/sr f</code></td><td><code>filter NAME</code></td><td>Show region filters</td><td></td></tr>
@@ -94,3 +93,5 @@ Use JDK 17 or newer and run:
 The installable JAR is generated in `build/libs`. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Report issues with the requested logs and game/mod versions. Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
+
+Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. Explicit coordinates work independently of this setting.

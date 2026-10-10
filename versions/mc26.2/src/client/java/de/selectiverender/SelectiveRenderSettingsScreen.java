@@ -27,67 +27,73 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     protected void init() {
-        int left = width / 2 - 100;
-        int y = Math.max(20, height / 2 - 143);
+        int left = width / 2 - 155;
+        int y = Math.max(20, height / 2 - 154);
+        addRenderableWidget(Button.builder(UiStyle.label("Selection source: "
+                + (SelectiveRenderSettings.worldEditSelection() ? "WorldEdit" : "SR positions")), button -> {
+            SelectiveRenderSettings.setWorldEditSelection(!SelectiveRenderSettings.worldEditSelection());
+            button.setMessage(UiStyle.label("Selection source: "
+                    + (SelectiveRenderSettings.worldEditSelection() ? "WorldEdit" : "SR positions")));
+        }).bounds(left, y, 310, 20).build());
         playerButton = addRenderableWidget(Button.builder(playerText(), button -> {
             SelectiveRenderSettings.setPlayerVisibility(
                     SelectiveRenderSettings.playerVisibility().next());
             button.setMessage(playerText());
-        }).bounds(left, y, 200, 20).build());
+        }).bounds(left, y + 22, 310, 20).build());
         interactionButton = addRenderableWidget(Button.builder(interactionText(), button -> {
             SelectiveRenderSettings.setInteractionMode(
                     SelectiveRenderSettings.interactionMode().next());
             button.setMessage(interactionText());
-        }).bounds(left, y + 22, 200, 20).build());
+        }).bounds(left, y + 44, 310, 20).build());
         boundaryButton = addRenderableWidget(Button.builder(boundaryText(), button -> {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.boundaryMode().next());
             button.setMessage(boundaryText());
-        }).bounds(left, y + 44, 200, 20).build());
+        }).bounds(left, y + 66, 310, 20).build());
         waterBoundaryButton = addRenderableWidget(Button.builder(waterBoundaryText(), button -> {
             SelectiveRenderSettings.setCullWaterBoundaryFaces(
                     !SelectiveRenderSettings.cullWaterBoundaryFaces());
             button.setMessage(waterBoundaryText());
-        }).bounds(left, y + 66, 200, 20).build());
+        }).bounds(left, y + 88, 310, 20).build());
         debugButton = addRenderableWidget(Button.builder(debugText(), button -> {
             SelectiveRenderSettings.setDebugBoxes(!SelectiveRenderSettings.debugBoxes());
             button.setMessage(debugText());
-        }).bounds(left, y + 88, 200, 20).build());
+        }).bounds(left, y + 110, 310, 20).build());
         inactiveInteractionsButton = addRenderableWidget(Button.builder(inactiveInteractionsText(), button -> {
             SelectiveRenderSettings.setFilterInteractionsWhenInactive(
                     !SelectiveRenderSettings.filterInteractionsWhenInactive());
             button.setMessage(inactiveInteractionsText());
-        }).bounds(left, y + 110, 200, 20).build());
+        }).bounds(left, y + 132, 310, 20).build());
         hiddenInteractionsButton = addRenderableWidget(Button.builder(hiddenInteractionsText(), button -> {
             SelectiveRenderSettings.setInteractWithHiddenRegions(
                     !SelectiveRenderSettings.interactWithHiddenRegions());
             button.setMessage(hiddenInteractionsText());
-        }).bounds(left, y + 132, 200, 20).build());
+        }).bounds(left, y + 154, 310, 20).build());
         virtualLightButton = addRenderableWidget(Button.builder(virtualLightText(), button -> {
             SelectiveRenderSettings.setVirtualLightMode(
                     SelectiveRenderSettings.virtualLightMode().next());
             button.setMessage(virtualLightText());
-        }).bounds(left, y + 154, 200, 20).build());
+        }).bounds(left, y + 176, 310, 20).build());
         hiddenVirtualLightButton = addRenderableWidget(Button.builder(hiddenVirtualLightText(), button -> {
             SelectiveRenderSettings.setHiddenVirtualLightMode(
                     SelectiveRenderSettings.hiddenVirtualLightMode().next());
             button.setMessage(hiddenVirtualLightText());
-        }).bounds(left, y + 176, 200, 20).build());
+        }).bounds(left, y + 198, 310, 20).build());
 
-        reloadThresholdField = integerField(left, y + 209,
+        reloadThresholdField = integerField(left, y + 231,
                 Integer.toString(SelectiveRenderSettings.fullReloadThreshold()), false);
-        plotMinYField = integerField(left, y + 245,
+        plotMinYField = integerField(left, y + 267,
                 Integer.toString(SelectiveRenderSettings.defaultPlotMinY()), true);
         addRenderableWidget(Button.builder(Component.literal("Done"), button -> onClose())
-                .bounds(left, y + 271, 200, 20).build());
+                .bounds(left, y + 293, 310, 20).build());
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor context, int mouseX, int mouseY, float delta) {
-        context.centeredText(font, title, width / 2, 24, 0xFFFFFF);
+        context.centeredText(font, title, width / 2, 24, UiStyle.TEXT);
         context.text(font, Component.literal("Full reload after affected sections"),
-                width / 2 - 100, reloadThresholdField.getY() - 11, 0xA0A0A0);
+                width / 2 - 155, reloadThresholdField.getY() - 11, UiStyle.MUTED);
         context.text(font, Component.literal("Default /sr p minimum Y"),
-                width / 2 - 100, plotMinYField.getY() - 11, 0xA0A0A0);
+                width / 2 - 155, plotMinYField.getY() - 11, UiStyle.MUTED);
         super.extractRenderState(context, mouseX, mouseY, delta);
     }
 
@@ -115,42 +121,42 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private Component playerText() {
-        return Component.literal("Players: " + SelectiveRenderSettings.playerVisibility().label());
+        return UiStyle.label("Players: " + SelectiveRenderSettings.playerVisibility().label());
     }
 
     private Component boundaryText() {
-        return Component.literal("Boundary faces: " + SelectiveRenderSettings.boundaryMode().label());
+        return UiStyle.label("Boundary faces: " + SelectiveRenderSettings.boundaryMode().label());
     }
 
     private Component waterBoundaryText() {
-        return Component.literal("Cull water boundary faces: "
+        return UiStyle.label("Cull water boundary faces: "
                 + (SelectiveRenderSettings.cullWaterBoundaryFaces() ? "On" : "Off"));
     }
 
     private Component interactionText() {
-        return Component.literal("Interactions: " + SelectiveRenderSettings.interactionMode().label());
+        return UiStyle.label("Interactions: " + SelectiveRenderSettings.interactionMode().label());
     }
 
     private Component inactiveInteractionsText() {
-        return Component.literal("Interactions while rendering is off: "
+        return UiStyle.label("Interactions while rendering is off: "
                 + (SelectiveRenderSettings.filterInteractionsWhenInactive() ? "Filtered" : "Vanilla"));
     }
 
     private Component hiddenInteractionsText() {
-        return Component.literal("Interactions with hidden regions: "
+        return UiStyle.label("Interactions with hidden regions: "
                 + (SelectiveRenderSettings.interactWithHiddenRegions() ? "On" : "Off"));
     }
 
     private Component virtualLightText() {
-        return Component.literal("Virtual skylight (render): " + SelectiveRenderSettings.virtualLightMode().label());
+        return UiStyle.label("Virtual skylight (render): " + SelectiveRenderSettings.virtualLightMode().label());
     }
 
     private Component hiddenVirtualLightText() {
-        return Component.literal("Virtual skylight (hidden): "
+        return UiStyle.label("Virtual skylight (hidden): "
                 + SelectiveRenderSettings.hiddenVirtualLightMode().label());
     }
 
     private Component debugText() {
-        return Component.literal("Debug boxes: " + (SelectiveRenderSettings.debugBoxes() ? "On" : "Off"));
+        return UiStyle.label("Debug boxes: " + (SelectiveRenderSettings.debugBoxes() ? "On" : "Off"));
     }
 }
