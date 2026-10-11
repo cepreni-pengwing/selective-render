@@ -4,7 +4,7 @@ package de.selectiverender;
 record SettingsViewport(int left, int navigationWidth, int paneLeft, int paneWidth,
                         int visibleRows, int scroll) {
     static SettingsViewport of(int width, int height, int rowCount, int requestedScroll) {
-        int totalWidth = Math.min(640, width - 24);
+        int totalWidth = Math.min(960, width - 24);
         int left = (width - totalWidth) / 2;
         int navigationWidth = Math.max(72, Math.min(112, totalWidth / 5));
         int paneLeft = left + navigationWidth + 12;

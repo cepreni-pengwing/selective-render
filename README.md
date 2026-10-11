@@ -92,6 +92,8 @@ Choose **SR positions** or **WorldEdit** as the selection source in settings. Th
 
 Block filters accept a block ID such as `minecraft:stone` or a tag such as `#minecraft:slabs`. Multiple selectors can be separated by commas in one command, including a mix of IDs and tags. The earlier `id:` and `tag:` prefixes are still accepted. An invalid selector rejects the complete batch. Use `filter NAME` to list the saved rules.
 
-Hidden presets support the same filters as render presets. While the hidden preset is actively hiding its region, hiding takes precedence. Turning hiding off restores the normal filter behavior while block filtering is enabled.
+Hidden regions support the same filters as render regions. While the hidden region is actively hiding its region, hiding takes precedence. Turning hiding off restores the normal filter behavior while block filtering is enabled.
 
-Settings use a two-column layout with **General**, **Presets**, **Boundaries**, and **Plots** tabs. Overflowing content supports mouse-wheel scrolling and navigation buttons. **Presets** provides a read-only overview with group states, bounding boxes, block counts and filters. Selected options are disabled until a different value is chosen.
+Settings use a two-column layout with **General**, **Regions**, **Boundaries**, and **Plots** tabs. Colored option labels sit beside their selection buttons, which wrap when the window is too narrow. Overflowing content supports mouse-wheel scrolling and Page Up/Page Down; Home/End jumps to the beginning/end when no number field is focused. **Regions** provides a read-only overview with group states, bounding boxes, block counts and filters. Selected options are disabled until a different value is chosen.
+
+Existing region files retain their original storage keys for compatibility, including older keys containing `preset`. Renaming the terminology does not migrate or discard saved regions.

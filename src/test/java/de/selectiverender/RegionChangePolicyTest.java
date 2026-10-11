@@ -5,28 +5,28 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class PresetVisibilityTest {
+class RegionChangePolicyTest {
     @Test
     void visibleHiddenOverrideCountsAsAVisibleChange() {
-        assertTrue(PresetVisibility.affectsRendering(
+        assertTrue(RegionChangePolicy.affectsRendering(
                 false, true, false, true, true, false, true));
     }
 
     @Test
-    void inactivePresetDoesNotCountWithoutAnEnabledGroup() {
-        assertFalse(PresetVisibility.affectsRendering(
+    void inactiveRegionDoesNotCountWithoutAnEnabledGroup() {
+        assertFalse(RegionChangePolicy.affectsRendering(
                 false, false, false, false, true, false, true));
     }
 
     @Test
     void overrideDeletionCountsInPlotMode() {
-        assertTrue(PresetVisibility.affectsRendering(
+        assertTrue(RegionChangePolicy.affectsRendering(
                 false, false, true, true, true, false, true));
     }
 
     @Test
-    void visibleHiddenPresetCountsWhenTheHideGroupIsDisabled() {
-        assertTrue(PresetVisibility.affectsRendering(
+    void visibleHiddenRegionCountsWhenTheHideGroupIsDisabled() {
+        assertTrue(RegionChangePolicy.affectsRendering(
                 false, true, false, true, true, true, false));
     }
 }

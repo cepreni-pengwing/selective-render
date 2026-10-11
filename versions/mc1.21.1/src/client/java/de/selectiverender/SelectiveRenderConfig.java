@@ -1,6 +1,7 @@
 package de.selectiverender;
 
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import com.google.gson.GsonBuilder;
 import de.selectiverender.mixin.ClientWorldNetworkAccess;
 import net.fabricmc.loader.api.FabricLoader;
@@ -28,10 +29,10 @@ import java.util.Map;
 public final class SelectiveRenderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
-    private static final Map<String, List<BlockRegion>> PRESETS = new LinkedHashMap<>();
-    private static final LinkedHashSet<String> ACTIVE_PRESETS = new LinkedHashSet<>();
-    private static final LinkedHashSet<String> HIDDEN_PRESETS = new LinkedHashSet<>();
-    private static final LinkedHashSet<String> ACTIVE_HIDDEN_PRESETS = new LinkedHashSet<>();
+    private static final Map<String, List<BlockRegion>> REGIONS = new LinkedHashMap<>();
+    private static final LinkedHashSet<String> ACTIVE_REGIONS = new LinkedHashSet<>();
+    private static final LinkedHashSet<String> HIDDEN_REGIONS = new LinkedHashSet<>();
+    private static final LinkedHashSet<String> ACTIVE_HIDDEN_REGIONS = new LinkedHashSet<>();
     private static final Map<String, LinkedHashSet<BlockFilterRule>> FILTERS = new LinkedHashMap<>();
     private static boolean groupEnabled;
     private static boolean hideGroupEnabled = true;
@@ -92,14 +93,14 @@ public final class SelectiveRenderConfig {
     public static boolean saveSelection(MinecraftClient client, String requestedName) {
         if (isReservedName(requestedName)) return false;
         String name = normalize(requestedName);
-        if (PRESETS.containsKey(name) || !SelectiveRenderState.saveSelection()) return false;
+        if (REGIONS.containsKey(name) || !SelectiveRenderState.saveSelection()) return false;
         List<BlockRegion> regions = List.of(SelectiveRenderState.selection());
-        PRESETS.put(name, regions);
-        if (HIDDEN_PRESETS.contains(name)) {
-            ACTIVE_HIDDEN_PRESETS.add(name);
+        REGIONS.put(name, regions);
+        if (HIDDEN_REGIONS.contains(name)) {
+            ACTIVE_HIDDEN_REGIONS.add(name);
             hideGroupEnabled = true;
         } else {
-            ACTIVE_PRESETS.add(name);
+            ACTIVE_REGIONS.add(name);
             groupEnabled = true;
         }
         applyState();
@@ -112,14 +113,14 @@ public final class SelectiveRenderConfig {
                                      BlockRegion region, boolean hidden) {
         if (isReservedName(requestedName) || region == null) return false;
         String name = normalize(requestedName);
-        if (PRESETS.containsKey(name)) return false;
-        PRESETS.put(name, List.of(region));
+        if (REGIONS.containsKey(name)) return false;
+        REGIONS.put(name, List.of(region));
         if (hidden) {
-            HIDDEN_PRESETS.add(name);
-            ACTIVE_HIDDEN_PRESETS.add(name);
+            HIDDEN_REGIONS.add(name);
+            ACTIVE_HIDDEN_REGIONS.add(name);
             hideGroupEnabled = true;
         } else {
-            ACTIVE_PRESETS.add(name);
+            ACTIVE_REGIONS.add(name);
             groupEnabled = true;
         }
         applyState();
@@ -127,10 +128,10 @@ public final class SelectiveRenderConfig {
         return true;
     }
 
-    public static boolean redefinePreset(MinecraftClient client, String requestedName, BlockRegion region) {
+    public static boolean redefineRegion(MinecraftClient client, String requestedName, BlockRegion region) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name) || region == null) return false;
-        PRESETS.put(name, List.of(region));
+        if (!REGIONS.containsKey(name) || region == null) return false;
+        REGIONS.put(name, List.of(region));
         applyState();
         write(client);
         return true;
@@ -140,13 +141,13 @@ public final class SelectiveRenderConfig {
                                       List<BlockRegion> regions) {
         if (isReservedName(requestedName) || regions == null || regions.isEmpty()) return false;
         String name = normalize(requestedName);
-        if (PRESETS.containsKey(name)) return false;
+        if (REGIONS.containsKey(name)) return false;
         List<BlockRegion> next = List.copyOf(regions);
-        PRESETS.put(name, next);
-        HIDDEN_PRESETS.remove(name);
-        ACTIVE_HIDDEN_PRESETS.remove(name);
+        REGIONS.put(name, next);
+        HIDDEN_REGIONS.remove(name);
+        ACTIVE_HIDDEN_REGIONS.remove(name);
         FILTERS.remove(name);
-        ACTIVE_PRESETS.add(name);
+        ACTIVE_REGIONS.add(name);
         groupEnabled = true;
         applyState();
         write(client);
@@ -154,7 +155,7 @@ public final class SelectiveRenderConfig {
     }
 
     public static boolean toggleCurrent(MinecraftClient client) {
-        if (ACTIVE_PRESETS.isEmpty()) return false;
+        if (ACTIVE_REGIONS.isEmpty()) return false;
         groupEnabled = !groupEnabled;
         applyState();
 
@@ -162,28 +163,28 @@ public final class SelectiveRenderConfig {
         return true;
     }
 
-    public static boolean togglePreset(MinecraftClient client, String requestedName) {
+    public static boolean toggleRegion(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name)) return false;
-        if (HIDDEN_PRESETS.remove(name)) {
-            ACTIVE_HIDDEN_PRESETS.remove(name);
-            ACTIVE_PRESETS.add(name);
-        } else if (!ACTIVE_PRESETS.remove(name)) {
-            ACTIVE_PRESETS.add(name);
+        if (!REGIONS.containsKey(name)) return false;
+        if (HIDDEN_REGIONS.remove(name)) {
+            ACTIVE_HIDDEN_REGIONS.remove(name);
+            ACTIVE_REGIONS.add(name);
+        } else if (!ACTIVE_REGIONS.remove(name)) {
+            ACTIVE_REGIONS.add(name);
         }
         applyState();
         write(client);
         return true;
     }
 
-    public static boolean toggleHiddenPreset(MinecraftClient client, String requestedName) {
+    public static boolean toggleHiddenRegion(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name)) return false;
-        if (HIDDEN_PRESETS.add(name)) {
-            ACTIVE_PRESETS.remove(name);
-            ACTIVE_HIDDEN_PRESETS.add(name);
-        } else if (!ACTIVE_HIDDEN_PRESETS.remove(name)) {
-            ACTIVE_HIDDEN_PRESETS.add(name);
+        if (!REGIONS.containsKey(name)) return false;
+        if (HIDDEN_REGIONS.add(name)) {
+            ACTIVE_REGIONS.remove(name);
+            ACTIVE_HIDDEN_REGIONS.add(name);
+        } else if (!ACTIVE_HIDDEN_REGIONS.remove(name)) {
+            ACTIVE_HIDDEN_REGIONS.add(name);
         }
         applyState();
         write(client);
@@ -191,101 +192,101 @@ public final class SelectiveRenderConfig {
     }
 
     public static boolean toggleHiddenGroup(MinecraftClient client) {
-        if (ACTIVE_HIDDEN_PRESETS.isEmpty()) return false;
+        if (ACTIVE_HIDDEN_REGIONS.isEmpty()) return false;
         hideGroupEnabled = !hideGroupEnabled;
         applyState();
         write(client);
         return true;
     }
 
-    public static boolean toggleAllPresets(MinecraftClient client) {
-        List<String> normalNames = PRESETS.keySet().stream()
-                .filter(name -> !HIDDEN_PRESETS.contains(name)).toList();
+    public static boolean toggleAllRegions(MinecraftClient client) {
+        List<String> normalNames = REGIONS.keySet().stream()
+                .filter(name -> !HIDDEN_REGIONS.contains(name)).toList();
         if (normalNames.isEmpty()) return false;
-        PresetGroupLogic.toggleAll(ACTIVE_PRESETS, normalNames);
+        RegionGroupLogic.toggleAll(ACTIVE_REGIONS, normalNames);
         groupEnabled = true;
         applyState();
         write(client);
         return true;
     }
 
-    public static boolean toggleAllHiddenPresets(MinecraftClient client) {
-        if (HIDDEN_PRESETS.isEmpty()) return false;
-        PresetGroupLogic.toggleAll(ACTIVE_HIDDEN_PRESETS, HIDDEN_PRESETS);
+    public static boolean toggleAllHiddenRegions(MinecraftClient client) {
+        if (HIDDEN_REGIONS.isEmpty()) return false;
+        RegionGroupLogic.toggleAll(ACTIVE_HIDDEN_REGIONS, HIDDEN_REGIONS);
         hideGroupEnabled = true;
         applyState();
         write(client);
         return true;
     }
 
-    public static boolean deletePreset(MinecraftClient client, String requestedName) {
+    public static boolean deleteRegion(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        List<BlockRegion> removed = PRESETS.remove(name);
+        List<BlockRegion> removed = REGIONS.remove(name);
         if (removed == null) return false;
-        ACTIVE_PRESETS.remove(name);
-        HIDDEN_PRESETS.remove(name);
-        ACTIVE_HIDDEN_PRESETS.remove(name);
+        ACTIVE_REGIONS.remove(name);
+        HIDDEN_REGIONS.remove(name);
+        ACTIVE_HIDDEN_REGIONS.remove(name);
         FILTERS.remove(name);
         applyState();
         write(client);
         return true;
     }
 
-    public static RenameResult renamePreset(MinecraftClient client, String requestedOldName,
+    public static RenameResult renameRegion(MinecraftClient client, String requestedOldName,
                                              String requestedNewName) {
         String oldName = normalize(requestedOldName);
         String newName = normalize(requestedNewName);
-        if (!PRESETS.containsKey(oldName)) return RenameResult.MISSING_SOURCE;
+        if (!REGIONS.containsKey(oldName)) return RenameResult.MISSING_SOURCE;
         if (oldName.equals(newName)) return RenameResult.SUCCESS;
         if (isReservedName(newName)) return RenameResult.RESERVED_NAME;
-        if (PRESETS.containsKey(newName)) return RenameResult.TARGET_EXISTS;
+        if (REGIONS.containsKey(newName)) return RenameResult.TARGET_EXISTS;
 
-        List<BlockRegion> regions = PRESETS.remove(oldName);
-        PRESETS.put(newName, regions);
+        List<BlockRegion> regions = REGIONS.remove(oldName);
+        REGIONS.put(newName, regions);
         LinkedHashSet<BlockFilterRule> rules = FILTERS.remove(oldName);
         if (rules != null) FILTERS.put(newName, rules);
-        PresetGroupLogic.replaceMembership(ACTIVE_PRESETS, oldName, newName);
-        PresetGroupLogic.replaceMembership(HIDDEN_PRESETS, oldName, newName);
-        PresetGroupLogic.replaceMembership(ACTIVE_HIDDEN_PRESETS, oldName, newName);
+        RegionGroupLogic.replaceMembership(ACTIVE_REGIONS, oldName, newName);
+        RegionGroupLogic.replaceMembership(HIDDEN_REGIONS, oldName, newName);
+        RegionGroupLogic.replaceMembership(ACTIVE_HIDDEN_REGIONS, oldName, newName);
         applyState();
         write(client);
         return RenameResult.SUCCESS;
     }
 
-    public static boolean isPresetActive(String name) {
-        return ACTIVE_PRESETS.contains(normalize(name));
+    public static boolean isRegionActive(String name) {
+        return ACTIVE_REGIONS.contains(normalize(name));
     }
 
-    public static List<String> activePresetNames() {
-        return List.copyOf(ACTIVE_PRESETS);
+    public static List<String> activeRegionNames() {
+        return List.copyOf(ACTIVE_REGIONS);
     }
 
     public static boolean groupEnabled() {
         return groupEnabled;
     }
 
-    public static boolean isPresetHidden(String name) {
-        return HIDDEN_PRESETS.contains(normalize(name));
+    public static boolean isRegionHidden(String name) {
+        return HIDDEN_REGIONS.contains(normalize(name));
     }
 
-    public static boolean isHiddenPresetActive(String name) {
-        return ACTIVE_HIDDEN_PRESETS.contains(normalize(name));
+    public static boolean isHiddenRegionActive(String name) {
+        return ACTIVE_HIDDEN_REGIONS.contains(normalize(name));
     }
 
-    public static List<String> hiddenPresetNames() {
-        return List.copyOf(ACTIVE_HIDDEN_PRESETS);
+    public static List<String> hiddenRegionNames() {
+        return List.copyOf(ACTIVE_HIDDEN_REGIONS);
     }
 
     public static boolean hideGroupEnabled() {
         return hideGroupEnabled;
     }
 
-    public static List<String> presetNames() {
-        return List.copyOf(PRESETS.keySet());
+    public static List<String> regionNames() {
+        return List.copyOf(REGIONS.keySet());
     }
 
     public static List<BlockRegion> allRegions() {
-        return regionsFor(PRESETS.keySet());
+        return regionsFor(REGIONS.keySet());
     }
 
     public static boolean setBlockFilter(MinecraftClient client, String requestedName, BlockFilterRule rule) {
@@ -294,20 +295,20 @@ public final class SelectiveRenderConfig {
 
     public static boolean setBlockFilters(MinecraftClient client, String requestedName, List<BlockFilterRule> rules) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name) || rules.isEmpty()) return false;
+        if (!REGIONS.containsKey(name) || rules.isEmpty()) return false;
         if (!FILTERS.computeIfAbsent(name, ignored -> new LinkedHashSet<>()).addAll(rules)) return true;
         applyState();
         write(client);
         return true;
     }
 
-    public static List<BlockRegion> presetRegions(String name) {
-        return List.copyOf(PRESETS.getOrDefault(normalize(name), List.of()));
+    public static List<BlockRegion> regionBoxes(String name) {
+        return List.copyOf(REGIONS.getOrDefault(normalize(name), List.of()));
     }
 
     public static boolean clearBlockFilters(MinecraftClient client, String requestedName) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name) || FILTERS.remove(name) == null) return false;
+        if (!REGIONS.containsKey(name) || FILTERS.remove(name) == null) return false;
         applyState(); write(client); return true;
     }
 
@@ -325,15 +326,15 @@ public final class SelectiveRenderConfig {
     }
 
     public static boolean hasSavedRegions() {
-        return !PRESETS.isEmpty();
+        return !REGIONS.isEmpty();
     }
 
-    public static boolean presetExists(String name) {
-        return PRESETS.containsKey(normalize(name));
+    public static boolean regionExists(String name) {
+        return REGIONS.containsKey(normalize(name));
     }
 
-    public static BlockRegion presetRegion(String name) {
-        List<BlockRegion> regions = PRESETS.get(normalize(name));
+    public static BlockRegion regionRegion(String name) {
+        List<BlockRegion> regions = REGIONS.get(normalize(name));
         return regions == null || regions.isEmpty() ? null : regions.get(0);
     }
 
@@ -343,10 +344,10 @@ public final class SelectiveRenderConfig {
     }
 
     public static void reset() {
-        PRESETS.clear();
-        ACTIVE_PRESETS.clear();
-        HIDDEN_PRESETS.clear();
-        ACTIVE_HIDDEN_PRESETS.clear();
+        REGIONS.clear();
+        ACTIVE_REGIONS.clear();
+        HIDDEN_REGIONS.clear();
+        ACTIVE_HIDDEN_REGIONS.clear();
         FILTERS.clear();
         groupEnabled = false;
         hideGroupEnabled = true;
@@ -369,7 +370,7 @@ public final class SelectiveRenderConfig {
     }
 
     public static boolean enableHiddenGroupForIsolation(MinecraftClient client) {
-        if (ACTIVE_HIDDEN_PRESETS.isEmpty() || hideGroupEnabled) return false;
+        if (ACTIVE_HIDDEN_REGIONS.isEmpty() || hideGroupEnabled) return false;
         hideGroupEnabled = true;
         applyState();
         write(client);
@@ -383,13 +384,13 @@ public final class SelectiveRenderConfig {
             Files.createDirectories(DIRECTORY);
             StoredConfig stored = new StoredConfig();
             stored.formatVersion = 8;
-            stored.activePresets = List.copyOf(ACTIVE_PRESETS);
-            stored.hiddenPresets = List.copyOf(HIDDEN_PRESETS);
-            stored.activeHiddenPresets = List.copyOf(ACTIVE_HIDDEN_PRESETS);
+            stored.activeRegions = List.copyOf(ACTIVE_REGIONS);
+            stored.hiddenRegions = List.copyOf(HIDDEN_REGIONS);
+            stored.activeHiddenRegions = List.copyOf(ACTIVE_HIDDEN_REGIONS);
             stored.enabled = groupEnabled;
             stored.hideEnabled = hideGroupEnabled;
             stored.regionGroups = new LinkedHashMap<>();
-            PRESETS.forEach((name, regions) -> stored.regionGroups.put(name,
+            REGIONS.forEach((name, regions) -> stored.regionGroups.put(name,
                     regions.stream().map(StoredRegion::from).toList()));
             stored.blockFilters = new LinkedHashMap<>();
             FILTERS.forEach((name, rules) -> stored.blockFilters.put(name,
@@ -416,30 +417,30 @@ public final class SelectiveRenderConfig {
 
     private static void applyState(boolean refresh) {
         VisibilitySnapshot previous = SelectiveRenderState.snapshot();
-        LinkedHashSet<String> visibleOverrides = new LinkedHashSet<>(HIDDEN_PRESETS);
-        if (hideGroupEnabled) visibleOverrides.removeAll(ACTIVE_HIDDEN_PRESETS);
-        LinkedHashSet<String> normalPresets = new LinkedHashSet<>(PRESETS.keySet());
-        normalPresets.removeAll(HIDDEN_PRESETS);
-        allNormalRegionIndex = RegionIndex.of(regionsFor(normalPresets));
-        allHiddenRegionIndex = RegionIndex.of(regionsFor(HIDDEN_PRESETS));
+        LinkedHashSet<String> visibleOverrides = new LinkedHashSet<>(HIDDEN_REGIONS);
+        if (hideGroupEnabled) visibleOverrides.removeAll(ACTIVE_HIDDEN_REGIONS);
+        LinkedHashSet<String> normalRegions = new LinkedHashSet<>(REGIONS.keySet());
+        normalRegions.removeAll(HIDDEN_REGIONS);
+        allNormalRegionIndex = RegionIndex.of(regionsFor(normalRegions));
+        allHiddenRegionIndex = RegionIndex.of(regionsFor(HIDDEN_REGIONS));
         SelectiveRenderState.setSavedState(
-                regionsFor(ACTIVE_PRESETS), groupEnabled,
-                regionsFor(ACTIVE_HIDDEN_PRESETS), hideGroupEnabled,
+                regionsFor(ACTIVE_REGIONS), groupEnabled,
+                regionsFor(ACTIVE_HIDDEN_REGIONS), hideGroupEnabled,
                 regionsFor(visibleOverrides), filteredRegions());
         if (refresh) SelectiveRenderState.refreshChange(previous);
     }
 
     private static List<BlockRegion> activeRegions() {
-        return regionsFor(ACTIVE_PRESETS);
+        return regionsFor(ACTIVE_REGIONS);
     }
 
     private static List<BlockRegion> hiddenRegions() {
-        return regionsFor(ACTIVE_HIDDEN_PRESETS);
+        return regionsFor(ACTIVE_HIDDEN_REGIONS);
     }
 
     private static List<BlockRegion> regionsFor(Iterable<String> names) {
         java.util.ArrayList<BlockRegion> regions = new java.util.ArrayList<>();
-        for (String name : names) regions.addAll(PRESETS.getOrDefault(name, List.of()));
+        for (String name : names) regions.addAll(REGIONS.getOrDefault(name, List.of()));
         return List.copyOf(regions);
     }
 
@@ -449,7 +450,7 @@ public final class SelectiveRenderConfig {
         for (Map.Entry<String, LinkedHashSet<BlockFilterRule>> entry : FILTERS.entrySet()) {
             String name = entry.getKey();
             if (entry.getValue().isEmpty()) continue;
-            for (BlockRegion region : PRESETS.getOrDefault(name, List.of())) {
+            for (BlockRegion region : REGIONS.getOrDefault(name, List.of())) {
                 result.add(new FilteredRegion(region, entry.getValue()));
             }
         }
@@ -497,51 +498,51 @@ public final class SelectiveRenderConfig {
         if (stored.formatVersion >= 7 && stored.regionGroups != null) {
             stored.regionGroups.forEach((name, regions) -> {
                 if (name != null && regions != null && !regions.isEmpty()) {
-                    PRESETS.put(normalize(name), regions.stream()
+                    REGIONS.put(normalize(name), regions.stream()
                             .map(region -> region.toRegion(stored.formatVersion)).toList());
                 }
             });
-        } else if (stored.presets != null) {
-            stored.presets.forEach((name, region) -> {
+        } else if (stored.regions != null) {
+            stored.regions.forEach((name, region) -> {
                 if (name != null && region != null) {
-                    PRESETS.put(normalize(name), List.of(region.toRegion(stored.formatVersion)));
+                    REGIONS.put(normalize(name), List.of(region.toRegion(stored.formatVersion)));
                 }
             });
         } else if (stored.minX != null && stored.maxX != null
                 && stored.minZ != null && stored.maxZ != null) {
-            PRESETS.put("default", List.of(StoredRegion.fromLegacyChunks(
+            REGIONS.put("default", List.of(StoredRegion.fromLegacyChunks(
                     stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
         }
         if (stored.formatVersion >= 8 && stored.blockFilters != null) {
             stored.blockFilters.forEach((name, rules) -> {
-                if (name == null || rules == null || !PRESETS.containsKey(normalize(name))) return;
+                if (name == null || rules == null || !REGIONS.containsKey(normalize(name))) return;
                 LinkedHashSet<BlockFilterRule> parsed = new LinkedHashSet<>();
                 for (StoredBlockFilter rule : rules) if (rule != null) parsed.add(rule.toRule());
                 if (!parsed.isEmpty()) FILTERS.put(normalize(name), parsed);
             });
         }
 
-        if (stored.formatVersion >= 4 && stored.activePresets != null) {
-            stored.activePresets.stream().map(SelectiveRenderConfig::normalize)
-                    .filter(PRESETS::containsKey).forEach(ACTIVE_PRESETS::add);
+        if (stored.formatVersion >= 4 && stored.activeRegions != null) {
+            stored.activeRegions.stream().map(SelectiveRenderConfig::normalize)
+                    .filter(REGIONS::containsKey).forEach(ACTIVE_REGIONS::add);
         } else {
-            String requestedActive = normalize(stored.activePreset);
-            String migratedActive = PRESETS.containsKey(requestedActive)
-                    ? requestedActive : PRESETS.keySet().stream().findFirst().orElse(null);
-            if (migratedActive != null) ACTIVE_PRESETS.add(migratedActive);
+            String requestedActive = normalize(stored.activeRegion);
+            String migratedActive = REGIONS.containsKey(requestedActive)
+                    ? requestedActive : REGIONS.keySet().stream().findFirst().orElse(null);
+            if (migratedActive != null) ACTIVE_REGIONS.add(migratedActive);
         }
         groupEnabled = stored.enabled;
-        if (stored.formatVersion >= 5 && stored.hiddenPresets != null) {
-            stored.hiddenPresets.stream().map(SelectiveRenderConfig::normalize)
-                    .filter(PRESETS::containsKey).forEach(HIDDEN_PRESETS::add);
+        if (stored.formatVersion >= 5 && stored.hiddenRegions != null) {
+            stored.hiddenRegions.stream().map(SelectiveRenderConfig::normalize)
+                    .filter(REGIONS::containsKey).forEach(HIDDEN_REGIONS::add);
         }
-        if (stored.formatVersion >= 6 && stored.activeHiddenPresets != null) {
-            stored.activeHiddenPresets.stream().map(SelectiveRenderConfig::normalize)
-                    .filter(HIDDEN_PRESETS::contains).forEach(ACTIVE_HIDDEN_PRESETS::add);
+        if (stored.formatVersion >= 6 && stored.activeHiddenRegions != null) {
+            stored.activeHiddenRegions.stream().map(SelectiveRenderConfig::normalize)
+                    .filter(HIDDEN_REGIONS::contains).forEach(ACTIVE_HIDDEN_REGIONS::add);
         } else {
-            ACTIVE_HIDDEN_PRESETS.addAll(HIDDEN_PRESETS);
+            ACTIVE_HIDDEN_REGIONS.addAll(HIDDEN_REGIONS);
         }
-        ACTIVE_PRESETS.removeAll(HIDDEN_PRESETS);
+        ACTIVE_REGIONS.removeAll(HIDDEN_REGIONS);
         hideGroupEnabled = stored.formatVersion >= 5 ? stored.hideEnabled : true;
         applyState(false);
     }
@@ -556,9 +557,9 @@ public final class SelectiveRenderConfig {
                     region.toRegion(stored.formatVersion);
                 }
             });
-        } else if (stored.presets != null) {
-            stored.presets.forEach((name, region) -> {
-                if (name == null || region == null) throw new IllegalArgumentException("Invalid preset");
+        } else if (stored.regions != null) {
+            stored.regions.forEach((name, region) -> {
+                if (name == null || region == null) throw new IllegalArgumentException("Invalid region");
                 region.toRegion(stored.formatVersion);
             });
         } else if (stored.minX != null && stored.maxX != null
@@ -598,14 +599,19 @@ public final class SelectiveRenderConfig {
     }
 
     private static final class StoredConfig {
-        Map<String, StoredRegion> presets;
+        @SerializedName("presets")
+        Map<String, StoredRegion> regions;
         Map<String, List<StoredRegion>> regionGroups;
         Map<String, List<StoredBlockFilter>> blockFilters;
         int formatVersion;
-        String activePreset;
-        List<String> activePresets;
-        List<String> hiddenPresets;
-        List<String> activeHiddenPresets;
+        @SerializedName("activePreset")
+        String activeRegion;
+        @SerializedName("activePresets")
+        List<String> activeRegions;
+        @SerializedName("hiddenPresets")
+        List<String> hiddenRegions;
+        @SerializedName("activeHiddenPresets")
+        List<String> activeHiddenRegions;
         boolean enabled;
         boolean hideEnabled;
         Integer minX;

@@ -130,8 +130,8 @@ public final class PlotSquaredClient {
             send(aqua(name), red(" is reserved"));
             return 0;
         }
-        if (SelectiveRenderConfig.presetExists(name)) {
-            send(white("Preset "), aqua(name), red(" already exists"),
+        if (SelectiveRenderConfig.regionExists(name)) {
+            send(white("Region "), aqua(name), red(" already exists"),
                     white(" · delete or rename it first"));
             return 0;
         }
@@ -158,7 +158,7 @@ public final class PlotSquaredClient {
         }
         byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
         if (nameBytes.length > 256) {
-            send(red("Preset name is too long"));
+            send(red("Region name is too long"));
             return 0;
         }
 
@@ -229,16 +229,16 @@ public final class PlotSquaredClient {
         } else if (status == STATUS_TOGGLE && !adjustedRegions.isEmpty()) {
             togglePlot(client, responseName, regions, adjustedRegions);
         } else if (status == STATUS_SAVE && !adjustedRegions.isEmpty()) {
-            if (SelectiveRenderConfig.presetExists(responseName)) {
-                send(white("Preset "), aqua(responseName), red(" already exists"),
+            if (SelectiveRenderConfig.regionExists(responseName)) {
+                send(white("Region "), aqua(responseName), red(" already exists"),
                         white(" · delete or rename it first"));
                 return;
             }
             if (SelectiveRenderConfig.saveRegions(client, responseName, adjustedRegions)) {
-                send(white("Preset "), aqua(responseName), green(" saved"),
+                send(white("Region "), aqua(responseName), green(" saved"),
                         gray(" · " + adjustedRegions.size() + " part(s)"));
             } else {
-                send(red("The plot preset could not be saved"));
+                send(red("The plot region could not be saved"));
             }
         } else if (status == STATUS_NO_PLOT) {
             send(red("You are not standing on a plot"));

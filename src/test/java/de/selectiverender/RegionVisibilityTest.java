@@ -13,7 +13,7 @@ class RegionVisibilityTest {
     private static final BlockRegion OUTSIDE_HIDDEN = new BlockRegion(32, 47, 0, 15, 0, 15);
 
     @Test
-    void visibleHiddenPresetOverridesWhitelist() {
+    void visibleHiddenRegionOverridesWhitelist() {
         assertTrue(RegionVisibility.block(true, List.of(WHITELIST), List.of(),
                 List.of(OUTSIDE_HIDDEN), 32, 0, 0));
         assertTrue(RegionVisibility.section(true, List.of(WHITELIST), List.of(),
@@ -21,7 +21,7 @@ class RegionVisibilityTest {
     }
 
     @Test
-    void activeHiddenPresetStillWinsInsideWhitelist() {
+    void activeHiddenRegionStillWinsInsideWhitelist() {
         assertFalse(RegionVisibility.block(true, List.of(WHITELIST), List.of(WHITELIST),
                 List.of(), 0, 0, 0));
         assertFalse(RegionVisibility.section(true, List.of(WHITELIST), List.of(WHITELIST),

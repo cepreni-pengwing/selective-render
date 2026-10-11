@@ -53,6 +53,6 @@ Licensed under GPL-3.0-only.
 
 Choose **SR positions** or **WorldEdit** as the selection source in settings. With WorldEdit selected, SR position commands are unavailable. Explicit coordinates still work.
 
-Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden presets can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior. The **Presets** tab in settings shows saved bounds, group states and filters.
+Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden regions can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior. The **Regions** tab in settings shows saved bounds, group states and filters.
 
-Settings are organized into **General**, **Presets**, **Boundaries**, and **Plots** tabs. Content scrolls when needed. The **Boundaries** tab also lets you hide cut fluid surfaces, including water, lava, and supported modded fluids.
+Settings are organized into **General**, **Regions**, **Boundaries**, and **Plots** tabs. Option labels and their buttons share a row where space allows. Content scrolls with the mouse wheel or Page Up/Page Down when needed. The **Boundaries** tab also lets you hide cut fluid surfaces, including water, lava, and supported modded fluids.

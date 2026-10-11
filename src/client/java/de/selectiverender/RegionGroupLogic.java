@@ -3,8 +3,8 @@ package de.selectiverender;
 import java.util.Collection;
 import java.util.Set;
 
-final class PresetGroupLogic {
-    private PresetGroupLogic() {
+final class RegionGroupLogic {
+    private RegionGroupLogic() {
     }
 
     static boolean toggleAll(Set<String> active, Collection<String> available) {

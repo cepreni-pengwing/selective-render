@@ -12,7 +12,7 @@ public record BlockFilterRule(Mode mode, Kind kind, String value) {
         if (mode == null || kind == null || value == null || !NAMESPACED_ID.matcher(value).matches())
             throw new IllegalArgumentException("Expected a namespaced block id or tag");
     }
-    /** Parse the complete batch before modifying any preset. */
+    /** Parse the complete batch before modifying any region. */
     public static java.util.List<BlockFilterRule> parse(Mode mode, String input) {
         java.util.LinkedHashSet<BlockFilterRule> result = new java.util.LinkedHashSet<>();
         for (String part : input.split(",", -1)) {

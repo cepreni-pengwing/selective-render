@@ -16,7 +16,7 @@ public record BlockFilterRule(Mode mode, Kind kind, String value) {
         }
     }
 
-    /** Parse the complete batch before modifying any preset. */
+    /** Parse the complete batch before modifying any region. */
     public static java.util.List<BlockFilterRule> parse(Mode mode, String input) {
         java.util.LinkedHashSet<BlockFilterRule> result = new java.util.LinkedHashSet<>();
         for (String part : input.split(",", -1)) {

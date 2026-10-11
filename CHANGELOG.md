@@ -1,8 +1,14 @@
 # Changelog
 
+## 1.10.19
+
+- Standardized region terminology throughout the code, commands and documentation while preserving existing saved-region storage
+- Arranged colored setting labels and choices horizontally, wrapping choices on narrower screens
+- Removed Up/Down buttons; scrolling remains available through the mouse wheel and keyboard
+
 ## 1.10.18
 
-- Replaced the settings menu with General, Presets, Boundaries and Plots tabs, separate navigation and scrollable content
+- Replaced the settings menu with General, Regions, Boundaries and Plots tabs, separate navigation and scrollable content
 - Added direct option selection with disabled selected values and horizontal numeric fields
 - Made SR position commands unavailable to the command parser while WorldEdit is selected
 - Removed position, option-cycling and temporary-plot-clear keybindings from all builds and documentation
@@ -12,10 +18,10 @@
 ## 1.10.17
 
 - Added comma-separated block filter batches, bare block IDs and #tag selectors, while keeping id:/tag: compatibility
-- Allowed filters on hidden presets; active hiding still overrides block filtering
+- Allowed filters on hidden regions; active hiding still overrides block filtering
 - Added readable filter feedback and a filter overview, with a more contrasting shared in-game palette
 - Disabled SR selection position commands and keybinds when WorldEdit is the selected source
-- Made settings scrollable and added a read-only preset list with bounds, group state and filter details
+- Made settings scrollable and added a read-only region list with bounds, group state and filter details
 - Applied the changes to Minecraft 1.20.1, 1.21.1 and 26.2
 
 ## 1.10.16
@@ -139,7 +145,7 @@
 
 ## 1.9.22
 
-- Added one-command cuboid creation with render/hidden context, preset redefinition, and clearer
+- Added one-command cuboid creation with render/hidden context, region redefinition, and clearer
   rename aliases.
 - Added an independent virtual-skylight mode for hidden regions.
 
@@ -239,7 +245,7 @@
   PlotSquared minimum Y. Existing custom bindings and non-default saved heights remain untouched.
 - Added own-player-only and all-players-except-own visibility modes.
 - Added independent hidden-region interaction control. Inactive filtered interactions now use every
-  saved region rather than only currently selected presets; Vanilla mode remains a true no-op.
+  saved region rather than only currently selected regions; Vanilla mode remains a true no-op.
 - Added virtual-skylight entry modes for top and sides, top only, sides only, or none. Both remains
   the default.
 - Fixed normal render toggles unexpectedly re-enabling a disabled hide group.
@@ -281,7 +287,7 @@ See the version entries below for the detailed changes.
 
 - Rendering and plot toggles now use the configured rebuild threshold instead of forcing a full
   renderer reload. Removed the additional 85% cutoff; transitions rebuild previously hidden loaded
-  sections too, including when the last active preset is removed. Flywheel compatibility fallback
+  sections too, including when the last active region is removed. Flywheel compatibility fallback
   and Minecraft resource reloads remain exceptions.
 - Clearing temporary plots also cancels a pending plot request.
 - Region-file recovery validates region contents before accepting a primary file, allowing recovery
@@ -347,7 +353,7 @@ See the version entries below for the detailed changes.
 
 - Applied Black and Culled boundary handling after Fabric Renderer/Indium quad transforms, allowing
   Conquest Reforged extension-toggle geometry to be detected at its final translated position.
-- Debug boxes now show every saved region, including inactive and hidden presets, as well as the
+- Debug boxes now show every saved region, including inactive and hidden regions, as well as the
   current temporary PlotSquared selection.
 
 ## 1.8.7
@@ -675,26 +681,26 @@ See the version entries below for the detailed changes.
 - Expanded interaction filtering and allowed client raycasts to pass through invisible blocks and fluids.
 - Added an unassigned PlotSquared toggle keybind for `/sr p`.
 - Added temporary PlotSquared Y bounds and X/Z margins through `/sr p minY maxY xzMargin`.
-- Added optional X/Z margins to saved plot presets through `/sr p s NAME minY maxY xzMargin`.
+- Added optional X/Z margins to saved plot regions through `/sr p s NAME minY maxY xzMargin`.
 
 ### Fixed
 
 - Removed stale light-cache entries on chunk unload and isolated cached heights by snapshot generation.
 - Rebuilt the full 14-block virtual-light influence area after visibility or occluder changes.
 - Recovered invalid configs from backups and uniquely identified singleplayer saves while migrating legacy data.
-- Rebuilt visible hidden overrides correctly when their preset is deleted.
+- Rebuilt visible hidden overrides correctly when their region is deleted.
 - Guarded region block counts against integer overflow and applied virtual direct skylight to entities and block entities.
 
 ### Build
 
 - Pinned Fabric Loom and rejected release tags that do not exactly match `mod_version`.
-- Added regression coverage for snapshots, backup recovery, rebuild ranges, preset deletion, traversal keys, and cache cleanup.
+- Added regression coverage for snapshots, backup recovery, rebuild ranges, region deletion, traversal keys, and cache cleanup.
 
 ## 1.7.3
 
 ### Changed
 
-- Indexed region lookups spatially so large preset collections no longer require linear scans in render hotpaths.
+- Indexed region lookups spatially so large region collections no longer require linear scans in render hotpaths.
 - Classified sections before block-level filtering and limited virtual skylight work to affected chunk columns.
 - Combined Sodium's native occlusion traversal with a near-to-far fallback for disconnected selected regions.
 

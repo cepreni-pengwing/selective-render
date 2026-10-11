@@ -220,7 +220,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> filterCommand(String name) {
         return ClientCommands.literal(name)
                 .then(ClientCommands.argument("region", StringArgumentType.word())
-                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(SelectiveRenderConfig.presetNames(), builder))
+                        .suggests((context, builder) -> SharedSuggestionProvider.suggest(SelectiveRenderConfig.regionNames(), builder))
                         .executes(context -> listBlockFilters(context.getSource(), StringArgumentType.getString(context, "region")))
                         .then(ClientCommands.literal("clear").executes(context -> clearBlockFilters(context.getSource(), StringArgumentType.getString(context, "region"))))
                         .then(ClientCommands.literal("hide").then(ClientCommands.argument("selector", StringArgumentType.greedyString())
@@ -255,7 +255,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         try {
             List<BlockFilterRule> rules = BlockFilterRule.parse(mode, selector);
             if (!SelectiveRenderConfig.setBlockFilters(Minecraft.getInstance(), region, rules)) {
-                feedback(source, message(red("Cannot add filters: "), white("unknown preset "), aqua(region)));
+                feedback(source, message(red("Cannot add filters: "), white("unknown region "), aqua(region)));
                 return 0;
             }
             feedback(source, message(green("Added "), aqua(Integer.toString(rules.size())),
@@ -269,7 +269,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static int clearBlockFilters(FabricClientCommandSource source, String region) {
         if (!SelectiveRenderConfig.clearBlockFilters(Minecraft.getInstance(), region)) {
-            feedback(source, message(red("Cannot clear filters: "), white("unknown preset or no filters for "), aqua(region)));
+            feedback(source, message(red("Cannot clear filters: "), white("unknown region or no filters for "), aqua(region)));
             return 0;
         }
         feedback(source, message(green("Cleared "), white("block filters for "), aqua(region)));
@@ -277,8 +277,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int listBlockFilters(FabricClientCommandSource source, String region) {
-        if (!SelectiveRenderConfig.presetExists(region)) {
-            feedback(source, missingPreset(region));
+        if (!SelectiveRenderConfig.regionExists(region)) {
+            feedback(source, missingRegion(region));
             return 0;
         }
         List<BlockFilterRule> rules = SelectiveRenderConfig.blockFilters(region);
@@ -353,7 +353,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         .executes(context -> toggleAll(context.getSource(), true)))
                 .then(ClientCommands.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                SelectiveRenderConfig.presetNames(), builder))
+                                SelectiveRenderConfig.regionNames(), builder))
                         .executes(context -> toggleHide(context.getSource(),
                                 StringArgumentType.getString(context, "name"))));
     }
@@ -387,7 +387,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommands.literal(name)
                 .then(ClientCommands.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                SelectiveRenderConfig.presetNames(), builder))
+                                SelectiveRenderConfig.regionNames(), builder))
                         .executes(context -> redefine(context.getSource(),
                                 StringArgumentType.getString(context, "name"))));
     }
@@ -401,7 +401,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         .executes(context -> toggleAll(context.getSource(), false)))
                 .then(ClientCommands.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                SelectiveRenderConfig.presetNames(), builder))
+                                SelectiveRenderConfig.regionNames(), builder))
                         .executes(context -> toggle(context.getSource(), StringArgumentType.getString(context, "name"))));
     }
 
@@ -409,7 +409,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommands.literal(name)
                 .then(ClientCommands.argument("name", StringArgumentType.word())
                         .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                SelectiveRenderConfig.presetNames(), builder))
+                                SelectiveRenderConfig.regionNames(), builder))
                         .executes(context -> delete(context.getSource(), StringArgumentType.getString(context, "name"))));
     }
 
@@ -417,7 +417,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return ClientCommands.literal(name)
                 .then(ClientCommands.argument("oldName", StringArgumentType.word())
                         .suggests((context, builder) -> net.minecraft.commands.SharedSuggestionProvider.suggest(
-                                SelectiveRenderConfig.presetNames(), builder))
+                                SelectiveRenderConfig.regionNames(), builder))
                         .then(ClientCommands.argument("newName", StringArgumentType.word())
                                 .executes(context -> rename(context.getSource(),
                                         StringArgumentType.getString(context, "oldName"),
@@ -448,8 +448,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, message(aqua(name), red(" is reserved")));
             return 0;
         }
-        if (SelectiveRenderConfig.presetExists(name)) {
-            feedback(source, presetExists(name));
+        if (SelectiveRenderConfig.regionExists(name)) {
+            feedback(source, regionExists(name));
             return 0;
         }
         int x1 = IntegerArgumentType.getInteger(context, "x1");
@@ -479,8 +479,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, message(aqua(name), red(" is reserved")));
             return 0;
         }
-        if (SelectiveRenderConfig.presetExists(name)) {
-            feedback(source, presetExists(name));
+        if (SelectiveRenderConfig.regionExists(name)) {
+            feedback(source, regionExists(name));
             return 0;
         }
         BlockRegion region = commandSelection();
@@ -493,15 +493,15 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static int createRegion(FabricClientCommandSource source, String name, BlockRegion region, boolean hidden) {
         SelectiveRenderConfig.saveRegion(Minecraft.getInstance(), name, region, hidden);
-        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+        feedback(source, message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
                 green(" created"), white(" · " + region.blockCount() + " blocks · "),
                 hidden ? red("hidden") : green("render")));
         return Command.SINGLE_SUCCESS;
     }
 
     private static int redefine(FabricClientCommandSource source, String name) {
-        if (!SelectiveRenderConfig.presetExists(name)) {
-            feedback(source, missingPreset(name));
+        if (!SelectiveRenderConfig.regionExists(name)) {
+            feedback(source, missingRegion(name));
             return 0;
         }
         BlockRegion region = commandSelection();
@@ -509,11 +509,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             feedback(source, message(red(selectionProblem())));
             return 0;
         }
-        if (!SelectiveRenderConfig.redefinePreset(Minecraft.getInstance(), name, region)) {
+        if (!SelectiveRenderConfig.redefineRegion(Minecraft.getInstance(), name, region)) {
             feedback(source, message(white("Set "), red("pos1 and pos2"), white(" first.")));
             return 0;
         }
-        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+        feedback(source, message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
                 green(" redefined"), white(" · " + region.blockCount() + " blocks")));
         return Command.SINGLE_SUCCESS;
     }
@@ -523,11 +523,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 ? (SelectiveRenderState.plotModeActive()
                     ? togglePlotRenderingWithHidden(Minecraft.getInstance())
                     : SelectiveRenderConfig.toggleCurrent(Minecraft.getInstance()))
-                : SelectiveRenderConfig.togglePreset(Minecraft.getInstance(), name);
+                : SelectiveRenderConfig.toggleRegion(Minecraft.getInstance(), name);
         if (!toggled) {
             feedback(source, name == null
-                    ? message(red("No presets in the render group."))
-                    : missingPreset(name));
+                    ? message(red("No regions in the render group."))
+                    : missingRegion(name));
             return 0;
         }
         if (name == null) {
@@ -538,8 +538,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     enabled ? green("enabled") : red("disabled")));
             return Command.SINGLE_SUCCESS;
         } else {
-            boolean active = SelectiveRenderConfig.isPresetActive(name);
-            MutableComponent content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+            boolean active = SelectiveRenderConfig.isRegionActive(name);
+            MutableComponent content = message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
                     white(" · "), active ? green("added") : red("removed"), white(active ? " to render group" : " from render group"));
             if (!SelectiveRenderConfig.groupEnabled()) {
                 content.append(white(" · group ")).append(red("disabled"));
@@ -550,20 +550,20 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int delete(FabricClientCommandSource source, String name) {
-        if (!SelectiveRenderConfig.deletePreset(Minecraft.getInstance(), name)) {
-            feedback(source, missingPreset(name));
+        if (!SelectiveRenderConfig.deleteRegion(Minecraft.getInstance(), name)) {
+            feedback(source, missingRegion(name));
             return 0;
         }
-        feedback(source, message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" deleted")));
+        feedback(source, message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)), red(" deleted")));
         return Command.SINGLE_SUCCESS;
     }
 
     private static int toggleHide(FabricClientCommandSource source, String name) {
         boolean toggled = name == null
                 ? SelectiveRenderConfig.toggleHiddenGroup(Minecraft.getInstance())
-                : SelectiveRenderConfig.toggleHiddenPreset(Minecraft.getInstance(), name);
+                : SelectiveRenderConfig.toggleHiddenRegion(Minecraft.getInstance(), name);
         if (!toggled) {
-            feedback(source, name == null ? message(red("No presets in the hide group.")) : missingPreset(name));
+            feedback(source, name == null ? message(red("No regions in the hide group.")) : missingRegion(name));
             return 0;
         }
         if (name == null) {
@@ -571,8 +571,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     ? green("enabled") : red("disabled")));
             return Command.SINGLE_SUCCESS;
         } else {
-            boolean hidden = SelectiveRenderConfig.isHiddenPresetActive(name);
-            MutableComponent content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
+            boolean hidden = SelectiveRenderConfig.isHiddenRegionActive(name);
+            MutableComponent content = message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
                     white(" · "), hidden ? green("added") : red("removed"), white(hidden ? " to hide group" : " from hide group"));
             if (!SelectiveRenderConfig.hideGroupEnabled()) {
                 content.append(white(" · group ")).append(red("disabled"));
@@ -583,14 +583,14 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int rename(FabricClientCommandSource source, String oldName, String newName) {
-        SelectiveRenderConfig.RenameResult result = SelectiveRenderConfig.renamePreset(
+        SelectiveRenderConfig.RenameResult result = SelectiveRenderConfig.renameRegion(
                 Minecraft.getInstance(), oldName, newName);
         if (result == SelectiveRenderConfig.RenameResult.MISSING_SOURCE) {
-            feedback(source, missingPreset(oldName));
+            feedback(source, missingRegion(oldName));
             return 0;
         }
         if (result == SelectiveRenderConfig.RenameResult.TARGET_EXISTS) {
-            feedback(source, message(white("Preset "), aqua(newName), red(" already exists")));
+            feedback(source, message(white("Region "), aqua(newName), red(" already exists")));
             return 0;
         }
         if (result == SelectiveRenderConfig.RenameResult.RESERVED_NAME) {
@@ -604,27 +604,27 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static int toggleAll(FabricClientCommandSource source, boolean hidden) {
         boolean toggled = hidden
-                ? SelectiveRenderConfig.toggleAllHiddenPresets(Minecraft.getInstance())
-                : SelectiveRenderConfig.toggleAllPresets(Minecraft.getInstance());
+                ? SelectiveRenderConfig.toggleAllHiddenRegions(Minecraft.getInstance())
+                : SelectiveRenderConfig.toggleAllRegions(Minecraft.getInstance());
         if (!toggled) {
             feedback(source, message(red(hidden ? "No hidden regions saved." : "No render regions saved.")));
             return 0;
         }
         boolean anyActive = hidden
-                ? !SelectiveRenderConfig.hiddenPresetNames().isEmpty()
-                : !SelectiveRenderConfig.activePresetNames().isEmpty();
+                ? !SelectiveRenderConfig.hiddenRegionNames().isEmpty()
+                : !SelectiveRenderConfig.activeRegionNames().isEmpty();
         feedback(source, message(aqua(hidden ? "Hidden regions" : "Render regions"), white(" · all "),
                 anyActive ? green("enabled") : red("disabled")));
         return Command.SINGLE_SUCCESS;
     }
 
     private static int list(FabricClientCommandSource source, boolean hiddenOnly) {
-        List<String> names = SelectiveRenderConfig.presetNames().stream()
-                .filter(name -> SelectiveRenderConfig.isPresetHidden(name) == hiddenOnly)
+        List<String> names = SelectiveRenderConfig.regionNames().stream()
+                .filter(name -> SelectiveRenderConfig.isRegionHidden(name) == hiddenOnly)
                 .toList();
         if (names.isEmpty()) {
-            feedback(source, message(red(hiddenOnly ? "No presets in the hide group."
-                    : "No regular presets saved.")));
+            feedback(source, message(red(hiddenOnly ? "No regions in the hide group."
+                    : "No regular regions saved.")));
             return Command.SINGLE_SUCCESS;
         }
         boolean groupEnabled = hiddenOnly
@@ -633,10 +633,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 white(" · group "), groupEnabled ? green("enabled") : red("disabled")));
         int width = names.stream().mapToInt(String::length).max().orElse(0);
         for (String name : names) {
-            BlockRegion region = SelectiveRenderConfig.presetRegion(name);
+            BlockRegion region = SelectiveRenderConfig.regionRegion(name);
             boolean member = hiddenOnly
-                    ? SelectiveRenderConfig.isHiddenPresetActive(name)
-                    : SelectiveRenderConfig.isPresetActive(name);
+                    ? SelectiveRenderConfig.isHiddenRegionActive(name)
+                    : SelectiveRenderConfig.isRegionActive(name);
             String paddedName = name + " ".repeat(width - name.length());
             listLine(source, gray("  "), white(paddedName + "  "),
                     member ? green("active  ") : red("inactive"),
@@ -651,7 +651,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 ? togglePlotRenderingWithHidden(client)
                 : SelectiveRenderConfig.toggleCurrent(client);
         if (!toggled) {
-            client.gui.chatListener().handleSystemMessage(message(red("No presets in the render group.")), false);
+            client.gui.chatListener().handleSystemMessage(message(red("No regions in the render group.")), false);
             return;
         }
         boolean enabled = SelectiveRenderState.plotModeActive()
@@ -664,7 +664,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static void toggleHideFromKey(Minecraft client) {
         if (client.player == null) return;
         if (!SelectiveRenderConfig.toggleHiddenGroup(client)) {
-            client.gui.chatListener().handleSystemMessage(message(red("No presets in the hide group.")), false);
+            client.gui.chatListener().handleSystemMessage(message(red("No regions in the hide group.")), false);
             return;
         }
         overlay(message(white("Hide group "), SelectiveRenderConfig.hideGroupEnabled()
@@ -705,12 +705,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return message;
     }
 
-    private static MutableComponent missingPreset(String name) {
-        return message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" does not exist"));
+    private static MutableComponent missingRegion(String name) {
+        return message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)), red(" does not exist"));
     }
 
-    private static MutableComponent presetExists(String name) {
-        return message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)), red(" already exists"),
+    private static MutableComponent regionExists(String name) {
+        return message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)), red(" already exists"),
                 white(" · delete or rename it first"));
     }
 

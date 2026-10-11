@@ -16,7 +16,7 @@ Minecraft 1.21.1/Sodium 0.8.13, and Minecraft 26.2/Sodium 0.9.2. Test with Iris 
 enabled and disabled. Include reproduction steps, logs,
 screenshots, and the exact mod list for
 visual or compatibility bugs. Add unit tests for changes to regions, configuration migration,
-or preset-group behavior.
+or region-group behavior.
 
 GitHub's client smoke workflow starts every supported build with its matching Sodium version,
 joins a singleplayer world, and uploads logs, crash reports, and screenshots. It catches startup,

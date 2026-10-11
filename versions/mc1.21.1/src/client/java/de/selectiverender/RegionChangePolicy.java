@@ -1,7 +1,7 @@
 package de.selectiverender;
 
-final class PresetVisibility {
-    private PresetVisibility() { }
+final class RegionChangePolicy {
+    private RegionChangePolicy() { }
 
     static boolean affectsRendering(boolean activeNormal, boolean normalGroupEnabled,
                                     boolean plotModeActive, boolean whitelistEnabled,
