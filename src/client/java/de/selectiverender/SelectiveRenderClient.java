@@ -241,7 +241,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                                 StringArgumentType.getString(context, "selector"))))));
     }
 
-    private static List<String> blockFilterSuggestions(String remaining) {
+    static List<String> blockFilterSuggestions(String remaining) {
         List<String> suggestions = new java.util.ArrayList<>();
         suggestions.add("#" + BuiltInBlockTags.BEAMS);
         {

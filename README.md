@@ -65,7 +65,7 @@ Optional Y limits are inclusive. When omitted, the minimum comes from the Select
 - Interactions can be limited to regions, allowed outside them, or left unrestricted. A separate option controls interactions with hidden regions and filtered blocks.
 - Boundary faces can be normal, black, or culled. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
 - An optional fluid-boundary setting can hide fluid faces cut by a render boundary, including lava, flowing states, waterlogged blocks, and modded fluids using the supported fluid renderer, independently of the block boundary mode.
-- Virtual skylight can reach render and hidden regions from above, from the sides, from both, or from neither, with separate settings for hidden regions.
+- One shared virtual-skylight setting lets light reach render regions, hidden regions and filtered blocks from above, from the sides, from both, or from neither.
 - The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
 - When filtering is inactive and no render or hide regions are active, the renderer and interaction hooks take their normal no-op paths.
 - Water, fire, in-wall overlays, and underwater fog are suppressed when the camera is inside content the mod hides.
@@ -94,6 +94,12 @@ Block filters accept a block ID such as `minecraft:stone` or a tag such as `#min
 
 Hidden regions support the same filters as render regions. While the hidden region is actively hiding its region, hiding takes precedence. Turning hiding off restores the normal filter behavior while block filtering is enabled.
 
-Settings use a two-column layout with **General**, **Regions**, **Boundaries**, and **Plots** tabs. Colored option labels sit beside their selection buttons, which wrap when the window is too narrow. Overflowing content supports mouse-wheel scrolling and Page Up/Page Down; Home/End jumps to the beginning/end when no number field is focused. **Regions** provides a read-only overview with group states, bounding boxes, block counts and filters. Selected options are disabled until a different value is chosen.
+Settings use **General**, **Regions**, **Interactions**, **Boundaries**, and **Plots** tabs. Plain option labels sit beside left-aligned buttons and input fields; choices wrap on narrow screens. Overflowing content supports the mouse wheel and Page Up/Page Down. Home/End jumps to the beginning/end when no input is focused. Tooltips explain less obvious settings instead of repeating button text.
+
+**Regions** lists the current singleplayer world's or multiplayer server's saved regions under their dimensions. Only dimensions containing saved regions are shown. Click a region to change its name, render/hidden type or selection state. Buttons apply immediately; text fields commit with Enter or when focus leaves the field. Invalid edits are rejected without overwriting the saved region. There is no separate save button or dimension-wide group switch in this editor.
+
+Expand **Bounding boxes** to inspect bounds and block counts. Regions with exactly one bounding box allow editing the minimum and maximum corners as three integer coordinates, `X Y Z`. Multi-box regions remain read-only for bounds. Expand **Filters** to add IDs or `#tags`, edit selectors, switch Hide/Only or remove individual rules. The new-filter field also accepts comma-separated batches. Tab cycles registry/tag completions; Shift+Tab cycles backwards.
+
+The shared skylight policy uses the old render-region choice when migrating separate lighting settings. If that choice is absent, the old hidden-region choice is used. Region files retain their existing hashed filenames. New writes include a hashed world/server identity and dimension ID, allowing later discovery of saved dimensions no longer announced by the game. Older files without metadata can be matched only against known dimension IDs; they are never guessed from unrelated worlds or servers.
 
 Existing region files retain their original storage keys for compatibility, including older keys containing `preset`. Renaming the terminology does not migrate or discard saved regions.

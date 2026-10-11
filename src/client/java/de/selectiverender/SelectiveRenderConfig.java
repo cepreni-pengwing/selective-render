@@ -379,28 +379,141 @@ public final class SelectiveRenderConfig {
     }
 
     private static void write(MinecraftClient client, boolean backupExisting) {
-        Path path = client.world == null ? null : pathFor(client.world);
-        if (path == null) return;
+        if (client.world == null || sessionOwner == null) return;
+        String dimension = client.world.getRegistryKey().getValue().toString();
+        writeStored(editorPath(dimension), snapshotStored(dimension), backupExisting);
+    }
+
+    /** Discover only this world's/server's files; empty dimensions are not shown. */
+    static List<RegionDocument> editorDocuments(MinecraftClient client) {
+        if (client.world == null || sessionOwner == null) return List.of();
+        java.util.Set<String> dimensions = new java.util.TreeSet<>();
+        dimensions.add(client.world.getRegistryKey().getValue().toString());
+        if (client.getNetworkHandler() != null) client.getNetworkHandler().getWorldKeys()
+                .forEach(key -> dimensions.add(key.getValue().toString()));
+        // New metadata also finds saved dimensions no longer announced by the server.
+        if (Files.isDirectory(DIRECTORY)) try (var files = Files.list(DIRECTORY)) {
+            files.filter(path -> path.getFileName().toString().endsWith(".json")).forEach(path -> {
+                try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
+                    var json = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+                    if (json.has("ownerHash") && json.has("dimension")
+                            && sha256(sessionOwner).equals(json.get("ownerHash").getAsString())) {
+                        String dimension = json.get("dimension").getAsString();
+                        if (path.equals(editorPath(dimension))) dimensions.add(dimension);
+                    }
+                } catch (RuntimeException | IOException ignored) { }
+            });
+        } catch (IOException exception) {
+            SelectiveRenderClient.LOGGER.warn("Could not enumerate saved region dimensions", exception);
+        }
+        List<RegionDocument> result = new java.util.ArrayList<>();
+        for (String dimension : dimensions) {
+            RegionDocument document = editorDocument(client, dimension);
+            if (document != null && !document.regions().isEmpty()) result.add(document);
+        }
+        return List.copyOf(result);
+    }
+
+    private static Path editorPath(String dimension) {
+        return DIRECTORY.resolve(sha256(sessionOwner + "|" + dimension) + ".json");
+    }
+
+    private static StoredConfig snapshotStored(String dimension) {
+        StoredConfig stored = new StoredConfig();
+        stored.formatVersion = 8;
+        stored.ownerHash = sha256(sessionOwner);
+        stored.dimension = dimension;
+        stored.activeRegions = List.copyOf(ACTIVE_REGIONS);
+        stored.hiddenRegions = List.copyOf(HIDDEN_REGIONS);
+        stored.activeHiddenRegions = List.copyOf(ACTIVE_HIDDEN_REGIONS);
+        stored.enabled = groupEnabled;
+        stored.hideEnabled = hideGroupEnabled;
+        stored.regionGroups = new LinkedHashMap<>();
+        REGIONS.forEach((name, boxes) -> stored.regionGroups.put(name, boxes.stream().map(StoredRegion::from).toList()));
+        stored.blockFilters = new LinkedHashMap<>();
+        FILTERS.forEach((name, rules) -> stored.blockFilters.put(name, rules.stream().map(StoredBlockFilter::from).toList()));
+        return stored;
+    }
+
+    static RegionDocument editorDocument(MinecraftClient client, String dimension) {
+        if (client.world == null || sessionOwner == null) return null;
+        String current = client.world.getRegistryKey().getValue().toString();
+        StoredConfig stored = current.equals(dimension) ? snapshotStored(dimension)
+                : ConfigRecovery.load(editorPath(dimension), SelectiveRenderConfig::readStoredConfig).value();
+        return stored == null ? null : toDocument(dimension, stored);
+    }
+
+    private static RegionDocument toDocument(String dimension, StoredConfig stored) {
+        Map<String, List<BlockRegion>> regions = new LinkedHashMap<>();
+        if (stored.formatVersion >= 7 && stored.regionGroups != null) {
+            stored.regionGroups.forEach((name, boxes) -> {
+                if (!boxes.isEmpty()) regions.put(normalize(name), boxes.stream().map(box -> box.toRegion(stored.formatVersion)).toList());
+            });
+        } else if (stored.regions != null) {
+            stored.regions.forEach((name, box) -> regions.put(normalize(name), List.of(box.toRegion(stored.formatVersion))));
+        } else if (stored.minX != null && stored.maxX != null && stored.minZ != null && stored.maxZ != null) {
+            regions.put("default", List.of(StoredRegion.fromLegacyChunks(stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
+        }
+        LinkedHashSet<String> selected = new LinkedHashSet<>();
+        if (stored.formatVersion >= 4 && stored.activeRegions != null) {
+            stored.activeRegions.stream().map(SelectiveRenderConfig::normalize).filter(regions::containsKey).forEach(selected::add);
+        } else {
+            String name = normalize(stored.activeRegion);
+            if (!regions.containsKey(name)) name = regions.keySet().stream().findFirst().orElse(null);
+            if (name != null) selected.add(name);
+        }
+        LinkedHashSet<String> hidden = new LinkedHashSet<>();
+        if (stored.formatVersion >= 5 && stored.hiddenRegions != null) stored.hiddenRegions.stream()
+                .map(SelectiveRenderConfig::normalize).filter(regions::containsKey).forEach(hidden::add);
+        LinkedHashSet<String> selectedHidden = new LinkedHashSet<>();
+        if (stored.formatVersion >= 6 && stored.activeHiddenRegions != null) stored.activeHiddenRegions.stream()
+                .map(SelectiveRenderConfig::normalize).filter(hidden::contains).forEach(selectedHidden::add);
+        else selectedHidden.addAll(hidden);
+        selected.removeAll(hidden);
+        Map<String, List<BlockFilterRule>> rules = new LinkedHashMap<>();
+        if (stored.formatVersion >= 8 && stored.blockFilters != null) stored.blockFilters.forEach((name, filters) -> {
+            if (regions.containsKey(normalize(name))) rules.put(normalize(name), filters.stream().map(StoredBlockFilter::toRule).toList());
+        });
+        return new RegionDocument(dimension, regions, selected, hidden, selectedHidden, rules,
+                stored.enabled, stored.formatVersion >= 5 ? stored.hideEnabled : true);
+    }
+
+    /** Validate/write first. Only edits to the current dimension may refresh live rendering. */
+    static void editRegion(MinecraftClient client, String dimension, String oldName, String newName,
+                           List<BlockRegion> boxes, boolean hidden, boolean selected, List<BlockFilterRule> rules) {
+        RegionDocument current = editorDocument(client, dimension);
+        if (current == null) throw new IllegalArgumentException("The region file is no longer available");
+        RegionDocument edited = current.edit(oldName, newName, boxes, hidden, selected, rules);
+        StoredConfig stored = new StoredConfig();
+        stored.formatVersion = 8;
+        stored.ownerHash = sha256(sessionOwner);
+        stored.dimension = dimension;
+        stored.enabled = edited.rendering();
+        stored.hideEnabled = edited.hiding();
+        stored.activeRegions = List.copyOf(edited.selected());
+        stored.hiddenRegions = List.copyOf(edited.hidden());
+        stored.activeHiddenRegions = List.copyOf(edited.selectedHidden());
+        stored.regionGroups = new LinkedHashMap<>();
+        edited.regions().forEach((name, value) -> stored.regionGroups.put(name, value.stream().map(StoredRegion::from).toList()));
+        stored.blockFilters = new LinkedHashMap<>();
+        edited.filters().forEach((name, value) -> stored.blockFilters.put(name, value.stream().map(StoredBlockFilter::from).toList()));
+        // A recovered backup must not be replaced with a corrupt primary file.
+        boolean backupPrimary = readStoredConfig(editorPath(dimension)) != null;
+        if (!writeStored(editorPath(dimension), stored, backupPrimary)) throw new IllegalArgumentException("Could not save the region file");
+        if (client.world.getRegistryKey().getValue().toString().equals(dimension)) {
+            VisibilitySnapshot previous = SelectiveRenderState.snapshot();
+            reset();
+            applyStoredConfig(stored);
+            SelectiveRenderState.refreshChange(previous);
+        }
+    }
+
+    private static boolean writeStored(Path path, StoredConfig stored, boolean backupExisting) {
         try {
             Files.createDirectories(DIRECTORY);
-            StoredConfig stored = new StoredConfig();
-            stored.formatVersion = 8;
-            stored.activeRegions = List.copyOf(ACTIVE_REGIONS);
-            stored.hiddenRegions = List.copyOf(HIDDEN_REGIONS);
-            stored.activeHiddenRegions = List.copyOf(ACTIVE_HIDDEN_REGIONS);
-            stored.enabled = groupEnabled;
-            stored.hideEnabled = hideGroupEnabled;
-            stored.regionGroups = new LinkedHashMap<>();
-            REGIONS.forEach((name, regions) -> stored.regionGroups.put(name,
-                    regions.stream().map(StoredRegion::from).toList()));
-            stored.blockFilters = new LinkedHashMap<>();
-            FILTERS.forEach((name, rules) -> stored.blockFilters.put(name,
-                    rules.stream().map(StoredBlockFilter::from).toList()));
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
-            if (backupExisting && Files.isRegularFile(path)) {
-                Files.copy(path, ConfigRecovery.backupPath(path),
-                        StandardCopyOption.REPLACE_EXISTING);
-            }
+            if (backupExisting && Files.isRegularFile(path)) Files.copy(path, ConfigRecovery.backupPath(path),
+                    StandardCopyOption.REPLACE_EXISTING);
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
                 GSON.toJson(stored, writer);
             }
@@ -409,8 +522,10 @@ public final class SelectiveRenderConfig {
             } catch (AtomicMoveNotSupportedException exception) {
                 Files.move(temporary, path, StandardCopyOption.REPLACE_EXISTING);
             }
+            return true;
         } catch (IOException exception) {
             SelectiveRenderClient.LOGGER.error("Could not save selective render config {}", path, exception);
+            return false;
         }
     }
 
@@ -609,6 +724,8 @@ public final class SelectiveRenderConfig {
     }
 
     private static final class StoredConfig {
+        String ownerHash;
+        String dimension;
         @SerializedName("presets")
         Map<String, StoredRegion> regions;
         Map<String, List<StoredRegion>> regionGroups;

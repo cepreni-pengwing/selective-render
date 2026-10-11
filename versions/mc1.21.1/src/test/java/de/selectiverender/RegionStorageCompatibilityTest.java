@@ -6,6 +6,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RegionStorageCompatibilityTest {
+    @Test void storesDimensionMetadataAlongsideTheOriginalStorageKeys() throws ReflectiveOperationException {
+        Class<?> type = Class.forName("de.selectiverender.SelectiveRenderConfig$StoredConfig");
+        Gson gson = new Gson();
+        Object loaded = gson.fromJson("{\"formatVersion\":8,\"ownerHash\":\"opaque-world-key\",\"dimension\":\"custom:world\",\"activePresets\":[\"test\"]}", type);
+        var saved = JsonParser.parseString(gson.toJson(loaded)).getAsJsonObject();
+        assertEquals("opaque-world-key", saved.get("ownerHash").getAsString());
+        assertEquals("custom:world", saved.get("dimension").getAsString());
+        assertTrue(saved.has("activePresets"));
+        assertFalse(saved.has("activeRegions"));
+    }
+
     @Test void renamedFieldsRetainExistingFileKeysAndSelections() throws ReflectiveOperationException {
         Class<?> type = Class.forName("de.selectiverender.SelectiveRenderConfig$StoredConfig");
         Gson gson = new Gson();

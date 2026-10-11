@@ -12,13 +12,13 @@ import net.minecraft.text.Text;
 
 /** Fixed navigation column and viewport-sized, scrollable settings content. */
 public final class SelectiveRenderSettingsScreen extends Screen {
-    private enum Tab {
-        GENERAL("General"), REGIONS("Regions"), BOUNDARIES("Boundaries"), PLOTS("Plots");
+    enum Tab {
+        GENERAL("General"), REGIONS("Regions"), INTERACTIONS("Interactions"), BOUNDARIES("Boundaries"), PLOTS("Plots");
         final String label;
         Tab(String label) { this.label = label; }
     }
 
-    private record Choice(String label, boolean selected, Runnable action) { }
+    private record Choice(String label, boolean selected, Runnable action, String help) { }
     private record Row(String label, List<Choice> choices, int numeric, int labelWidth) {
         Row(String label, List<Choice> choices, int numeric) { this(label, choices, numeric, 0); }
     }
@@ -34,12 +34,13 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private final List<Row> rows = new ArrayList<>();
     private TextFieldWidget reloadField;
     private TextFieldWidget plotHeightField;
+    private boolean reloadWasFocused, heightWasFocused;
 
     public SelectiveRenderSettingsScreen(Screen parent) {
         this(parent, Tab.GENERAL, null, 0);
     }
 
-    private SelectiveRenderSettingsScreen(Screen parent, Tab tab, String regionName, int scroll) {
+    SelectiveRenderSettingsScreen(Screen parent, Tab tab, String regionName, int scroll) {
         super(Text.literal("Selective Render"));
         this.parent = parent;
         this.tab = tab;
@@ -49,6 +50,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     protected void init() {
+        reloadWasFocused = false; heightWasFocused = false;
         reloadField = null;
         plotHeightField = null;
         rows.clear();
@@ -72,10 +74,11 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             Row row = rows.get(i);
             int y = 36 + (i - scroll) * 24;
             if (row.numeric() != 0) {
-                int valueWidth = Math.min(84, paneWidth / 3);
-                captions.add(new Caption(row.label(), y, paneWidth - valueWidth - 12));
+                int labelWidth = optionLabelWidth();
+                int valueWidth = Math.min(84, paneWidth - labelWidth);
+                captions.add(new Caption(row.label(), y, labelWidth - 12));
                 TextFieldWidget field = new TextFieldWidget(textRenderer,
-                        paneLeft + paneWidth - valueWidth, y, valueWidth, 20, Text.literal(row.label()));
+                        paneLeft + labelWidth, y, valueWidth, 20, Text.literal(row.label()));
                 field.setMaxLength(11);
                 boolean signed = row.numeric() == 2;
                 field.setTextPredicate(value -> value.isEmpty() || (signed && value.equals("-"))
@@ -95,19 +98,18 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     int buttonWidth = row.labelWidth() == 0 ? available
                             : Math.min(available, Math.max(36, textRenderer.getWidth(choice.label()) + 16));
                     var button = addDrawableChild(ButtonWidget.builder(Text.literal(choice.label()), b -> {
-                        applyNumericSettings();
-                        choice.action().run();
+                        if (applyNumericSettings()) choice.action().run();
                     }).dimensions(x, y, buttonWidth, 20).build());
                     x += buttonWidth + 6;
                     button.active = !choice.selected();
-                    button.setTooltip(Tooltip.of(Text.literal(choice.label())));
+                    String help = choice.help();
+                    if (!help.isEmpty()) button.setTooltip(Tooltip.of(Text.literal(help)));
                 }
             } else {
                 // Read-only labels use normal widgets for clipping, narration and full-text tooltips.
                 var label = addDrawableChild(ButtonWidget.builder(UiStyle.label(row.label()), b -> { })
                         .dimensions(paneLeft, y, paneWidth, 20).build());
                 label.active = false;
-                label.setTooltip(Tooltip.of(Text.literal(row.label())));
             }
         }
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), b -> close())
@@ -124,40 +126,27 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 options("Players", new String[]{"None", "Inside regions", "Outside regions", "Everyone", "Own player", "Everyone else"},
                         SelectiveRenderSettings.playerVisibility().ordinal(),
                         i -> SelectiveRenderSettings.setPlayerVisibility(players[i]));
+                var lighting = SelectiveRenderSettings.VirtualLightMode.values();
+                String[] lights = java.util.Arrays.stream(lighting).map(value -> value.label()).toArray(String[]::new);
+                options("Virtual skylight", lights, SelectiveRenderSettings.virtualLightMode().ordinal(),
+                        i -> SelectiveRenderSettings.setVirtualLightMode(lighting[i]));
+                rows.add(new Row("Full reload (sections)", List.of(), 1));
+                options("Debug boxes", new String[]{"Off", "On"}, SelectiveRenderSettings.debugBoxes() ? 1 : 0,
+                        i -> SelectiveRenderSettings.setDebugBoxes(i == 1));
+            }
+            case INTERACTIONS -> {
                 var interactions = SelectiveRenderSettings.InteractionMode.values();
                 options("Interactions", java.util.Arrays.stream(interactions).map(value -> value.label()).toArray(String[]::new),
                         SelectiveRenderSettings.interactionMode().ordinal(),
                         i -> SelectiveRenderSettings.setInteractionMode(interactions[i]));
-                options("Inactive interactions", new String[]{"Vanilla", "Filtered"},
+                options("When rendering is off", new String[]{"Vanilla", "Filtered"},
                         SelectiveRenderSettings.filterInteractionsWhenInactive() ? 1 : 0,
                         i -> SelectiveRenderSettings.setFilterInteractionsWhenInactive(i == 1));
                 options("Hidden interactions", new String[]{"Off", "On"},
                         SelectiveRenderSettings.interactWithHiddenRegions() ? 1 : 0,
                         i -> SelectiveRenderSettings.setInteractWithHiddenRegions(i == 1));
-                var lighting = SelectiveRenderSettings.VirtualLightMode.values();
-                String[] lights = java.util.Arrays.stream(lighting).map(value -> value.label()).toArray(String[]::new);
-                options("Render skylight", lights, SelectiveRenderSettings.virtualLightMode().ordinal(),
-                        i -> SelectiveRenderSettings.setVirtualLightMode(lighting[i]));
-                options("Hidden skylight", lights, SelectiveRenderSettings.hiddenVirtualLightMode().ordinal(),
-                        i -> SelectiveRenderSettings.setHiddenVirtualLightMode(lighting[i]));
-                rows.add(new Row("Full reload (sections)", List.of(), 1));
-                options("Debug boxes", new String[]{"Off", "On"}, SelectiveRenderSettings.debugBoxes() ? 1 : 0,
-                        i -> SelectiveRenderSettings.setDebugBoxes(i == 1));
             }
-            case REGIONS -> {
-                if (regionName != null) {
-                    rows.add(new Row("", List.of(new Choice("All regions", false,
-                            () -> navigate(Tab.REGIONS, null, 0))), 0));
-                    for (String detail : RegionDetails.rows(regionName)) label(detail);
-                } else {
-                    var names = SelectiveRenderConfig.regionNames();
-                    if (names.isEmpty()) label("No saved regions");
-                    for (String name : names) {
-                        rows.add(new Row("", List.of(new Choice(name, false,
-                                () -> navigate(Tab.REGIONS, name, 0))), 0));
-                    }
-                }
-            }
+            case REGIONS -> label("Open the region editor to browse saved dimensions");
             case BOUNDARIES -> {
                 var boundaries = SelectiveRenderSettings.BoundaryMode.values();
                 options("Boundary faces", java.util.Arrays.stream(boundaries).map(value -> value.label()).toArray(String[]::new),
@@ -178,7 +167,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private void options(String label, String[] labels, int selected, IntConsumer setter) {
-        int labelWidth = Math.min(176, Math.max(88, paneWidth / 3));
+        int labelWidth = optionLabelWidth();
         int available = paneWidth - labelWidth;
         int[] widths = java.util.Arrays.stream(labels).mapToInt(value -> textRenderer.getWidth(value)).toArray();
         for (int start = 0; start < labels.length;) {
@@ -189,25 +178,79 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 choices.add(new Choice(labels[i], i == selected, () -> {
                     setter.accept(index);
                     navigate(tab, regionName, scroll);
-                }));
+                }, optionHelp(label)));
             }
             rows.add(new Row(start == 0 ? label : "", List.copyOf(choices), 0, labelWidth));
             start = end;
         }
     }
 
-    private void navigate(Tab nextTab, String nextRegion, int nextScroll) {
-        applyNumericSettings();
-        client.setScreen(new SelectiveRenderSettingsScreen(parent, nextTab, nextRegion, nextScroll));
+    private int optionLabelWidth() { return Math.min(176, Math.max(88, paneWidth / 3)); }
+
+    private static String optionHelp(String label) {
+        return switch (label) {
+            case "When rendering is off" -> "Vanilla leaves normal interaction unchanged. Filtered applies the interaction mode to all saved regions, including unselected regions, even while rendering is off.";
+            case "Hidden interactions" -> "Allow targeting and interacting with hidden regions and blocks removed by filters.";
+            case "Virtual skylight" -> "Let skylight enter through removed blocks from above, from the sides, both, or neither. Applies to render regions, hidden regions and block filters.";
+            case "Full reload (sections)" -> "Changes affecting more sections than this threshold rebuild the whole renderer; smaller changes rebuild affected sections.";
+            default -> "";
+        };
     }
 
-    private void applyNumericSettings() {
-        if (reloadField != null) try {
-            SelectiveRenderSettings.setFullReloadThreshold(Integer.parseInt(reloadField.getText()));
-        } catch (NumberFormatException ignored) { }
-        if (plotHeightField != null) try {
-            SelectiveRenderSettings.setDefaultPlotMinY(Integer.parseInt(plotHeightField.getText()));
-        } catch (NumberFormatException ignored) { }
+    private void navigate(Tab nextTab, String nextRegion, int nextScroll) {
+        if (!applyNumericSettings()) return;
+        client.setScreen(nextTab == Tab.REGIONS ? new RegionEditorScreen(parent)
+                : new SelectiveRenderSettingsScreen(parent, nextTab, nextRegion, nextScroll));
+    }
+
+    private boolean applyNumericSettings() {
+        return commitNumber(reloadField, false) && commitNumber(plotHeightField, true);
+    }
+
+    private boolean commitNumber(TextFieldWidget field, boolean plot) {
+        if (field == null) return true;
+        try {
+            int value = Integer.parseInt(field.getText());
+            if (plot) SelectiveRenderSettings.setDefaultPlotMinY(value);
+            else SelectiveRenderSettings.setFullReloadThreshold(value);
+            field.setText(Integer.toString(plot ? SelectiveRenderSettings.defaultPlotMinY() : SelectiveRenderSettings.fullReloadThreshold()));
+            field.setEditableColor(0xFFFFFF);
+            return true;
+        } catch (NumberFormatException error) {
+            field.setEditableColor(UiStyle.ERROR);
+            return false;
+        }
+    }
+
+    @Override
+    public boolean mouseClicked(double x, double y, int button) {
+        if (!commitOutside(x, y)) return true;
+        return super.mouseClicked(x, y, button);
+    }
+
+    private boolean commitOutside(double x, double y) {
+        if (reloadField != null && reloadField.isFocused() && !reloadField.isMouseOver(x, y)) {
+            if (!commitNumber(reloadField, false)) return false;
+            setFocused(null);
+        }
+        if (plotHeightField != null && plotHeightField.isFocused() && !plotHeightField.isMouseOver(x, y)) {
+            if (!commitNumber(plotHeightField, true)) return false;
+            setFocused(null);
+        }
+        return true;
+    }
+
+    @Override
+    public void tick() {
+        super.tick();
+        if (reloadField != null) {
+            if (reloadWasFocused && !reloadField.isFocused() && !commitNumber(reloadField, false)) setFocused(reloadField);
+            reloadWasFocused = reloadField.isFocused();
+        }
+        if (plotHeightField != null) {
+            if (heightWasFocused && !plotHeightField.isFocused() && !commitNumber(plotHeightField, true)) setFocused(plotHeightField);
+            heightWasFocused = plotHeightField.isFocused();
+        }
     }
 
     private boolean scrollKey(int key) {
@@ -223,6 +266,20 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (keyCode == 256) {
+            if (reloadField != null && reloadField.isFocused()) {
+                reloadField.setText(Integer.toString(SelectiveRenderSettings.fullReloadThreshold()));
+                setFocused(null); return true;
+            }
+            if (plotHeightField != null && plotHeightField.isFocused()) {
+                plotHeightField.setText(Integer.toString(SelectiveRenderSettings.defaultPlotMinY()));
+                setFocused(null); return true;
+            }
+        }
+        if (keyCode == 257 || keyCode == 335) {
+            if (reloadField != null && reloadField.isFocused()) { commitNumber(reloadField, false); return true; }
+            if (plotHeightField != null && plotHeightField.isFocused()) { commitNumber(plotHeightField, true); return true; }
+        }
         return scrollKey(keyCode) || super.keyPressed(keyCode, scanCode, modifiers);
     }
 
@@ -237,7 +294,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     public void close() {
-        applyNumericSettings();
+        if (!applyNumericSettings()) return;
         if (client != null) client.setScreen(parent);
     }
 
@@ -261,7 +318,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     while (!line.isEmpty() && textRenderer.getWidth(line + "...") > caption.width()) line = line.substring(0, line.length() - 1);
                     line += "...";
                 }
-                context.drawTextWithShadow(textRenderer, Text.literal(line), paneLeft, caption.y() + offset, UiStyle.ACCENT);
+                context.drawTextWithShadow(textRenderer, Text.literal(line), paneLeft, caption.y() + offset, 0xFFFFFFFF);
             }
         }
     }

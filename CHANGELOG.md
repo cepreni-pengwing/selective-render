@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.10.20
+
+- Added a dimension-grouped region editor with immediate toggles and validated name, corner and filter edits committed on Enter or focus loss
+- Added expandable bounding-box/filter sections and registry/tag Tab completion; multi-box bounds remain read-only
+- Added world/server and dimension metadata without renaming existing region files; other-dimension edits do not change the current renderer
+- Moved interaction controls into their own tab, unified virtual skylight across all region types, aligned input fields and simplified labels/tooltips
+
 ## 1.10.19
 
 - Standardized region terminology throughout the code, commands and documentation while preserving existing saved-region storage

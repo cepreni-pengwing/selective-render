@@ -12,7 +12,7 @@ class SettingsViewportTest {
             assertTrue(viewport.paneLeft() >= viewport.left() + viewport.navigationWidth() + 12);
             assertTrue(viewport.paneLeft() + viewport.paneWidth() <= width - 12);
             assertTrue(36 + (viewport.visibleRows() - 1) * 24 + 20 <= height - 26);
-            assertTrue(36 + 3 * 26 + 20 <= height - 26);
+            assertTrue(36 + 4 * 26 + 20 <= height - 26);
             assertTrue(viewport.scroll() >= 0);
             assertTrue(viewport.scroll() + viewport.visibleRows() >= 28);
         }

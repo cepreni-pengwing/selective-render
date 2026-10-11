@@ -53,6 +53,8 @@ Licensed under GPL-3.0-only.
 
 Choose **SR positions** or **WorldEdit** as the selection source in settings. With WorldEdit selected, SR position commands are unavailable. Explicit coordinates still work.
 
-Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden regions can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior. The **Regions** tab in settings shows saved bounds, group states and filters.
+Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden regions can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior.
 
-Settings are organized into **General**, **Regions**, **Boundaries**, and **Plots** tabs. Option labels and their buttons share a row where space allows. Content scrolls with the mouse wheel or Page Up/Page Down when needed. The **Boundaries** tab also lets you hide cut fluid surfaces, including water, lava, and supported modded fluids.
+Settings are organized into **General**, **Regions**, **Interactions**, **Boundaries**, and **Plots** tabs. Option labels, buttons and input boxes share a row where space allows. Content scrolls with the mouse wheel or Page Up/Page Down when needed. One virtual-skylight option applies to all region types. **Interactions** controls which blocks you can target, including hidden content and behavior while rendering is off. **Boundaries** also lets you hide cut fluid surfaces, including water, lava, and supported modded fluids.
+
+**Regions** groups your world's or server's saved regions by dimension. Select a region to rename it, switch between rendering and hiding, or select/deselect it. Buttons apply immediately; confirm typed values with Enter or by leaving the input box. Expand **Bounding boxes** to inspect its bounds and edit the corners when there is exactly one box. Expand **Filters** to add, edit or remove block filters, with Tab completion for IDs and tags. No separate save button is needed.
