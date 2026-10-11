@@ -18,6 +18,15 @@ class SettingsViewportTest {
         }
     }
 
+    @Test void usesTheLastAvailableRowAboveTheFooter() {
+        for (int height : new int[]{240, 270, 360, 540}) {
+            var viewport = SettingsViewport.of(640, height, 99, 0);
+            int lastBottom = 36 + (viewport.visibleRows() - 1) * 24 + 20;
+            assertTrue(lastBottom <= height - 26);
+            assertTrue(lastBottom + 24 > height - 26);
+        }
+    }
+
     @Test void clampsScrollWithoutMovingNavigation() {
         var top = SettingsViewport.of(480, 270, 28, -99);
         var bottom = SettingsViewport.of(480, 270, 28, 999);

@@ -121,7 +121,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             }
         }
         addRenderableWidget(Button.builder(Component.literal("Done"), b -> onClose())
-                .bounds(paneLeft, height - 26, paneWidth, 20).build());
+                .bounds((width - Math.min(100, width - 24)) / 2, height - 26, Math.min(100, width - 24), 20).build());
     }
 
     private void buildRows() {

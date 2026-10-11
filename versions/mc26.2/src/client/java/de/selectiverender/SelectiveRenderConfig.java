@@ -508,6 +508,19 @@ public final class SelectiveRenderConfig {
         RegionDocument current = editorDocument(client, dimension);
         if (current == null) throw new IllegalArgumentException("The region file is no longer available");
         RegionDocument edited = current.edit(oldName, newName, boxes, hidden, selected, rules);
+        persistEditorDocument(client, dimension, current, edited, oldName, newName, boxes, options);
+    }
+
+    static void deleteEditorRegion(Minecraft client, String dimension, String name) {
+        RegionDocument current = editorDocument(client, dimension);
+        if (current == null) throw new IllegalArgumentException("The region file is no longer available");
+        persistEditorDocument(client, dimension, current, current.remove(name), name, name,
+                current.regions().get(name), null);
+    }
+
+    private static void persistEditorDocument(Minecraft client, String dimension,
+            RegionDocument current, RegionDocument edited, String oldName, String newName,
+            List<BlockRegion> boxes, RegionOptions options) {
         StoredConfig stored = new StoredConfig();
         stored.formatVersion = 8;
         stored.ownerHash = sha256(sessionOwner);

@@ -116,7 +116,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             }
         }
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), b -> close())
-                .dimensions(paneLeft, height - 26, paneWidth, 20).build());
+                .dimensions((width - Math.min(100, width - 24)) / 2, height - 26, Math.min(100, width - 24), 20).build());
     }
 
     private void buildRows() {

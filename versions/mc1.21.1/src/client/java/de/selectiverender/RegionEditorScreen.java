@@ -31,6 +31,7 @@ final class RegionEditorScreen extends Screen {
     private String context;
     private String error = "";
     private int paneLeft, paneWidth, navLeft, navWidth, navScroll, scroll, visibleRows;
+    private boolean deletionArmed;
     private boolean boxesOpen, filtersOpen, refreshRequested, documentsLoaded;
     private BlockFilterRule.Mode newFilterMode = BlockFilterRule.Mode.HIDE;
     private Input newFilterInput;
@@ -58,7 +59,7 @@ final class RegionEditorScreen extends Screen {
         navWidth = Math.min(120, Math.max(72, viewport.paneWidth() / 4));
         paneLeft = navLeft + navWidth + 12;
         paneWidth = Math.max(80, viewport.paneWidth() - navWidth - 12);
-        visibleRows = Math.max(1, (height - 100) / 24);
+        visibleRows = Math.max(1, (height - (error.isEmpty() ? 58 : 82)) / 24);
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var button = addDrawableChild(ButtonWidget.builder(Text.literal(tab.label), b -> {
                 if (commitInputs()) client.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, 0));
@@ -82,7 +83,7 @@ final class RegionEditorScreen extends Screen {
                     if (!collapsed.add(entry.dimension())) collapsed.remove(entry.dimension());
                 } else {
                     document = documents.stream().filter(value -> value.dimension().equals(entry.dimension())).findFirst().orElseThrow();
-                    region = entry.name(); scroll = 0; boxesOpen = false; filtersOpen = false; addingFilter = false;
+                    region = entry.name(); deletionArmed = false; scroll = 0; boxesOpen = false; filtersOpen = false; addingFilter = false;
                 }
             })).dimensions(navLeft, 36 + (i - navScroll) * 24, entry.name() == null ? navWidth : Math.min(navWidth, Math.max(36, textRenderer.getWidth(label) + 16)), 20).build());
             button.active = entry.name() == null || document == null
@@ -118,7 +119,7 @@ final class RegionEditorScreen extends Screen {
                 int x = paneLeft + row.labelWidth();
                 if (!row.label().isEmpty()) captions.add(new Caption(row.label(), paneLeft, y, row.labelWidth() - 12));
                 for (Choice choice : row.choices()) {
-                    int size = row.labelWidth() == 0 ? (choice.label().equals("+") ? 24 : paneWidth)
+                    int size = row.labelWidth() == 0 ? (choice.label().equals("+") ? 24 : choice.label().equals("Delete region") || choice.label().equals("Confirm deletion") ? Math.min(paneWidth, textRenderer.getWidth("Confirm deletion") + 16) : paneWidth)
                             : Math.min(paneWidth - row.labelWidth(), Math.max(36, textRenderer.getWidth(choice.label()) + 16));
                     var button = addDrawableChild(ButtonWidget.builder(Text.literal(choice.label()), b -> runAction(choice.action()))
                             .dimensions(x, y, size, 20).build());
@@ -127,10 +128,19 @@ final class RegionEditorScreen extends Screen {
             } else captions.add(new Caption(row.label(), paneLeft, y, paneWidth));
         }
         addDrawableChild(ButtonWidget.builder(Text.literal("Done"), b -> close())
-                .dimensions(navLeft, height - 26, viewport.paneWidth(), 20).build());
+                .dimensions((width - Math.min(100, width - 24)) / 2, height - 26, Math.min(100, width - 24), 20).build());
     }
 
     private void buildRows() {
+        rows.add(new Row("", List.of(new Choice(deletionArmed ? "Confirm deletion" : "Delete region", false, () -> {
+            if (!deletionArmed) { deletionArmed = true; return; }
+            if (client.world == null || !SelectiveRenderConfig.contextIdentity(client, client.world).equals(context)) {
+                throw new IllegalArgumentException("The world changed; reopen the region editor");
+            }
+            SelectiveRenderConfig.deleteEditorRegion(client, document.dimension(), region);
+            documents = SelectiveRenderConfig.editorDocuments(client);
+            deletionArmed = false; scroll = 0; navScroll = 0; filtersOpen = false; boxesOpen = false;
+        })), null, 0));
         field("Name", "name", region, false, value -> save(value, boxes(), hidden(), selected(), rules()));
         options("Type", List.of(new Choice("Render", !hidden(), () -> save(region, boxes(), false, selected(), rules())),
                 new Choice("Hidden", hidden(), () -> save(region, boxes(), true, selected(), rules()))));
@@ -210,10 +220,7 @@ final class RegionEditorScreen extends Screen {
                 default -> false;
             };
             boolean on = values[1].equals(effective);
-            // Global Inside/Outside modes are not binary; do not mislabel inherited behavior as Off.
-            String state = current == null && !values[0].equals(effective) && !values[1].equals(effective)
-                    ? "On / Off" : on ? "On" : "Off";
-            choices.add(new Choice(state, false, () -> setOption(field, values[on ? 0 : 1])));
+            choices.add(new Choice(on ? "On" : "Off", false, () -> setOption(field, values[on ? 0 : 1])));
             options(label, choices);
             return;
         }

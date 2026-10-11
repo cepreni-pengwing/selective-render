@@ -64,6 +64,18 @@ record RegionDocument(String dimension, Map<String, List<BlockRegion>> regions,
                 nextFilters, rendering, hiding, nextOptions);
     }
 
+    RegionDocument remove(String name) {
+        if (!regions.containsKey(name)) throw new IllegalArgumentException("This region no longer exists");
+        var nextRegions = new LinkedHashMap<>(regions); nextRegions.remove(name);
+        var nextSelected = new LinkedHashSet<>(selected); nextSelected.remove(name);
+        var nextHidden = new LinkedHashSet<>(hidden); nextHidden.remove(name);
+        var nextSelectedHidden = new LinkedHashSet<>(selectedHidden); nextSelectedHidden.remove(name);
+        var nextFilters = new LinkedHashMap<>(filters); nextFilters.remove(name);
+        var nextOptions = new LinkedHashMap<>(options); nextOptions.remove(name);
+        return new RegionDocument(dimension, nextRegions, nextSelected, nextHidden, nextSelectedHidden,
+                nextFilters, rendering, hiding, nextOptions);
+    }
+
     static BlockRegion corner(BlockRegion old, String text, boolean minimum) {
         String[] values = text.trim().replace(',', ' ').split("\\s+");
         if (values.length != 3) throw new IllegalArgumentException("Enter three integer coordinates: X Y Z");

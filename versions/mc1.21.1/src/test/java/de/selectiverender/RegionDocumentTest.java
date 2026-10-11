@@ -7,6 +7,25 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RegionDocumentTest {
+    @Test void removalClearsOnlyTheSelectedRegionAndPreservesTheOriginal() {
+        var original = new RegionDocument("minecraft:the_nether", Map.of("test", List.of(BOX), "other", List.of(BOX)),
+                Set.of("other"), Set.of("test"), Set.of("test"), Map.of("test", List.of(RULE)),
+                true, false, Map.of("test", RegionOptions.DEFAULT, "other", RegionOptions.DEFAULT));
+        var changed = original.remove("test");
+        assertEquals(Set.of("other"), changed.regions().keySet());
+        assertEquals(Set.of("other"), changed.selected());
+        assertTrue(changed.hidden().isEmpty());
+        assertTrue(changed.selectedHidden().isEmpty());
+        assertTrue(changed.filters().isEmpty());
+        assertEquals(Set.of("other"), changed.options().keySet());
+        assertTrue(changed.rendering());
+        assertFalse(changed.hiding());
+        assertEquals("minecraft:the_nether", changed.dimension());
+        assertTrue(original.regions().containsKey("test"));
+        assertThrows(IllegalArgumentException.class, () -> changed.remove("test"));
+        assertTrue(changed.remove("other").regions().isEmpty());
+    }
+
     @Test void existingNamesRemainEditableAndCommandCompatibleNamesAreAllowed() {
         var original = new RegionDocument("minecraft:overworld", Map.of("old name", List.of(BOX)),
                 Set.of(), Set.of(), Set.of(), Map.of(), false, true);
