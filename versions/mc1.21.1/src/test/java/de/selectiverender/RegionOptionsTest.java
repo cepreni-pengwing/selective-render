@@ -8,6 +8,16 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RegionOptionsTest {
+    @Test void oldRegionalSpatialChoicesMigrateWithoutChangingGlobalModes() {
+        assertEquals(SelectiveRenderSettings.InteractionMode.EVERYWHERE,
+                RegionOptions.DEFAULT.with(3, SelectiveRenderSettings.InteractionMode.INSIDE).interactions());
+        assertEquals(SelectiveRenderSettings.InteractionMode.NONE,
+                RegionOptions.DEFAULT.with(3, SelectiveRenderSettings.InteractionMode.OUTSIDE).interactions());
+        Gson gson = new Gson();
+        assertEquals(SelectiveRenderSettings.InteractionMode.EVERYWHERE,
+                gson.fromJson("{\"interactions\":\"INSIDE\"}", RegionOptions.class).interactions());
+        assertEquals(4, SelectiveRenderSettings.InteractionMode.values().length);
+    }
     @Test void defaultsInheritAndDoNotIntroducePolicies() {
         assertTrue(RegionOptions.DEFAULT.filtersActive());
         assertFalse(RegionOptions.DEFAULT.hasOverrides());

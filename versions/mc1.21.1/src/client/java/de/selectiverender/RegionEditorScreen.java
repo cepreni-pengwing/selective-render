@@ -136,26 +136,6 @@ final class RegionEditorScreen extends Screen {
                 new Choice("Hidden", hidden(), () -> save(region, boxes(), true, selected(), rules()))));
         options("Selected", List.of(new Choice("Off", !selected(), () -> save(region, boxes(), hidden(), false, rules())),
                 new Choice("On", selected(), () -> save(region, boxes(), hidden(), true, rules()))));
-        info("Effect: " + (selected() && (hidden() ? document.hiding() : document.rendering()) ? "On" : "Off"));
-        accordion("Bounding boxes", boxes().size(), boxesOpen, () -> boxesOpen = !boxesOpen);
-        if (boxesOpen) {
-            if (boxes().size() == 1) {
-                BlockRegion box = boxes().get(0);
-                field("Minimum", "minimum", cornerText(box, true), false,
-                        value -> save(region, List.of(RegionDocument.corner(boxes().get(0), value, true)), hidden(), selected(), rules()));
-                field("Maximum", "maximum", cornerText(box, false), false,
-                        value -> save(region, List.of(RegionDocument.corner(boxes().get(0), value, false)), hidden(), selected(), rules()));
-                info("Blocks: " + box.blockCount());
-            } else {
-                info("Multiple boxes: read-only");
-                for (int i = 0; i < boxes().size(); i++) {
-                    BlockRegion box = boxes().get(i);
-                    info("Box " + (i + 1) + " min: " + cornerText(box, true));
-                    info("Box " + (i + 1) + " max: " + cornerText(box, false));
-                    info("Blocks: " + box.blockCount());
-                }
-            }
-        }
         accordion("Filters", rules().size(), filtersOpen, () -> filtersOpen = !filtersOpen);
         if (filtersOpen) {
             RegionOptions currentOptions = document.options().getOrDefault(region, RegionOptions.DEFAULT);
@@ -186,11 +166,29 @@ final class RegionEditorScreen extends Screen {
                     new Choice("×", false, () -> addingFilter = false)));
             rows.add(new Row("", List.of(new Choice("+", addingFilter, () -> addingFilter = true)), null, 0));
         }
-        info("Region overrides");
+        accordion("Bounding boxes", boxes().size(), boxesOpen, () -> boxesOpen = !boxesOpen);
+        if (boxesOpen) {
+            if (boxes().size() == 1) {
+                BlockRegion box = boxes().get(0);
+                field("Minimum", "minimum", cornerText(box, true), false,
+                        value -> save(region, List.of(RegionDocument.corner(boxes().get(0), value, true)), hidden(), selected(), rules()));
+                field("Maximum", "maximum", cornerText(box, false), false,
+                        value -> save(region, List.of(RegionDocument.corner(boxes().get(0), value, false)), hidden(), selected(), rules()));
+                info("Blocks: " + box.blockCount());
+            } else {
+                info("Multiple boxes: read-only");
+                for (int i = 0; i < boxes().size(); i++) {
+                    BlockRegion box = boxes().get(i);
+                    info("Box " + (i + 1) + " min: " + cornerText(box, true));
+                    info("Box " + (i + 1) + " max: " + cornerText(box, false));
+                    info("Blocks: " + box.blockCount());
+                }
+            }
+        }
         RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
         override("Boundary faces", 1, overrides.boundary(), SelectiveRenderSettings.BoundaryMode.values(), new String[]{"Normal", "Black", "Culled"});
         override("Cull fluid faces", 2, overrides.cullFluids(), new Object[]{false, true}, new String[]{"Off", "On"});
-        override("Interactions", 3, overrides.interactions(), SelectiveRenderSettings.InteractionMode.values(), new String[]{"None", "Inside", "Outside", "Everywhere"});
+        override("Interactions", 3, overrides.interactions(), new Object[]{SelectiveRenderSettings.InteractionMode.NONE, SelectiveRenderSettings.InteractionMode.EVERYWHERE}, new String[]{"Off", "On"});
         override("When rendering is off", 4, overrides.inactiveInteractions(), new Object[]{false, true}, new String[]{"Vanilla", "Filtered"});
         override("Hidden interactions", 5, overrides.hiddenInteractions(), new Object[]{false, true}, new String[]{"Off", "On"});
     }

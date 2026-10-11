@@ -4,6 +4,11 @@ package de.selectiverender;
 public record RegionOptions(Boolean filtersEnabled, SelectiveRenderSettings.BoundaryMode boundary,
                             Boolean cullFluids, SelectiveRenderSettings.InteractionMode interactions,
                             Boolean inactiveInteractions, Boolean hiddenInteractions) {
+    public RegionOptions {
+        // Earlier regional choices were spatial policies. Local overrides now use a binary choice.
+        if (interactions == SelectiveRenderSettings.InteractionMode.INSIDE) interactions = SelectiveRenderSettings.InteractionMode.EVERYWHERE;
+        if (interactions == SelectiveRenderSettings.InteractionMode.OUTSIDE) interactions = SelectiveRenderSettings.InteractionMode.NONE;
+    }
     public static final RegionOptions DEFAULT = new RegionOptions(null, null, null, null, null, null);
     public boolean hasOverrides() {
         return boundary != null || cullFluids != null || interactions != null

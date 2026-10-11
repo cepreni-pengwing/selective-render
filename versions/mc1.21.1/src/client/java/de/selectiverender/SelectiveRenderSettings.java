@@ -36,7 +36,7 @@ public final class SelectiveRenderSettings {
     private static volatile boolean interactWithHiddenRegions;
     private static volatile VirtualLightMode virtualLightMode = VirtualLightMode.BOTH;
     private static volatile int fullReloadThreshold = DEFAULT_FULL_RELOAD_THRESHOLD;
-    private static volatile int defaultPlotMaxY = 400;
+    private static volatile int defaultPlotMaxY = 319;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
     private SelectiveRenderSettings() { }
@@ -69,7 +69,7 @@ public final class SelectiveRenderSettings {
                 ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
         boolean migrateLegacyPlotMinimum = stored.formatVersion < SETTINGS_FORMAT_VERSION
                 && stored.defaultPlotMinY != null && stored.defaultPlotMinY == -100;
-        defaultPlotMaxY = stored.defaultPlotMaxY == null ? 400 : stored.defaultPlotMaxY;
+        defaultPlotMaxY = stored.defaultPlotMaxY == null ? 319 : stored.defaultPlotMaxY;
         defaultPlotMinY = stored.defaultPlotMinY == null || migrateLegacyPlotMinimum
                 ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
         if (recovery.recoveredFromBackup() || stored.formatVersion < SETTINGS_FORMAT_VERSION) save(false);

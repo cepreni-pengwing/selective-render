@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class PlotSquaredClient {
-    static final int DEFAULT_MAX_Y = 400;
     private static final Identifier REQUEST_CHANNEL = new Identifier("selectiverender", "plot_request");
     private static final Identifier RESPONSE_CHANNEL = new Identifier("selectiverender", "plot_response");
     private static final int MAGIC = 0x53525031;

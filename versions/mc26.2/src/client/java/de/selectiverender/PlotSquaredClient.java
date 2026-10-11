@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 public final class PlotSquaredClient {
-    static final int DEFAULT_MAX_Y = 400;
     private static final Identifier REQUEST_CHANNEL = Identifier.fromNamespaceAndPath("selectiverender", "plot_request");
     private static final Identifier RESPONSE_CHANNEL = Identifier.fromNamespaceAndPath("selectiverender", "plot_response");
     private static final CustomPacketPayload.Type<PlotPayload> REQUEST_TYPE = new CustomPacketPayload.Type<>(REQUEST_CHANNEL);
