@@ -5,7 +5,7 @@
 - Added Texture boundary mode using loaded block-model textures and block-ID autocomplete
 - Replaced Black with Color, with an HSV color wheel and brightness control; existing Black settings migrate to black Color
 - Added shared boundary opacity from 0–100% in 10% steps, using translucent render paths
-- Added Vanilla/Indigo runtime coverage and opt-in Color/Texture/Opacity exercises in disposable CI worlds
+- Added opt-in Color/Texture/Opacity exercises to the supported Sodium runtime profiles in disposable CI worlds
 - Applied changes to Minecraft 1.20.1, 1.21.1 and 26.2
 
 ## 1.10.20
