@@ -12,7 +12,7 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 
 ## Commands
 
-`/sr` is the short form of `/selectiverender`. Every command below works with either root. Arguments in square brackets are optional. Commands have no dedicated keybind unless a default is listed; group keybinds affect the whole group, not a single named region. Commands may differ for older versions. This table lists all commands for the latest mod releases.
+`/sr` is the short form of `/selectiverender`. Every command below works with either root. Arguments in square brackets are optional. Commands have no dedicated keybind unless a default is listed; group keybinds affect the whole group, not a single named region. Commands may differ for older versions. This table lists all commands for the latest mod releases, including pre-releases.
 
 <table>
 <thead><tr><th>Alias</th><th>Expanded command</th><th>Purpose</th><th>Key</th></tr></thead>
