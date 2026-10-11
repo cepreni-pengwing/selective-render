@@ -174,6 +174,13 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     private void options(String label, String[] labels, int selected, IntConsumer setter) {
         int labelWidth = optionLabelWidth();
+        if (labels.length == 2 && labels[0].equals("Off") && labels[1].equals("On")) {
+            rows.add(new Row(label, List.of(new Choice(labels[selected], false, () -> {
+                setter.accept(1 - selected);
+                navigate(tab, regionName, scroll);
+            }, optionHelp(label))), 0, labelWidth));
+            return;
+        }
         int available = paneWidth - labelWidth;
         int[] widths = java.util.Arrays.stream(labels).mapToInt(value -> textRenderer.getWidth(value)).toArray();
         for (int start = 0; start < labels.length;) {
@@ -339,7 +346,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     while (!line.isEmpty() && textRenderer.getWidth(line + "...") > caption.width()) line = line.substring(0, line.length() - 1);
                     line += "...";
                 }
-                context.drawTextWithShadow(textRenderer, Text.literal(line), paneLeft, caption.y() + offset, 0xFFFFFFFF);
+                context.drawTextWithShadow(textRenderer, Text.literal(line), paneLeft, caption.y() + offset + (textRenderer.getWidth(caption.text()) <= caption.width() ? 5 : 0), 0xFFFFFFFF);
             }
         }
     }

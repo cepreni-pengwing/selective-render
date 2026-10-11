@@ -55,7 +55,7 @@ final class RegionEditorScreen extends Screen {
         if (document != null && !document.regions().containsKey(region)) region = document.regions().keySet().iterator().next();
         SettingsViewport viewport = SettingsViewport.of(width, height, 0, 0);
         navLeft = viewport.paneLeft();
-        navWidth = Math.min(160, Math.max(84, viewport.paneWidth() / 3));
+        navWidth = Math.min(120, Math.max(72, viewport.paneWidth() / 4));
         paneLeft = navLeft + navWidth + 12;
         paneWidth = Math.max(80, viewport.paneWidth() - navWidth - 12);
         visibleRows = Math.max(1, (height - 100) / 24);
@@ -84,7 +84,7 @@ final class RegionEditorScreen extends Screen {
                     document = documents.stream().filter(value -> value.dimension().equals(entry.dimension())).findFirst().orElseThrow();
                     region = entry.name(); scroll = 0; boxesOpen = false; filtersOpen = false; addingFilter = false;
                 }
-            })).bounds(navLeft, 36 + (i - navScroll) * 24, navWidth, 20).build());
+            })).bounds(navLeft, 36 + (i - navScroll) * 24, entry.name() == null ? navWidth : Math.min(navWidth, Math.max(36, font.width(label) + 16)), 20).build());
             button.active = entry.name() == null || document == null
                     || !entry.dimension().equals(document.dimension()) || !entry.name().equals(region);
         }
@@ -202,6 +202,21 @@ final class RegionEditorScreen extends Screen {
     private void override(String label, int field, Object current, Object[] values, String[] labels) {
         List<Choice> choices = new ArrayList<>();
         choices.add(new Choice("Use global", current == null, () -> setOption(field, null)));
+        if (labels.length == 2 && labels[0].equals("Off") && labels[1].equals("On")) {
+            Object effective = current != null ? current : switch (field) {
+                case 2 -> SelectiveRenderSettings.cullFluidBoundaryFaces();
+                case 3 -> SelectiveRenderSettings.interactionMode();
+                case 5 -> SelectiveRenderSettings.interactWithHiddenRegions();
+                default -> false;
+            };
+            boolean on = values[1].equals(effective);
+            // Global Inside/Outside modes are not binary; do not mislabel inherited behavior as Off.
+            String state = current == null && !values[0].equals(effective) && !values[1].equals(effective)
+                    ? "On / Off" : on ? "On" : "Off";
+            choices.add(new Choice(state, false, () -> setOption(field, values[on ? 0 : 1])));
+            options(label, choices);
+            return;
+        }
         for (int i = 0; i < values.length; i++) {
             Object value = values[i];
             choices.add(new Choice(labels[i], value.equals(current), () -> setOption(field, value)));
@@ -255,6 +270,12 @@ final class RegionEditorScreen extends Screen {
         rows.add(new Row("", List.of(new Choice((open ? "- " : "+ ") + title + " (" + count + ")", false, action)), null, 0));
     }
     private void options(String label, List<Choice> values) {
+        // Binary values remain clickable: one button shows the current value and flips it.
+        if (values.size() == 2 && values.get(0).label().equals("Off") && values.get(1).label().equals("On")) {
+            int selected = values.get(1).selected() ? 1 : 0;
+            Choice current = values.get(selected), next = values.get(1 - selected);
+            values = List.of(new Choice(current.label(), false, next.action()));
+        }
         int[] widths = values.stream().mapToInt(value -> font.width(value.label())).toArray();
         for (int start = 0; start < values.size();) {
             int end = OptionRowLayout.end(paneWidth - labelWidth(), widths, start);
@@ -463,7 +484,7 @@ final class RegionEditorScreen extends Screen {
                 while (!line.isEmpty() && font.width(line + "...") > caption.width()) line = line.substring(0, line.length() - 1);
                 line += "...";
             }
-            draw.text(font, Component.literal(line), caption.x(), caption.y() + offset, 0xFF000000 | color);
+            draw.text(font, Component.literal(line), caption.x(), caption.y() + offset + (font.width(caption.text()) <= caption.width() ? 5 : 0), 0xFF000000 | color);
         }
     }
 }
