@@ -1,20 +1,19 @@
 package de.selectiverender;
 
 import net.minecraft.fluid.FluidState;
-import net.minecraft.registry.tag.FluidTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockView;
 
-/** Isolated opt-in policy for culling water surfaces at render-region boundaries. */
+/** Isolated opt-in policy for culling fluid surfaces at render-region boundaries. */
 public final class FluidBoundaryPolicy {
     private FluidBoundaryPolicy() { }
 
     public static boolean shouldCull(BlockView world, BlockPos position,
                                      FluidState fluidState, Direction face) {
-        if (!SelectiveRenderSettings.cullWaterBoundaryFaces()
+        if (!SelectiveRenderSettings.cullFluidBoundaryFaces()
                 || !SelectiveRenderState.filteringActive()
-                || !fluidState.isIn(FluidTags.WATER)) return false;
+                || fluidState.isEmpty()) return false;
         if (face == Direction.UP && fluidState.getHeight(world, position) < 0.9999f) return false;
 
         int x = position.getX();

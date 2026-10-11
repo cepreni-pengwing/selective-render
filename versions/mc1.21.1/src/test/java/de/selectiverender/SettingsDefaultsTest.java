@@ -11,7 +11,7 @@ class SettingsDefaultsTest {
                 SelectiveRenderSettings.interactionMode());
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
                 SelectiveRenderSettings.boundaryMode());
-        assertFalse(SelectiveRenderSettings.cullWaterBoundaryFaces());
+        assertFalse(SelectiveRenderSettings.cullFluidBoundaryFaces());
         assertFalse(SelectiveRenderSettings.debugBoxes());
         assertFalse(SelectiveRenderSettings.filterInteractionsWhenInactive());
         assertFalse(SelectiveRenderSettings.interactWithHiddenRegions());

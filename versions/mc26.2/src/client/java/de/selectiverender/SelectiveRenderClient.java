@@ -45,37 +45,13 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.toggle_hide",
             GLFW.GLFW_KEY_F10,
             KEY_CATEGORY);
-    private static final KeyMapping POS1_KEY = new KeyMapping(
-            "key.selectiverender.pos1",
-            GLFW.GLFW_KEY_UNKNOWN,
-            KEY_CATEGORY);
-    private static final KeyMapping POS2_KEY = new KeyMapping(
-            "key.selectiverender.pos2",
-            GLFW.GLFW_KEY_UNKNOWN,
-            KEY_CATEGORY);
     private static final KeyMapping PLOT_TOGGLE_KEY = new KeyMapping(
             "key.selectiverender.toggle_plot",
-            GLFW.GLFW_KEY_BACKSPACE,
+            GLFW.GLFW_KEY_UNKNOWN,
             KEY_CATEGORY);
     private static final KeyMapping SETTINGS_KEY = new KeyMapping(
             "key.selectiverender.settings",
             GLFW.GLFW_KEY_APOSTROPHE,
-            KEY_CATEGORY);
-    private static final KeyMapping PLAYER_VISIBILITY_KEY = new KeyMapping(
-            "key.selectiverender.toggle_players",
-            GLFW.GLFW_KEY_UNKNOWN,
-            KEY_CATEGORY);
-    private static final KeyMapping INTERACTION_KEY = new KeyMapping(
-            "key.selectiverender.cycle_interactions",
-            GLFW.GLFW_KEY_UNKNOWN,
-            KEY_CATEGORY);
-    private static final KeyMapping BOUNDARY_KEY = new KeyMapping(
-            "key.selectiverender.cycle_boundary",
-            GLFW.GLFW_KEY_UNKNOWN,
-            KEY_CATEGORY);
-    private static final KeyMapping CLEAR_PLOTS_KEY = new KeyMapping(
-            "key.selectiverender.clear_plots",
-            GLFW.GLFW_KEY_UNKNOWN,
             KEY_CATEGORY);
     private static final KeyMapping BLOCK_FILTERS_KEY = new KeyMapping(
             "key.selectiverender.toggle_block_filters",
@@ -108,14 +84,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         WorldEditClient.initialize();
         KeyMappingHelper.registerKeyMapping(TOGGLE_KEY);
         KeyMappingHelper.registerKeyMapping(HIDE_TOGGLE_KEY);
-        KeyMappingHelper.registerKeyMapping(POS1_KEY);
-        KeyMappingHelper.registerKeyMapping(POS2_KEY);
         KeyMappingHelper.registerKeyMapping(PLOT_TOGGLE_KEY);
         KeyMappingHelper.registerKeyMapping(SETTINGS_KEY);
-        KeyMappingHelper.registerKeyMapping(PLAYER_VISIBILITY_KEY);
-        KeyMappingHelper.registerKeyMapping(INTERACTION_KEY);
-        KeyMappingHelper.registerKeyMapping(BOUNDARY_KEY);
-        KeyMappingHelper.registerKeyMapping(CLEAR_PLOTS_KEY);
         KeyMappingHelper.registerKeyMapping(BLOCK_FILTERS_KEY);
         ClientTickEvents.START_CLIENT_TICK.register(client -> PerformanceDiagnostics.tickStart());
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
@@ -124,16 +94,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             if (PerformanceDiagnostics.tickEnd()) logPerformanceContext();
             while (TOGGLE_KEY.consumeClick()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.consumeClick()) toggleHideFromKey(client);
-            while (POS1_KEY.consumeClick()) setPositionFromKey(client, true);
-            while (POS2_KEY.consumeClick()) setPositionFromKey(client, false);
             while (PLOT_TOGGLE_KEY.consumeClick()) PlotSquaredClient.toggle();
-            while (PLAYER_VISIBILITY_KEY.consumeClick()) cyclePlayerVisibility();
-            while (INTERACTION_KEY.consumeClick()) cycleInteractions();
-            while (BOUNDARY_KEY.consumeClick()) cycleBoundaryFaces();
             while (BLOCK_FILTERS_KEY.consumeClick()) toggleBlockFilters();
-            while (CLEAR_PLOTS_KEY.consumeClick()) {
-                if (client.level != null) PlotSquaredClient.clear();
-            }
             while (SETTINGS_KEY.consumeClick()) {
                 if (client.gui.screen() == null) {
                     client.gui.setScreen(new SelectiveRenderSettingsScreen(null));
@@ -173,10 +135,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> command(String name) {
         return ClientCommands.literal(name)
-                .then(ClientCommands.literal("pos1").executes(context -> setPosition(context.getSource(), true)))
-                .then(ClientCommands.literal("pos2").executes(context -> setPosition(context.getSource(), false)))
-                .then(ClientCommands.literal("1").executes(context -> setPosition(context.getSource(), true)))
-                .then(ClientCommands.literal("2").executes(context -> setPosition(context.getSource(), false)))
+                .then(ClientCommands.literal("pos1").requires(source -> !SelectiveRenderSettings.worldEditSelection()).executes(context -> setPosition(context.getSource(), true)))
+                .then(ClientCommands.literal("pos2").requires(source -> !SelectiveRenderSettings.worldEditSelection()).executes(context -> setPosition(context.getSource(), false)))
+                .then(ClientCommands.literal("1").requires(source -> !SelectiveRenderSettings.worldEditSelection()).executes(context -> setPosition(context.getSource(), true)))
+                .then(ClientCommands.literal("2").requires(source -> !SelectiveRenderSettings.worldEditSelection()).executes(context -> setPosition(context.getSource(), false)))
                 .then(createCommand("create"))
                 .then(createCommand("c"))
                 .then(toggleCommand("toggle"))
@@ -396,7 +358,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                 StringArgumentType.getString(context, "name"))));
     }
 
-
     private static LiteralArgumentBuilder<FabricClientCommandSource> createCommand(String name) {
         return ClientCommands.literal(name)
                 .then(ClientCommands.argument("name", StringArgumentType.word())
@@ -464,25 +425,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
-        if (SelectiveRenderSettings.worldEditSelection()) {
-            feedback(source, message(red("SR positions unavailable: "), white("selection source is WorldEdit")));
-            return 0;
-        }
         BlockPos position = source.getPlayer().blockPosition();
         applyPosition(position, isFirst);
         feedback(source, positionMessage(position, isFirst));
         return Command.SINGLE_SUCCESS;
-    }
-
-    private static void setPositionFromKey(Minecraft client, boolean isFirst) {
-        if (SelectiveRenderSettings.worldEditSelection()) {
-            overlay(message(red("SR positions unavailable: "), white("selection source is WorldEdit")));
-            return;
-        }
-        if (client.player == null) return;
-        BlockPos position = client.player.blockPosition();
-        applyPosition(position, isFirst);
-        client.gui.chatListener().handleSystemMessage(positionMessage(position, isFirst), false);
     }
 
     private static void applyPosition(BlockPos position, boolean isFirst) {
@@ -493,7 +439,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         return message(aqua(isFirst ? "Pos1" : "Pos2"), white(" = "
                 + position.getX() + ", " + position.getY() + ", " + position.getZ()));
     }
-
 
     private static int create(FabricClientCommandSource source,
                               com.mojang.brigadier.context.CommandContext<FabricClientCommandSource> context,
@@ -731,25 +676,6 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             SelectiveRenderConfig.enableHiddenGroupForIsolation(client);
         }
         return SelectiveRenderState.togglePlotRendering();
-    }
-
-    private static void cyclePlayerVisibility() {
-        SelectiveRenderSettings.PlayerVisibility next =
-                SelectiveRenderSettings.playerVisibility().next();
-        SelectiveRenderSettings.setPlayerVisibility(next);
-        overlay(message(white("Players: "), aqua(next.label())));
-    }
-
-    private static void cycleInteractions() {
-        SelectiveRenderSettings.InteractionMode next = SelectiveRenderSettings.interactionMode().next();
-        SelectiveRenderSettings.setInteractionMode(next);
-        overlay(message(white("Interactions: "), aqua(next.label())));
-    }
-
-    private static void cycleBoundaryFaces() {
-        SelectiveRenderSettings.BoundaryMode next = SelectiveRenderSettings.boundaryMode().next();
-        SelectiveRenderSettings.setBoundaryMode(next);
-        overlay(message(white("Boundary faces: "), aqua(next.label())));
     }
 
     private static void toggleBlockFilters() {

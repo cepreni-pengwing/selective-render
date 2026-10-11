@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.18
+
+- Replaced the settings menu with General, Presets, Boundaries and Plots tabs, separate navigation and scrollable content
+- Added direct option selection with disabled selected values and horizontal numeric fields
+- Made SR position commands unavailable to the command parser while WorldEdit is selected
+- Removed position, option-cycling and temporary-plot-clear keybindings from all builds and documentation
+- Extended optional boundary culling to all fluids using supported render paths, retaining existing saved water-culling settings
+- Applied the changes to Minecraft 1.20.1, 1.21.1 and 26.2
+
 ## 1.10.17
 
 - Added comma-separated block filter batches, bare block IDs and #tag selectors, while keeping id:/tag: compatibility

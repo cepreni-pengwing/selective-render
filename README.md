@@ -17,8 +17,8 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 <table>
 <thead><tr><th>Alias</th><th>Expanded command</th><th>Purpose</th><th>Key</th></tr></thead>
 <tbody>
-<tr><td><code>/sr 1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td>Not Bound</td></tr>
-<tr><td><code>/sr 2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td>Not Bound</td></tr>
+<tr><td><code>/sr 1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td></td></tr>
+<tr><td><code>/sr 2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td></td></tr>
 <tr><td rowspan="2"><code>/sr c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the selection source in settings; defaults to <code>render</code></td><td></td></tr>
 <tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]</code></td><td>Create from two corners; defaults to <code>render</code></td><td></td></tr>
 <tr><td rowspan="3"><code>/sr t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
@@ -37,19 +37,13 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 <tr><td><code>filter NAME only SELECTOR</code></td><td>Keep only matches by block ID or tag</td><td></td></tr>
 <tr><td><code>filter NAME clear</code></td><td>Clear region filters</td><td></td></tr>
 <tr><td rowspan="3"><code>/sr p</code></td><td><code>plot [minY] [maxY] [xzMargin]</code></td><td>Add or remove current plot</td><td>Not Bound</td></tr>
-<tr><td><code>plot clear</code></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
+<tr><td><code>plot clear</code></td><td>Clear temporary plots</td><td></td></tr>
 <tr><td><code>plot save NAME [minY] [maxY] [xzMargin]</code></td><td>Save plot as a region</td><td></td></tr>
 <tr><td rowspan="4"><code>/sr diag</code></td><td><code>diagnose</code></td><td>Show diagnostic status</td><td></td></tr>
 <tr><td><code>diagnose start [seconds]</code></td><td>Start recording (120 seconds by default)</td><td></td></tr>
 <tr><td><code>diagnose mark LABEL</code></td><td>Add diagnostic marker</td><td></td></tr>
 <tr><td><code>diagnose stop</code></td><td>Stop recording</td><td></td></tr>
-<tr><td></td><td></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Cycle boundary faces</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Cycle interaction mode</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Cycle player visibility</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Open settings</td><td><code>#</code></td></tr>
-<tr><td></td><td></td><td>Set selection position 1</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Set selection position 2</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Toggle current plot region</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Toggle all block filters</td><td>Not Bound</td></tr>
 </tbody>
@@ -70,7 +64,7 @@ Optional Y limits are inclusive. When omitted, the minimum comes from the Select
 - Player visibility has six modes, including local-player-only and everyone-except-local-player; player hitboxes follow the same policy.
 - Interactions can be limited to regions, allowed outside them, or left unrestricted. A separate option controls interactions with hidden regions and filtered blocks.
 - Boundary faces can be normal, black, or culled. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
-- An optional water-boundary setting can hide water faces cut by a render boundary, including flowing and waterlogged states, independently of the block boundary mode.
+- An optional fluid-boundary setting can hide fluid faces cut by a render boundary, including lava, flowing states, waterlogged blocks, and modded fluids using the supported fluid renderer, independently of the block boundary mode.
 - Virtual skylight can reach render and hidden regions from above, from the sides, from both, or from neither, with separate settings for hidden regions.
 - The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
 - When filtering is inactive and no render or hide regions are active, the renderer and interaction hooks take their normal no-op paths.
@@ -94,10 +88,10 @@ The installable JAR is generated in `build/libs`. See [CONTRIBUTING.md](CONTRIBU
 
 Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
 
-Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. With WorldEdit selected, SR position commands and keybinds are disabled. Explicit coordinates work independently of this setting.
+Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. With WorldEdit selected, SR position commands are unavailable. Explicit coordinates work independently of this setting.
 
 Block filters accept a block ID such as `minecraft:stone` or a tag such as `#minecraft:slabs`. Multiple selectors can be separated by commas in one command, including a mix of IDs and tags. The earlier `id:` and `tag:` prefixes are still accepted. An invalid selector rejects the complete batch. Use `filter NAME` to list the saved rules.
 
 Hidden presets support the same filters as render presets. While the hidden preset is actively hiding its region, hiding takes precedence. Turning hiding off restores the normal filter behavior while block filtering is enabled.
 
-Settings support mouse-wheel scrolling and navigation buttons at larger GUI scales. The **Preset list** opens a read-only overview and details for each saved preset, including its group state, bounding boxes, block counts and filters.
+Settings use a two-column layout with **General**, **Presets**, **Boundaries**, and **Plots** tabs. Overflowing content supports mouse-wheel scrolling and navigation buttons. **Presets** provides a read-only overview with group states, bounding boxes, block counts and filters. Selected options are disabled until a different value is chosen.

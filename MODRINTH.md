@@ -13,8 +13,8 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <table>
 <thead><tr><th>Alias</th><th>Expanded command</th><th>Purpose</th><th>Key</th></tr></thead>
 <tbody>
-<tr><td><code>/sr&nbsp;1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td>Not Bound</td></tr>
-<tr><td><code>/sr&nbsp;2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td>Not Bound</td></tr>
+<tr><td><code>/sr&nbsp;1</code></td><td><code>pos1</code></td><td>Mark corner 1</td><td></td></tr>
+<tr><td><code>/sr&nbsp;2</code></td><td><code>pos2</code></td><td>Mark corner 2</td><td></td></tr>
 <tr><td rowspan="2"><code>/sr&nbsp;c</code></td><td><code>create NAME [render|hidden]</code></td><td>Create from the selection source in settings; defaults to <code>render</code></td><td></td></tr>
 <tr><td><code>create X1 Y1 Z1 X2 Y2 Z2 NAME [render|hidden]</code></td><td>Create from two corners; defaults to <code>render</code></td><td></td></tr>
 <tr><td rowspan="3"><code>/sr&nbsp;t</code></td><td><code>toggle</code></td><td>Toggle render group</td><td><code>F9</code></td></tr>
@@ -33,15 +33,9 @@ Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated
 <tr><td><code>filter NAME only SELECTOR</code></td><td>Keep only matches by block ID or tag</td><td></td></tr>
 <tr><td><code>filter NAME clear</code></td><td>Clear region filters</td><td></td></tr>
 <tr><td rowspan="3"><code>/sr&nbsp;p</code></td><td><code>plot [minY] [maxY] [xzMargin]</code></td><td>Add or remove current plot</td><td>Not Bound</td></tr>
-<tr><td><code>plot clear</code></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
+<tr><td><code>plot clear</code></td><td>Clear temporary plots</td><td></td></tr>
 <tr><td><code>plot save NAME [minY] [maxY] [xzMargin]</code></td><td>Save plot as a region</td><td></td></tr>
-<tr><td></td><td></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Cycle boundary faces</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Cycle interaction mode</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Cycle player visibility</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Open settings</td><td><code>#</code></td></tr>
-<tr><td></td><td></td><td>Set selection position 1</td><td>Not Bound</td></tr>
-<tr><td></td><td></td><td>Set selection position 2</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Toggle current plot region</td><td>Not Bound</td></tr>
 <tr><td></td><td></td><td>Toggle all block filters</td><td>Not Bound</td></tr>
 </tbody>
@@ -57,6 +51,8 @@ For detailed setup, settings, limitations, and contribution information, see the
 
 Licensed under GPL-3.0-only.
 
-Choose **SR positions** or **WorldEdit** as the selection source in settings. With WorldEdit selected, SR position controls are disabled. Explicit coordinates still work.
+Choose **SR positions** or **WorldEdit** as the selection source in settings. With WorldEdit selected, SR position commands are unavailable. Explicit coordinates still work.
 
-Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden presets can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior. The **Preset list** in settings shows saved bounds, group states and filters.
+Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden presets can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior. The **Presets** tab in settings shows saved bounds, group states and filters.
+
+Settings are organized into **General**, **Presets**, **Boundaries**, and **Plots** tabs. Content scrolls when needed. The **Boundaries** tab also lets you hide cut fluid surfaces, including water, lava, and supported modded fluids.

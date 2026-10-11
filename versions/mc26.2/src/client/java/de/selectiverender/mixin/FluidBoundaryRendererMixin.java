@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 abstract class FluidBoundaryRendererMixin {
     @ModifyArgs(method = "tesselate", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/block/FluidRenderer;shouldRenderFace(Lnet/minecraft/world/level/material/FluidState;Lnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/Direction;Lnet/minecraft/world/level/material/FluidState;)Z"))
-    private void selectiverender$cullWaterBoundarySide(Args args,
+    private void selectiverender$cullFluidBoundarySide(Args args,
             @Local(argsOnly = true) BlockAndTintGetter world,
             @Local(argsOnly = true) BlockPos position,
             @Local(argsOnly = true) FluidState fluidState) {
@@ -30,7 +30,7 @@ abstract class FluidBoundaryRendererMixin {
 
     @ModifyExpressionValue(method = "tesselate", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/renderer/block/FluidRenderer;isNeighborSameFluid(Lnet/minecraft/world/level/material/FluidState;Lnet/minecraft/world/level/material/FluidState;)Z"))
-    private boolean selectiverender$cullWaterBoundaryTop(boolean sameFluid,
+    private boolean selectiverender$cullFluidBoundaryTop(boolean sameFluid,
             @Local(argsOnly = true) BlockAndTintGetter world,
             @Local(argsOnly = true) BlockPos position,
             @Local(argsOnly = true) FluidState fluidState) {

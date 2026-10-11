@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(FluidRenderer.class)
 abstract class FluidBoundaryRendererMixin {
     @Inject(method = "shouldRenderSide", at = @At("RETURN"), cancellable = true)
-    private static void selectiverender$cullWaterBoundarySide(
+    private static void selectiverender$cullFluidBoundarySide(
             BlockRenderView world, BlockPos position, FluidState fluidState, BlockState blockState,
             Direction face, FluidState neighborFluid, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValue() && FluidBoundaryPolicy.shouldCull(world, position, fluidState, face)) {
@@ -27,7 +27,7 @@ abstract class FluidBoundaryRendererMixin {
 
     @ModifyExpressionValue(method = "render", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/render/block/FluidRenderer;isSameFluid(Lnet/minecraft/fluid/FluidState;Lnet/minecraft/fluid/FluidState;)Z"))
-    private boolean selectiverender$cullWaterBoundaryTop(boolean sameFluid,
+    private boolean selectiverender$cullFluidBoundaryTop(boolean sameFluid,
             @Local(argsOnly = true) BlockRenderView world,
             @Local(argsOnly = true) BlockPos position,
             @Local(argsOnly = true) FluidState fluidState) {

@@ -16,7 +16,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
         remap = false)
 abstract class DefaultFluidRendererBoundaryMixin {
     @Inject(method = "isSideExposed", at = @At("RETURN"), cancellable = true)
-    private void selectiverender$cullWaterBoundarySide(BlockRenderView world,
+    private void selectiverender$cullFluidBoundarySide(BlockRenderView world,
             int x, int y, int z, Direction face, float height,
             CallbackInfoReturnable<Boolean> cir) {
         if (!cir.getReturnValue()) return;

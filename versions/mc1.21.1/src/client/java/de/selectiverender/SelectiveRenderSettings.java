@@ -28,7 +28,7 @@ public final class SelectiveRenderSettings {
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
     private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
-    private static volatile boolean cullWaterBoundaryFaces;
+    private static volatile boolean cullFluidBoundaryFaces;
     private static volatile boolean worldEditSelection;
     private static volatile boolean debugBoxes;
     private static volatile boolean filterInteractionsWhenInactive;
@@ -58,7 +58,7 @@ public final class SelectiveRenderSettings {
         interactionMode = stored.interactionMode == null
                 ? InteractionMode.EVERYWHERE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
-        cullWaterBoundaryFaces = stored.cullWaterBoundaryFaces;
+        cullFluidBoundaryFaces = stored.cullFluidBoundaryFaces;
         worldEditSelection = stored.worldEditSelection;
         debugBoxes = stored.debugBoxes;
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
@@ -87,7 +87,7 @@ public final class SelectiveRenderSettings {
         save();
     }
 
-    public static boolean cullWaterBoundaryFaces() { return cullWaterBoundaryFaces; }
+    public static boolean cullFluidBoundaryFaces() { return cullFluidBoundaryFaces; }
     public static boolean debugBoxes() { return debugBoxes; }
     public static boolean filterInteractionsWhenInactive() { return filterInteractionsWhenInactive; }
     public static boolean blockFiltersEnabled() { return blockFiltersEnabled; }
@@ -118,9 +118,9 @@ public final class SelectiveRenderSettings {
         }
     }
 
-    public static void setCullWaterBoundaryFaces(boolean value) {
-        if (cullWaterBoundaryFaces == value) return;
-        cullWaterBoundaryFaces = value;
+    public static void setCullFluidBoundaryFaces(boolean value) {
+        if (cullFluidBoundaryFaces == value) return;
+        cullFluidBoundaryFaces = value;
         save();
         if (SelectiveRenderState.filteringActive()) {
             SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
@@ -202,7 +202,7 @@ public final class SelectiveRenderSettings {
             stored.playerVisibility = playerVisibility;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
-            stored.cullWaterBoundaryFaces = cullWaterBoundaryFaces;
+            stored.cullFluidBoundaryFaces = cullFluidBoundaryFaces;
             stored.worldEditSelection = worldEditSelection;
             stored.debugBoxes = debugBoxes;
             stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
@@ -315,7 +315,8 @@ public final class SelectiveRenderSettings {
         PlayerVisibility playerVisibility;
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
-        boolean cullWaterBoundaryFaces;
+        @SerializedName(value = "cullFluidBoundaryFaces", alternate = {"cullWaterBoundaryFaces"})
+        boolean cullFluidBoundaryFaces;
         boolean worldEditSelection;
         boolean debugBoxes;
         boolean filterInteractionsWhenInactive;
