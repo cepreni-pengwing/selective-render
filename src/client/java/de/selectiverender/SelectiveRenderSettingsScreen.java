@@ -8,6 +8,9 @@ import net.minecraft.text.Text;
 
 public final class SelectiveRenderSettingsScreen extends Screen {
     private final Screen parent;
+    private int scroll;
+    private int visibleRows;
+    private int contentWidth;
     private ButtonWidget playerButton;
     private ButtonWidget interactionButton;
     private ButtonWidget boundaryButton;
@@ -27,74 +30,108 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     protected void init() {
-        int left = width / 2 - 155;
-        int y = Math.max(20, height / 2 - 154);
+        reloadThresholdField = null;
+        plotMinYField = null;
+        contentWidth = Math.min(360, width - 24);
+        int left = (width - contentWidth) / 2;
+        visibleRows = Math.max(1, (height - 90) / 34);
+        scroll = Math.max(0, Math.min(scroll, Math.max(0, 13 - visibleRows)));
+        int y = 48;
+        if (rowVisible(0)) {
         addDrawableChild(ButtonWidget.builder(UiStyle.label("Selection source: "
                 + (SelectiveRenderSettings.worldEditSelection() ? "WorldEdit" : "SR positions")), button -> {
             SelectiveRenderSettings.setWorldEditSelection(!SelectiveRenderSettings.worldEditSelection());
             button.setMessage(UiStyle.label("Selection source: "
                     + (SelectiveRenderSettings.worldEditSelection() ? "WorldEdit" : "SR positions")));
-        }).dimensions(left, y, 310, 20).build());
+        }).dimensions(left, y + (0 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(1)) {
         playerButton = addDrawableChild(ButtonWidget.builder(playerText(), button -> {
             SelectiveRenderSettings.setPlayerVisibility(
                     SelectiveRenderSettings.playerVisibility().next());
             button.setMessage(playerText());
-        }).dimensions(left, y + 22, 310, 20).build());
+        }).dimensions(left, y + (1 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(2)) {
         interactionButton = addDrawableChild(ButtonWidget.builder(interactionText(), button -> {
             SelectiveRenderSettings.setInteractionMode(
                     SelectiveRenderSettings.interactionMode().next());
             button.setMessage(interactionText());
-        }).dimensions(left, y + 44, 310, 20).build());
+        }).dimensions(left, y + (2 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(3)) {
         boundaryButton = addDrawableChild(ButtonWidget.builder(boundaryText(), button -> {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.boundaryMode().next());
             button.setMessage(boundaryText());
-        }).dimensions(left, y + 66, 310, 20).build());
+        }).dimensions(left, y + (3 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(4)) {
         waterBoundaryButton = addDrawableChild(ButtonWidget.builder(waterBoundaryText(), button -> {
             SelectiveRenderSettings.setCullWaterBoundaryFaces(
                     !SelectiveRenderSettings.cullWaterBoundaryFaces());
             button.setMessage(waterBoundaryText());
-        }).dimensions(left, y + 88, 310, 20).build());
+        }).dimensions(left, y + (4 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(5)) {
         debugButton = addDrawableChild(ButtonWidget.builder(debugText(), button -> {
             SelectiveRenderSettings.setDebugBoxes(!SelectiveRenderSettings.debugBoxes());
             button.setMessage(debugText());
-        }).dimensions(left, y + 110, 310, 20).build());
+        }).dimensions(left, y + (5 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(6)) {
         inactiveInteractionsButton = addDrawableChild(ButtonWidget.builder(inactiveInteractionsText(), button -> {
             SelectiveRenderSettings.setFilterInteractionsWhenInactive(
                     !SelectiveRenderSettings.filterInteractionsWhenInactive());
             button.setMessage(inactiveInteractionsText());
-        }).dimensions(left, y + 132, 310, 20).build());
+        }).dimensions(left, y + (6 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(7)) {
         hiddenInteractionsButton = addDrawableChild(ButtonWidget.builder(hiddenInteractionsText(), button -> {
             SelectiveRenderSettings.setInteractWithHiddenRegions(
                     !SelectiveRenderSettings.interactWithHiddenRegions());
             button.setMessage(hiddenInteractionsText());
-        }).dimensions(left, y + 154, 310, 20).build());
+        }).dimensions(left, y + (7 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(8)) {
         virtualLightButton = addDrawableChild(ButtonWidget.builder(virtualLightText(), button -> {
             SelectiveRenderSettings.setVirtualLightMode(
                     SelectiveRenderSettings.virtualLightMode().next());
             button.setMessage(virtualLightText());
-        }).dimensions(left, y + 176, 310, 20).build());
+        }).dimensions(left, y + (8 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(9)) {
         hiddenVirtualLightButton = addDrawableChild(ButtonWidget.builder(hiddenVirtualLightText(), button -> {
             SelectiveRenderSettings.setHiddenVirtualLightMode(
                     SelectiveRenderSettings.hiddenVirtualLightMode().next());
             button.setMessage(hiddenVirtualLightText());
-        }).dimensions(left, y + 198, 310, 20).build());
-
-        reloadThresholdField = integerField(left, y + 231,
+        }).dimensions(left, y + (9 - scroll) * 34, contentWidth, 20).build());
+        }
+        if (rowVisible(10)) reloadThresholdField = integerField(left, y + (10 - scroll) * 34 + 11,
                 Integer.toString(SelectiveRenderSettings.fullReloadThreshold()), false);
-        plotMinYField = integerField(left, y + 267,
+        if (rowVisible(11)) plotMinYField = integerField(left, y + (11 - scroll) * 34 + 11,
                 Integer.toString(SelectiveRenderSettings.defaultPlotMinY()), true);
-        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-                .dimensions(left, y + 293, 310, 20).build());
+        if (rowVisible(12)) addDrawableChild(ButtonWidget.builder(UiStyle.label("Preset list"), button -> {
+            applyNumericSettings();
+            client.setScreen(new PresetListScreen(this));
+        }).dimensions(left, y + (12 - scroll) * 34, contentWidth, 20).build());
+        var up = addDrawableChild(ButtonWidget.builder(Text.literal("Up"), button -> scrollBy(-1))
+                .dimensions(left, height - 26, 36, 20).build());
+        up.active = scroll > 0;
+        var down = addDrawableChild(ButtonWidget.builder(Text.literal("Down"), button -> scrollBy(1))
+                .dimensions(left + contentWidth - 36, height - 26, 36, 20).build());
+        down.active = scroll + visibleRows < 13;
+        addDrawableChild(ButtonWidget.builder(UiStyle.label("Done"), button -> close())
+                .dimensions(left + 40, height - 26, contentWidth - 80, 20).build());
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
         context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 24, UiStyle.TEXT);
-        context.drawTextWithShadow(textRenderer, Text.literal("Full reload after affected sections"),
-                width / 2 - 155, reloadThresholdField.getY() - 11, UiStyle.MUTED);
-        context.drawTextWithShadow(textRenderer, Text.literal("Default /sr p minimum Y"),
-                width / 2 - 155, plotMinYField.getY() - 11, UiStyle.MUTED);
+        if (reloadThresholdField != null) context.drawTextWithShadow(textRenderer, Text.literal("Full reload after affected sections"),
+                (width - contentWidth) / 2, reloadThresholdField.getY() - 11, UiStyle.MUTED);
+        if (plotMinYField != null) context.drawTextWithShadow(textRenderer, Text.literal("Default /sr p minimum Y"),
+                (width - contentWidth) / 2, plotMinYField.getY() - 11, UiStyle.MUTED);
         super.render(context, mouseX, mouseY, delta);
     }
 
@@ -117,13 +154,32 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private void applyNumericSettings() {
-        if (reloadThresholdField == null || plotMinYField == null) return;
-        try {
+
+        if (reloadThresholdField != null) try {
             SelectiveRenderSettings.setFullReloadThreshold(Integer.parseInt(reloadThresholdField.getText()));
         } catch (NumberFormatException ignored) { }
-        try {
+        if (plotMinYField != null) try {
             SelectiveRenderSettings.setDefaultPlotMinY(Integer.parseInt(plotMinYField.getText()));
         } catch (NumberFormatException ignored) { }
+    }
+
+
+    private boolean rowVisible(int row) {
+        return row >= scroll && row < scroll + visibleRows;
+    }
+
+    private void scrollBy(int change) {
+        applyNumericSettings();
+        SelectiveRenderSettingsScreen next = new SelectiveRenderSettingsScreen(parent);
+        next.scroll = scroll + change;
+        client.setScreen(next);
+    }
+
+    @Override
+    public boolean mouseScrolled(double x, double y, double amount) {
+        if (amount == 0) return false;
+        scrollBy(amount > 0 ? -1 : 1);
+        return true;
     }
 
     private Text playerText() {

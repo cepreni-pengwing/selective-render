@@ -57,4 +57,6 @@ For detailed setup, settings, limitations, and contribution information, see the
 
 Licensed under GPL-3.0-only.
 
-Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. Explicit coordinates work independently of this setting.
+Choose **SR positions** or **WorldEdit** as the selection source in settings. With WorldEdit selected, SR position controls are disabled. Explicit coordinates still work.
+
+Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden presets can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior. The **Preset list** in settings shows saved bounds, group states and filters.

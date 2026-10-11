@@ -271,40 +271,61 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static List<String> blockFilterSuggestions(String remaining) {
         List<String> suggestions = new java.util.ArrayList<>();
-        if (!remaining.startsWith("id:")) suggestions.add("tag:" + BuiltInBlockTags.BEAMS);
-        if (!remaining.startsWith("tag:")) BuiltInRegistries.BLOCK.keySet().forEach(id -> suggestions.add("id:" + id));
-        if (!remaining.startsWith("id:")) BuiltInRegistries.BLOCK.forEach(block -> BuiltInRegistries.BLOCK.wrapAsHolder(block).tags()
-                .forEach(tag -> suggestions.add("tag:" + tag.location())));
-        return suggestions;
+        suggestions.add("#" + BuiltInBlockTags.BEAMS);
+        if (true) BuiltInRegistries.BLOCK.keySet().forEach(id -> suggestions.add(id.toString()));
+        if (true) BuiltInRegistries.BLOCK.forEach(block -> BuiltInRegistries.BLOCK.wrapAsHolder(block).tags()
+                .forEach(tag -> suggestions.add("#" + tag.location())));
+        int comma = remaining.lastIndexOf(',');
+        String prefix = comma < 0 ? "" : remaining.substring(0, comma + 1);
+        String tail = remaining.substring(comma + 1);
+        String spacing = tail.substring(0, tail.length() - tail.stripLeading().length());
+        String typed = tail.stripLeading();
+        return suggestions.stream().distinct().map(value -> {
+            if (typed.startsWith("tag:")) return value.startsWith("#")
+                    ? "tag:" + value.substring(1) : null;
+            if (typed.startsWith("id:")) return value.startsWith("#") ? null : "id:" + value;
+            return value;
+        }).filter(java.util.Objects::nonNull).map(value -> prefix + spacing + value).toList();
     }
 
-    private static int setBlockFilter(FabricClientCommandSource source, String region, BlockFilterRule.Mode mode, String selector) {
+    private static int setBlockFilter(FabricClientCommandSource source, String region,
+                                      BlockFilterRule.Mode mode, String selector) {
         try {
-            int separator = selector.indexOf(':');
-            if (separator <= 0 || separator == selector.length() - 1) throw new IllegalArgumentException();
-            BlockFilterRule.Kind kind = switch (selector.substring(0, separator).toLowerCase(Locale.ROOT)) {
-                case "id" -> BlockFilterRule.Kind.ID; case "tag" -> BlockFilterRule.Kind.TAG; default -> throw new IllegalArgumentException();
-            };
-            BlockFilterRule rule = new BlockFilterRule(mode, kind, selector.substring(separator + 1).toLowerCase(Locale.ROOT));
-            if (!SelectiveRenderConfig.setBlockFilter(Minecraft.getInstance(), region, rule)) { feedback(source, Component.literal("Could not add filter: unknown or hidden region " + region)); return 0; }
-            feedback(source, Component.literal("Added " + mode.name().toLowerCase(Locale.ROOT) + " filter " + selector + " to " + region));
+            List<BlockFilterRule> rules = BlockFilterRule.parse(mode, selector);
+            if (!SelectiveRenderConfig.setBlockFilters(Minecraft.getInstance(), region, rules)) {
+                feedback(source, message(red("Cannot add filters: "), white("unknown preset "), aqua(region)));
+                return 0;
+            }
+            feedback(source, message(green("Added "), aqua(Integer.toString(rules.size())),
+                    white(" " + mode.name().toLowerCase(Locale.ROOT) + " filter(s) to "), aqua(region)));
             return Command.SINGLE_SUCCESS;
-        } catch (IllegalArgumentException exception) { feedback(source, Component.literal("Use id:minecraft:stone or tag:minecraft:slabs")); return 0; }
+        } catch (IllegalArgumentException exception) {
+            feedback(source, message(red("Invalid filter: "), white("use a block ID or #tag; separate entries with commas")));
+            return 0;
+        }
     }
 
     private static int clearBlockFilters(FabricClientCommandSource source, String region) {
-        if (!SelectiveRenderConfig.clearBlockFilters(Minecraft.getInstance(), region)) { feedback(source, Component.literal("No block filters cleared for " + region)); return 0; }
-        feedback(source, Component.literal("Cleared block filters for " + region)); return Command.SINGLE_SUCCESS;
+        if (!SelectiveRenderConfig.clearBlockFilters(Minecraft.getInstance(), region)) {
+            feedback(source, message(red("Cannot clear filters: "), white("unknown preset or no filters for "), aqua(region)));
+            return 0;
+        }
+        feedback(source, message(green("Cleared "), white("block filters for "), aqua(region)));
+        return Command.SINGLE_SUCCESS;
     }
 
     private static int listBlockFilters(FabricClientCommandSource source, String region) {
+        if (!SelectiveRenderConfig.presetExists(region)) {
+            feedback(source, missingPreset(region));
+            return 0;
+        }
         List<BlockFilterRule> rules = SelectiveRenderConfig.blockFilters(region);
-        feedback(source, rules.isEmpty() ? Component.literal("No block filters for " + region)
-                : Component.literal("Block filters for " + region + ": " + rules.stream()
-                        .map(rule -> rule.mode().name().toLowerCase(Locale.ROOT) + " "
-                                + rule.kind().name().toLowerCase(Locale.ROOT) + ":" + rule.value())
-                        .collect(java.util.stream.Collectors.joining(", "))));
-        return rules.isEmpty() ? 0 : Command.SINGLE_SUCCESS;
+        feedback(source, message(white("Filters for "), aqua(region), gray(" (" + rules.size() + ")")));
+        for (BlockFilterRule rule : rules) {
+            feedback(source, message(aqua(rule.mode().name().toLowerCase(Locale.ROOT)),
+                    white(" " + rule.selector())));
+        }
+        return Command.SINGLE_SUCCESS;
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> plotCommand(String name) {
@@ -443,6 +464,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static int setPosition(FabricClientCommandSource source, boolean isFirst) {
+        if (SelectiveRenderSettings.worldEditSelection()) {
+            feedback(source, message(red("SR positions unavailable: "), white("selection source is WorldEdit")));
+            return 0;
+        }
         BlockPos position = source.getPlayer().blockPosition();
         applyPosition(position, isFirst);
         feedback(source, positionMessage(position, isFirst));
@@ -450,6 +475,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     private static void setPositionFromKey(Minecraft client, boolean isFirst) {
+        if (SelectiveRenderSettings.worldEditSelection()) {
+            overlay(message(red("SR positions unavailable: "), white("selection source is WorldEdit")));
+            return;
+        }
         if (client.player == null) return;
         BlockPos position = client.player.blockPosition();
         applyPosition(position, isFirst);
@@ -566,7 +595,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         } else {
             boolean active = SelectiveRenderConfig.isPresetActive(name);
             MutableComponent content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
-                    white(" · "), active ? green("added") : red("removed"), white(" from render group"));
+                    white(" · "), active ? green("added") : red("removed"), white(active ? " to render group" : " from render group"));
             if (!SelectiveRenderConfig.groupEnabled()) {
                 content.append(white(" · group ")).append(red("disabled"));
             }
@@ -599,7 +628,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         } else {
             boolean hidden = SelectiveRenderConfig.isHiddenPresetActive(name);
             MutableComponent content = message(white("Preset "), aqua(name.toLowerCase(Locale.ROOT)),
-                    white(" · "), hidden ? green("added") : red("removed"), white(" from hide group"));
+                    white(" · "), hidden ? green("added") : red("removed"), white(hidden ? " to hide group" : " from hide group"));
             if (!SelectiveRenderConfig.hideGroupEnabled()) {
                 content.append(white(" · group ")).append(red("disabled"));
             }

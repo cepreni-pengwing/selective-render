@@ -7,9 +7,9 @@ import net.minecraft.text.MutableText;
 public final class UiStyle {
     public static final int TEXT = 0xE2E8F0;
     public static final int MUTED = 0x94A3B8;
-    public static final int ACCENT = 0x67E8D4;
-    public static final int SUCCESS = 0x86EFAC;
-    public static final int ERROR = 0xFDA4AF;
+    public static final int ACCENT = 0x36D9C5;
+    public static final int SUCCESS = 0x55DB80;
+    public static final int ERROR = 0xFF6978;
 
     private UiStyle() { }
 

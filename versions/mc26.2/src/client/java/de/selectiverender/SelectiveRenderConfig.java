@@ -289,10 +289,20 @@ public final class SelectiveRenderConfig {
     }
 
     public static boolean setBlockFilter(Minecraft client, String requestedName, BlockFilterRule rule) {
+        return setBlockFilters(client, requestedName, List.of(rule));
+    }
+
+    public static boolean setBlockFilters(Minecraft client, String requestedName, List<BlockFilterRule> rules) {
         String name = normalize(requestedName);
-        if (!PRESETS.containsKey(name) || HIDDEN_PRESETS.contains(name)) return false;
-        if (!FILTERS.computeIfAbsent(name, ignored -> new LinkedHashSet<>()).add(rule)) return true;
-        applyState(); write(client); return true;
+        if (!PRESETS.containsKey(name) || rules.isEmpty()) return false;
+        if (!FILTERS.computeIfAbsent(name, ignored -> new LinkedHashSet<>()).addAll(rules)) return true;
+        applyState();
+        write(client);
+        return true;
+    }
+
+    public static List<BlockRegion> presetRegions(String name) {
+        return List.copyOf(PRESETS.getOrDefault(normalize(name), List.of()));
     }
 
     public static boolean clearBlockFilters(Minecraft client, String requestedName) {
@@ -438,7 +448,7 @@ public final class SelectiveRenderConfig {
         java.util.ArrayList<FilteredRegion> result = new java.util.ArrayList<>();
         for (Map.Entry<String, LinkedHashSet<BlockFilterRule>> entry : FILTERS.entrySet()) {
             String name = entry.getKey();
-            if (HIDDEN_PRESETS.contains(name) || entry.getValue().isEmpty()) continue;
+            if (entry.getValue().isEmpty()) continue;
             for (BlockRegion region : PRESETS.getOrDefault(name, List.of())) {
                 result.add(new FilteredRegion(region, entry.getValue()));
             }

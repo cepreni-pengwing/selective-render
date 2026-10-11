@@ -94,4 +94,10 @@ The installable JAR is generated in `build/libs`. See [CONTRIBUTING.md](CONTRIBU
 
 Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
 
-Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. Explicit coordinates work independently of this setting.
+Choose **SR positions** or **WorldEdit** as the selection source in settings. This applies to creation without coordinates and redefining regions. With WorldEdit selected, SR position commands and keybinds are disabled. Explicit coordinates work independently of this setting.
+
+Block filters accept a block ID such as `minecraft:stone` or a tag such as `#minecraft:slabs`. Multiple selectors can be separated by commas in one command, including a mix of IDs and tags. The earlier `id:` and `tag:` prefixes are still accepted. An invalid selector rejects the complete batch. Use `filter NAME` to list the saved rules.
+
+Hidden presets support the same filters as render presets. While the hidden preset is actively hiding its region, hiding takes precedence. Turning hiding off restores the normal filter behavior while block filtering is enabled.
+
+Settings support mouse-wheel scrolling and navigation buttons at larger GUI scales. The **Preset list** opens a read-only overview and details for each saved preset, including its group state, bounding boxes, block counts and filters.

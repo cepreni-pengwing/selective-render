@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.10.17
+
+- Added comma-separated block filter batches, bare block IDs and #tag selectors, while keeping id:/tag: compatibility
+- Allowed filters on hidden presets; active hiding still overrides block filtering
+- Added readable filter feedback and a filter overview, with a more contrasting shared in-game palette
+- Disabled SR selection position commands and keybinds when WorldEdit is the selected source
+- Made settings scrollable and added a read-only preset list with bounds, group state and filter details
+- Applied the changes to Minecraft 1.20.1, 1.21.1 and 26.2
+
 ## 1.10.16
 
 - Unified region creation under /sr create (/sr c); removed /sr save (/sr s).
