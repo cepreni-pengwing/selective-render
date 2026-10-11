@@ -39,8 +39,9 @@ abstract class BlockRendererMixin {
     @Unique private static final ThreadLocal<Boolean> selectiverender$solidColor =
             ThreadLocal.withInitial(() -> false);
 
+    // Sodium methods are not remapped; their Minecraft descriptor types use intermediary names in release JARs.
     @Redirect(method = "renderModel", at = @At(value = "INVOKE",
-            target = "Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/DefaultMaterials;forBlockState(Lnet/minecraft/block/BlockState;)Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/Material;"))
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/DefaultMaterials;forBlockState(Lnet/minecraft/class_2680;)Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/Material;"))
     private Material selectiverender$material(BlockState state, BlockRenderContext context, ChunkBuildBuffers buffers) {
         return BoundaryColorTexture.translucent(context.pos())
                 ? me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.TRANSLUCENT
@@ -96,7 +97,7 @@ abstract class BlockRendererMixin {
     }
 
     @Redirect(method = "renderQuadList", at = @At(value = "INVOKE",
-            target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getSprite()Lnet/minecraft/client/texture/Sprite;"))
+            target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getSprite()Lnet/minecraft/class_1058;"))
     private net.minecraft.client.texture.Sprite selectiverender$boundarySprite(BakedQuadView quad) {
         return selectiverender$solidColor.get() ? BoundaryColorTexture.sprite(selectiverender$textured.get()) : quad.getSprite();
     }

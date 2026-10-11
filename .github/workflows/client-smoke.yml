@@ -36,20 +36,6 @@ jobs:
             build: ./gradlew -p versions/mc1.21.1 build --stacktrace
             jar_dir: versions/mc1.21.1/build/libs
             sodium: mc1.21.1-0.8.13-fabric
-          - minecraft: 1.20.1
-            profile: vanilla-indigo
-            java: 17
-            fabric_api: 0.92.2
-            build: ./gradlew build --stacktrace
-            jar_dir: build/libs
-            sodium: ''
-          - minecraft: 1.21.1
-            profile: vanilla-indigo
-            java: 21
-            fabric_api: 0.116.17
-            build: ./gradlew -p versions/mc1.21.1 build --stacktrace
-            jar_dir: versions/mc1.21.1/build/libs
-            sodium: ''
           - minecraft: 26.2
             profile: baseline
             java: 25
