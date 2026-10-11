@@ -58,6 +58,6 @@ public final class BoundaryGeometry {
                 || SelectiveRenderState.isActivelyHidden(outsideX, outsideY, outsideZ)) {
             return SelectiveRenderSettings.BoundaryMode.NORMAL;
         }
-        return SelectiveRenderSettings.boundaryMode();
+        return SelectiveRenderState.boundaryModeAt(insideX, insideY, insideZ);
     }
 }

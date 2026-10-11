@@ -10,6 +10,8 @@ Fabric Loader, Fabric API, and Sodium are required. Iris is optional. Install th
 
 Use `/sr` or `/selectiverender`. Commands without a listed key have no dedicated default binding.
 
+This table covers the latest mod version on GitHub. Commands may differ in older versions.
+
 <table>
 <thead><tr><th>Alias</th><th>Expanded command</th><th>Purpose</th><th>Key</th></tr></thead>
 <tbody>
@@ -50,11 +52,3 @@ The [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots)
 For detailed setup, settings, limitations, and contribution information, see the [GitHub README](https://github.com/cepreni-pengwing/selective-render#readme). Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only.
-
-Choose **SR positions** or **WorldEdit** as the selection source in settings. With WorldEdit selected, SR position commands are unavailable. Explicit coordinates still work.
-
-Filters accept block IDs or tags prefixed with `#`. Add several at once by separating them with commas. Hidden regions can also have filters: active hiding overrides them, and switching hiding off restores their usual behavior.
-
-Settings are organized into **General**, **Regions**, **Interactions**, **Boundaries**, and **Plots** tabs. Option labels, buttons and input boxes share a row where space allows. Content scrolls with the mouse wheel or Page Up/Page Down when needed. One virtual-skylight option applies to all region types. **Interactions** controls which blocks you can target, including hidden content and behavior while rendering is off. **Boundaries** also lets you hide cut fluid surfaces, including water, lava, and supported modded fluids.
-
-**Regions** groups your world's or server's saved regions by dimension. Select a region to rename it, switch between rendering and hiding, or select/deselect it. Buttons apply immediately; confirm typed values with Enter or by leaving the input box. Expand **Bounding boxes** to inspect its bounds and edit the corners when there is exactly one box. Expand **Filters** to add, edit or remove block filters, with Tab completion for IDs and tags. No separate save button is needed.

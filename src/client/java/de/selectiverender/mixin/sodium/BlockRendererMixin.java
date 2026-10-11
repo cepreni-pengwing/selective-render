@@ -52,8 +52,7 @@ abstract class BlockRendererMixin {
                                                     CallbackInfoReturnable<int[]> cir) {
         if (selectiverender$solidColor.get()) selectiverender$solidColor.set(false);
         if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
+                || !de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK)) return;
         SelectiveRenderSettings.BoundaryMode extensionMode =
                 selectiverender$boundaryMode(context, quad);
         if (extensionMode == SelectiveRenderSettings.BoundaryMode.BLACK) {
@@ -80,8 +79,7 @@ abstract class BlockRendererMixin {
                                                         int[] colors, QuadLightData light,
                                                         CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.CULLED) return;
+                || !de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED)) return;
         if (selectiverender$boundaryMode(context, quad)
                 == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
     }
@@ -106,8 +104,7 @@ abstract class BlockRendererMixin {
                                                 List<BakedQuad> quads, Direction direction,
                                                 CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
+                || !de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK)) return;
         selectiverender$quadDirection.set(direction);
     }
 

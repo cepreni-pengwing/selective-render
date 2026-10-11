@@ -37,7 +37,7 @@ abstract class BlockModelRendererMixin {
             return;
         }
         SelectiveRenderSettings.BoundaryMode configuredMode =
-                SelectiveRenderSettings.boundaryMode();
+                SelectiveRenderState.boundaryModeAt(pos.getX(), pos.getY(), pos.getZ());
         if (configuredMode == SelectiveRenderSettings.BoundaryMode.NORMAL) {
             if (selectiverender$coloredBoundary.get()) selectiverender$coloredBoundary.set(false);
             return;

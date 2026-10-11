@@ -11,7 +11,7 @@ public final class FluidBoundaryPolicy {
 
     public static boolean shouldCull(BlockView world, BlockPos position,
                                      FluidState fluidState, Direction face) {
-        if (!SelectiveRenderSettings.cullFluidBoundaryFaces()
+        if (!SelectiveRenderState.cullFluidsAt(position.getX(), position.getY(), position.getZ())
                 || !SelectiveRenderState.filteringActive()
                 || fluidState.isEmpty()) return false;
         if (face == Direction.UP && fluidState.getHeight(world, position) < 0.9999f) return false;

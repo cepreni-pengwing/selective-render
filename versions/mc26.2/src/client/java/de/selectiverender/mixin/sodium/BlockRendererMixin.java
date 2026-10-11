@@ -35,7 +35,7 @@ abstract class BlockRendererMixin {
     @Inject(method = "processQuad", at = @At("HEAD"), cancellable = true)
     private void selectiverender$boundary(MutableQuadViewImpl quad, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode() == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
+                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
         var mode = selectiverender$boundaryMode(quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();

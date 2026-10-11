@@ -95,7 +95,7 @@ public final class PlotSquaredClient {
     }
 
     public static int toggle() {
-        return toggle(SelectiveRenderSettings.defaultPlotMinY(), DEFAULT_MAX_Y, 0);
+        return toggle(SelectiveRenderSettings.defaultPlotMinY(), SelectiveRenderSettings.defaultPlotMaxY(), 0);
     }
 
     public static int toggle(int minY, int maxY, int xzMargin) {

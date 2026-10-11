@@ -51,7 +51,7 @@ abstract class BlockModelRendererMixin {
     private void selectiverender$boundary(BlockQuadOutput output, float x, float y, float z,
             BlockAndTintGetter world, BlockState state, BlockPos pos, BakedQuad quad, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode() == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
+                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
         var mode = BoundaryGeometry.boundaryModeForQuad(pos, quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
         if (mode == SelectiveRenderSettings.BoundaryMode.BLACK) {

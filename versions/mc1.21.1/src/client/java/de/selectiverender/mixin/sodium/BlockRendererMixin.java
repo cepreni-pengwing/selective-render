@@ -33,8 +33,7 @@ abstract class BlockRendererMixin {
     @Inject(method = "processQuad", at = @At("HEAD"), cancellable = true)
     private void selectiverender$applyBoundaryMode(MutableQuadViewImpl quad, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || SelectiveRenderSettings.boundaryMode()
-                == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
+                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
 
         float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
         float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;

@@ -294,7 +294,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
                         .executes(context -> PlotSquaredClient.toggle(
                                 IntegerArgumentType.getInteger(context, "minY"),
-                                PlotSquaredClient.DEFAULT_MAX_Y, 0))
+                                SelectiveRenderSettings.defaultPlotMaxY(), 0))
                         .then(ClientCommandManager.argument("maxY", IntegerArgumentType.integer())
                                 .executes(context -> PlotSquaredClient.toggle(
                                         IntegerArgumentType.getInteger(context, "minY"),
@@ -313,12 +313,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommandManager.argument("name", StringArgumentType.word())
                         .executes(context -> PlotSquaredClient.save(
                                 StringArgumentType.getString(context, "name"),
-                                SelectiveRenderSettings.defaultPlotMinY(), PlotSquaredClient.DEFAULT_MAX_Y, 0))
+                                SelectiveRenderSettings.defaultPlotMinY(), SelectiveRenderSettings.defaultPlotMaxY(), 0))
                         .then(ClientCommandManager.argument("minY", IntegerArgumentType.integer())
                                 .executes(context -> PlotSquaredClient.save(
                                         StringArgumentType.getString(context, "name"),
                                         IntegerArgumentType.getInteger(context, "minY"),
-                                        PlotSquaredClient.DEFAULT_MAX_Y, 0))
+                                        SelectiveRenderSettings.defaultPlotMaxY(), 0))
                                 .then(ClientCommandManager.argument("maxY", IntegerArgumentType.integer())
                                         .executes(context -> PlotSquaredClient.save(
                                                 StringArgumentType.getString(context, "name"),

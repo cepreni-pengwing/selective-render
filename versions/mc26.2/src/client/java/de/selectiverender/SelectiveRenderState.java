@@ -341,15 +341,35 @@ public final class SelectiveRenderState {
         };
     }
 
+    public static SelectiveRenderSettings.BoundaryMode boundaryModeAt(int x, int y, int z) {
+        var value = SelectiveRenderConfig.boundaryOverrideAt(x, y, z);
+        return value == null ? SelectiveRenderSettings.boundaryMode() : value;
+    }
+    public static boolean cullFluidsAt(int x, int y, int z) {
+        var value = SelectiveRenderConfig.fluidOverrideAt(x, y, z);
+        return value == null ? SelectiveRenderSettings.cullFluidBoundaryFaces() : value;
+    }
     public static boolean shouldInteract(BlockPos position) {
-        boolean interactWithHidden = SelectiveRenderSettings.interactWithHiddenRegions();
-        boolean hidden = isActivelyHidden(position);
-        boolean filteredOut = !interactWithHidden && !hidden && isFilteredOut(position);
-        if (!InteractionPolicy.allowsHiddenBlock(hidden, filteredOut, interactWithHidden)) return false;
-        SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
-        if (!interactionFilteringActive(mode)) return true;
-        return InteractionPolicy.allows(mode,
-                interactionInside(position.getX(), position.getY(), position.getZ()));
+        int x = position.getX(), y = position.getY(), z = position.getZ();
+        RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
+        boolean hiddenAllowed = options.hiddenInteractions() == null
+                ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
+        if (!InteractionPolicy.allowsHiddenBlock(isActivelyHidden(position),
+                !hiddenAllowed && isFilteredOut(position), hiddenAllowed)) return false;
+        return allowsInteractionAt(options, x, y, z, hiddenAllowed);
+    }
+    private static boolean allowsInteractionAt(RegionOptions options, int x, int y, int z, boolean hiddenAllowed) {
+        var mode = options.interactions() == null ? SelectiveRenderSettings.interactionMode() : options.interactions();
+        boolean inactive = options.inactiveInteractions() == null
+                ? SelectiveRenderSettings.filterInteractionsWhenInactive() : options.inactiveInteractions();
+        VisibilitySnapshot snapshot = visibility;
+        if (!InteractionPolicy.active(mode, snapshot.enabled() || snapshot.hideEnabled(), inactive,
+                snapshot.plotModeActive() ? !snapshot.plotRegions().isEmpty() : SelectiveRenderConfig.hasSavedRegions())) return true;
+        boolean inside = snapshot.enabled() || snapshot.hideEnabled()
+                ? shouldRender(snapshot, x, y, z) || (hiddenAllowed && snapshot.hiddenRegionIndex().contains(x, y, z))
+                : snapshot.plotModeActive() ? snapshot.activeRegionIndex().contains(x, y, z)
+                : SelectiveRenderConfig.containsSavedRegion(x, y, z, hiddenAllowed);
+        return InteractionPolicy.allows(mode, inside);
     }
 
     private static boolean isFilteredOut(BlockPos position) {
@@ -373,36 +393,12 @@ public final class SelectiveRenderState {
     }
 
     public static boolean shouldInteract(Entity entity) {
-        VisibilitySnapshot snapshot = visibility;
-        if (snapshot.hideEnabled() && snapshot.hiddenRegionIndex().contains(
-                Mth.floor(entity.getX()), Mth.floor(entity.getY()), Mth.floor(entity.getZ()))
-                && !SelectiveRenderSettings.interactWithHiddenRegions()) return false;
-        SelectiveRenderSettings.InteractionMode mode = SelectiveRenderSettings.interactionMode();
-        if (!interactionFilteringActive(mode)) return true;
-        return InteractionPolicy.allows(mode, interactionInside(Mth.floor(entity.getX()),
-                Mth.floor(entity.getY()), Mth.floor(entity.getZ())));
-    }
-
-    private static boolean interactionFilteringActive(SelectiveRenderSettings.InteractionMode mode) {
-        VisibilitySnapshot snapshot = visibility;
-        return InteractionPolicy.active(mode, snapshot.enabled() || snapshot.hideEnabled(),
-                SelectiveRenderSettings.filterInteractionsWhenInactive(),
-                snapshot.plotModeActive() ? !snapshot.plotRegions().isEmpty()
-                        : SelectiveRenderConfig.hasSavedRegions());
-    }
-
-    private static boolean interactionInside(int blockX, int blockY, int blockZ) {
-        VisibilitySnapshot snapshot = visibility;
-        if (snapshot.enabled() || snapshot.hideEnabled()) {
-            return shouldRender(snapshot, blockX, blockY, blockZ)
-                    || (SelectiveRenderSettings.interactWithHiddenRegions()
-                    && snapshot.hiddenRegionIndex().contains(blockX, blockY, blockZ));
-        }
-        if (snapshot.plotModeActive()) {
-            return snapshot.activeRegionIndex().contains(blockX, blockY, blockZ);
-        }
-        return SelectiveRenderConfig.containsSavedRegion(blockX, blockY, blockZ,
-                SelectiveRenderSettings.interactWithHiddenRegions());
+        int x = Mth.floor(entity.getX()), y = Mth.floor(entity.getY()), z = Mth.floor(entity.getZ());
+        RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
+        boolean hiddenAllowed = options.hiddenInteractions() == null
+                ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
+        if (isActivelyHidden(x, y, z) && !hiddenAllowed) return false;
+        return allowsInteractionAt(options, x, y, z, hiddenAllowed);
     }
 
     public static boolean shouldSeedVirtualSkyColumn(boolean visibleColumn) {
@@ -454,7 +450,7 @@ public final class SelectiveRenderState {
             BlockPos position, Direction direction) {
         BlockPos neighbor = position.relative(direction);
         if (isActivelyHidden(neighbor)) return SelectiveRenderSettings.BoundaryMode.NORMAL;
-        return SelectiveRenderSettings.boundaryMode();
+        return boundaryModeAt(position.getX(), position.getY(), position.getZ());
     }
 
     public static List<BlockRegion> borderRegions() {

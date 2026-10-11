@@ -34,6 +34,8 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private final List<Row> rows = new ArrayList<>();
     private TextFieldWidget reloadField;
     private TextFieldWidget plotHeightField;
+    private TextFieldWidget plotMaximumField;
+    private boolean maximumWasFocused;
     private boolean reloadWasFocused, heightWasFocused;
 
     public SelectiveRenderSettingsScreen(Screen parent) {
@@ -52,7 +54,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     protected void init() {
         reloadWasFocused = false; heightWasFocused = false;
         reloadField = null;
-        plotHeightField = null;
+        plotHeightField = null; plotMaximumField = null; maximumWasFocused = false;
         rows.clear();
         captions.clear();
         paneWidth = SettingsViewport.of(width, height, 0, 0).paneWidth();
@@ -80,13 +82,14 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 TextFieldWidget field = new TextFieldWidget(textRenderer,
                         paneLeft + labelWidth, y, valueWidth, 20, Text.literal(row.label()));
                 field.setMaxLength(11);
-                boolean signed = row.numeric() == 2;
+                boolean signed = row.numeric() >= 2;
                 field.setTextPredicate(value -> value.isEmpty() || (signed && value.equals("-"))
                         || value.matches(signed ? "-?[0-9]+" : "[0-9]+"));
-                field.setText(Integer.toString(signed ? SelectiveRenderSettings.defaultPlotMinY()
+                field.setText(Integer.toString(row.numeric() == 3 ? SelectiveRenderSettings.defaultPlotMaxY() : signed ? SelectiveRenderSettings.defaultPlotMinY()
                         : SelectiveRenderSettings.fullReloadThreshold()));
                 addDrawableChild(field);
-                if (signed) plotHeightField = field;
+                if (row.numeric() == 3) plotMaximumField = field;
+                else if (signed) plotHeightField = field;
                 else reloadField = field;
             } else if (!row.choices().isEmpty()) {
                 int count = row.choices().size();
@@ -156,11 +159,14 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                         SelectiveRenderSettings.cullFluidBoundaryFaces() ? 1 : 0,
                         i -> SelectiveRenderSettings.setCullFluidBoundaryFaces(i == 1));
             }
-            case PLOTS -> rows.add(new Row("Default plot minimum Y", List.of(), 2));
+            case PLOTS -> {
+                rows.add(new Row("Default plot minimum Y", List.of(), 2));
+                rows.add(new Row("Default plot maximum Y", List.of(), 3));
+            }
         }
     }
 
-    private static boolean signedNumeric(Row row) { return row.numeric() == 2; }
+    private static boolean signedNumeric(Row row) { return row.numeric() >= 2; }
 
     private void label(String text) {
         rows.add(new Row(text, List.of(), 0));
@@ -204,16 +210,17 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private boolean applyNumericSettings() {
-        return commitNumber(reloadField, false) && commitNumber(plotHeightField, true);
+        return commitNumber(reloadField, false) && commitNumber(plotHeightField, true) && commitNumber(plotMaximumField, true);
     }
 
     private boolean commitNumber(TextFieldWidget field, boolean plot) {
         if (field == null) return true;
         try {
             int value = Integer.parseInt(field.getText());
-            if (plot) SelectiveRenderSettings.setDefaultPlotMinY(value);
+            if (field == plotMaximumField) SelectiveRenderSettings.setDefaultPlotMaxY(value);
+            else if (plot) SelectiveRenderSettings.setDefaultPlotMinY(value);
             else SelectiveRenderSettings.setFullReloadThreshold(value);
-            field.setText(Integer.toString(plot ? SelectiveRenderSettings.defaultPlotMinY() : SelectiveRenderSettings.fullReloadThreshold()));
+            field.setText(Integer.toString(field == plotMaximumField ? SelectiveRenderSettings.defaultPlotMaxY() : plot ? SelectiveRenderSettings.defaultPlotMinY() : SelectiveRenderSettings.fullReloadThreshold()));
             field.setEditableColor(0xFFFFFF);
             return true;
         } catch (NumberFormatException error) {
@@ -237,6 +244,10 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             if (!commitNumber(plotHeightField, true)) return false;
             setFocused(null);
         }
+        if (plotMaximumField != null && plotMaximumField.isFocused() && !plotMaximumField.isMouseOver(x, y)) {
+            if (!commitNumber(plotMaximumField, true)) return false;
+            setFocused(null);
+        }
         return true;
     }
 
@@ -251,12 +262,17 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             if (heightWasFocused && !plotHeightField.isFocused() && !commitNumber(plotHeightField, true)) setFocused(plotHeightField);
             heightWasFocused = plotHeightField.isFocused();
         }
+        if (plotMaximumField != null) {
+            if (maximumWasFocused && !plotMaximumField.isFocused() && !commitNumber(plotMaximumField, true)) setFocused(plotMaximumField);
+            maximumWasFocused = plotMaximumField.isFocused();
+        }
     }
 
     private boolean scrollKey(int key) {
         if (key != 266 && key != 267 && key != 268 && key != 269) return false;
         if ((reloadField != null && reloadField.isFocused())
-                || (plotHeightField != null && plotHeightField.isFocused())) return false;
+                || (plotHeightField != null && plotHeightField.isFocused())
+                || (plotMaximumField != null && plotMaximumField.isFocused())) return false;
         int maximum = Math.max(0, rows.size() - visibleRows);
         int next = key == 268 ? 0 : key == 269 ? maximum
                 : Math.max(0, Math.min(maximum, scroll + (key == 266 ? -visibleRows : visibleRows)));
@@ -275,10 +291,15 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 plotHeightField.setText(Integer.toString(SelectiveRenderSettings.defaultPlotMinY()));
                 setFocused(null); return true;
             }
+            if (plotMaximumField != null && plotMaximumField.isFocused()) {
+                plotMaximumField.setText(Integer.toString(SelectiveRenderSettings.defaultPlotMaxY()));
+                setFocused(null); return true;
+            }
         }
         if (keyCode == 257 || keyCode == 335) {
             if (reloadField != null && reloadField.isFocused()) { commitNumber(reloadField, false); return true; }
             if (plotHeightField != null && plotHeightField.isFocused()) { commitNumber(plotHeightField, true); return true; }
+            if (plotMaximumField != null && plotMaximumField.isFocused()) { commitNumber(plotMaximumField, true); return true; }
         }
         return scrollKey(keyCode) || super.keyPressed(keyCode, scanCode, modifiers);
     }

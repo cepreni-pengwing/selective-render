@@ -36,6 +36,7 @@ public final class SelectiveRenderSettings {
     private static volatile boolean interactWithHiddenRegions;
     private static volatile VirtualLightMode virtualLightMode = VirtualLightMode.BOTH;
     private static volatile int fullReloadThreshold = DEFAULT_FULL_RELOAD_THRESHOLD;
+    private static volatile int defaultPlotMaxY = 400;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
     private SelectiveRenderSettings() { }
@@ -68,6 +69,7 @@ public final class SelectiveRenderSettings {
                 ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
         boolean migrateLegacyPlotMinimum = stored.formatVersion < SETTINGS_FORMAT_VERSION
                 && stored.defaultPlotMinY != null && stored.defaultPlotMinY == -100;
+        defaultPlotMaxY = stored.defaultPlotMaxY == null ? 400 : stored.defaultPlotMaxY;
         defaultPlotMinY = stored.defaultPlotMinY == null || migrateLegacyPlotMinimum
                 ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
         if (recovery.recoveredFromBackup() || stored.formatVersion < SETTINGS_FORMAT_VERSION) save(false);
@@ -92,6 +94,7 @@ public final class SelectiveRenderSettings {
     public static VirtualLightMode virtualLightMode() { return virtualLightMode; }
     public static VirtualLightMode hiddenVirtualLightMode() { return virtualLightMode; }
     public static int fullReloadThreshold() { return fullReloadThreshold; }
+    public static int defaultPlotMaxY() { return defaultPlotMaxY; }
     public static int defaultPlotMinY() { return defaultPlotMinY; }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
@@ -175,6 +178,11 @@ public final class SelectiveRenderSettings {
         save();
     }
 
+    public static void setDefaultPlotMaxY(int value) {
+        if (defaultPlotMaxY == value) return;
+        defaultPlotMaxY = value;
+        save();
+    }
     public static void setDefaultPlotMinY(int value) {
         if (defaultPlotMinY == value) return;
         defaultPlotMinY = value;
@@ -207,6 +215,7 @@ public final class SelectiveRenderSettings {
             stored.virtualLightMode = virtualLightMode;
             stored.hiddenVirtualLightMode = virtualLightMode; // Retain downgrade compatibility.
             stored.fullReloadThreshold = fullReloadThreshold;
+            stored.defaultPlotMaxY = defaultPlotMaxY;
             stored.defaultPlotMinY = defaultPlotMinY;
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
@@ -322,5 +331,6 @@ public final class SelectiveRenderSettings {
         VirtualLightMode hiddenVirtualLightMode;
         int fullReloadThreshold;
         Integer defaultPlotMinY;
+        Integer defaultPlotMaxY;
     }
 }

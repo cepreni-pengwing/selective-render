@@ -24,8 +24,7 @@ abstract class AbstractBlockRenderContextMixin {
     private void selectiverender$cullTransformedBoundaryExtension(@Coerce Object rawQuad,
                                                                   boolean vanillaModel,
                                                                   CallbackInfo ci) {
-        if (SelectiveRenderSettings.boundaryMode()
-                != SelectiveRenderSettings.BoundaryMode.CULLED) return;
+        if (!de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED)) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
@@ -36,7 +35,7 @@ abstract class AbstractBlockRenderContextMixin {
     @Inject(method = "colorizeQuad", at = @At("RETURN"), require = 0)
     private void selectiverender$colorBoundaryFace(@Coerce Object rawQuad, int colorIndex,
                                                     CallbackInfo ci) {
-        if (SelectiveRenderSettings.boundaryMode() != SelectiveRenderSettings.BoundaryMode.BLACK) return;
+        if (!de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK)) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;

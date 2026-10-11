@@ -9,8 +9,14 @@ import java.util.Set;
 /** Immutable, dimension-local editor snapshot; never changes the live renderer itself. */
 record RegionDocument(String dimension, Map<String, List<BlockRegion>> regions,
                       Set<String> selected, Set<String> hidden, Set<String> selectedHidden,
-                      Map<String, List<BlockFilterRule>> filters, boolean rendering, boolean hiding) {
+                      Map<String, List<BlockFilterRule>> filters, boolean rendering, boolean hiding, Map<String, RegionOptions> options) {
+    RegionDocument(String dimension, Map<String, List<BlockRegion>> regions,
+                   Set<String> selected, Set<String> hidden, Set<String> selectedHidden,
+                   Map<String, List<BlockFilterRule>> filters, boolean rendering, boolean hiding) {
+        this(dimension, regions, selected, hidden, selectedHidden, filters, rendering, hiding, Map.of());
+    }
     RegionDocument {
+        options = java.util.Collections.unmodifiableMap(new LinkedHashMap<>(options));
         Map<String, List<BlockRegion>> boxes = new LinkedHashMap<>();
         regions.forEach((name, value) -> boxes.put(name, List.copyOf(value)));
         regions = java.util.Collections.unmodifiableMap(boxes);
@@ -51,8 +57,11 @@ record RegionDocument(String dimension, Map<String, List<BlockRegion>> regions,
         Map<String, List<BlockFilterRule>> nextFilters = new LinkedHashMap<>(filters);
         nextFilters.remove(oldName);
         if (!rules.isEmpty()) nextFilters.put(newName, List.copyOf(new LinkedHashSet<>(rules)));
+        Map<String, RegionOptions> nextOptions = new LinkedHashMap<>(options);
+        RegionOptions oldOptions = nextOptions.remove(oldName);
+        if (oldOptions != null) nextOptions.put(newName, oldOptions);
         return new RegionDocument(dimension, nextRegions, nextSelected, nextHidden, nextSelectedHidden,
-                nextFilters, rendering, hiding);
+                nextFilters, rendering, hiding, nextOptions);
     }
 
     static BlockRegion corner(BlockRegion old, String text, boolean minimum) {

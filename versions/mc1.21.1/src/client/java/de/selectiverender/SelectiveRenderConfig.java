@@ -33,6 +33,18 @@ public final class SelectiveRenderConfig {
     private static final LinkedHashSet<String> ACTIVE_REGIONS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> HIDDEN_REGIONS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> ACTIVE_HIDDEN_REGIONS = new LinkedHashSet<>();
+    private static final Map<String, RegionOptions> OPTIONS = new LinkedHashMap<>();
+    private static volatile RegionPolicyIndex policyIndex = RegionPolicyIndex.of(Map.of(), Map.of());
+    public static RegionOptions optionsAt(int x, int y, int z) { return policyIndex.optionsAt(x, y, z); }
+    public static SelectiveRenderSettings.BoundaryMode boundaryOverrideAt(int x, int y, int z) { return policyIndex.boundaryOverrideAt(x, y, z); }
+    public static Boolean fluidOverrideAt(int x, int y, int z) { return policyIndex.fluidOverrideAt(x, y, z); }
+    public static boolean hasBoundaryMode(SelectiveRenderSettings.BoundaryMode mode) {
+        RegionPolicyIndex index = policyIndex;
+        return SelectiveRenderSettings.boundaryMode() == mode
+                || (mode == SelectiveRenderSettings.BoundaryMode.BLACK && index.blackOverride)
+                || (mode == SelectiveRenderSettings.BoundaryMode.CULLED && index.culledOverride);
+    }
+
     private static final Map<String, LinkedHashSet<BlockFilterRule>> FILTERS = new LinkedHashMap<>();
     private static boolean groupEnabled;
     private static boolean hideGroupEnabled = true;
@@ -147,6 +159,7 @@ public final class SelectiveRenderConfig {
         HIDDEN_REGIONS.remove(name);
         ACTIVE_HIDDEN_REGIONS.remove(name);
         FILTERS.remove(name);
+        OPTIONS.remove(name);
         ACTIVE_REGIONS.add(name);
         groupEnabled = true;
         applyState();
@@ -227,6 +240,7 @@ public final class SelectiveRenderConfig {
         HIDDEN_REGIONS.remove(name);
         ACTIVE_HIDDEN_REGIONS.remove(name);
         FILTERS.remove(name);
+        OPTIONS.remove(name);
         applyState();
         write(client);
         return true;
@@ -243,6 +257,8 @@ public final class SelectiveRenderConfig {
 
         List<BlockRegion> regions = REGIONS.remove(oldName);
         REGIONS.put(newName, regions);
+        RegionOptions renamedOptions = OPTIONS.remove(oldName);
+        if (renamedOptions != null) OPTIONS.put(newName, renamedOptions);
         LinkedHashSet<BlockFilterRule> rules = FILTERS.remove(oldName);
         if (rules != null) FILTERS.put(newName, rules);
         RegionGroupLogic.replaceMembership(ACTIVE_REGIONS, oldName, newName);
@@ -349,6 +365,8 @@ public final class SelectiveRenderConfig {
         HIDDEN_REGIONS.clear();
         ACTIVE_HIDDEN_REGIONS.clear();
         FILTERS.clear();
+        OPTIONS.clear();
+        policyIndex = RegionPolicyIndex.of(Map.of(), Map.of());
         groupEnabled = false;
         hideGroupEnabled = true;
         allNormalRegionIndex = RegionIndex.empty();
@@ -429,6 +447,7 @@ public final class SelectiveRenderConfig {
         stored.hideEnabled = hideGroupEnabled;
         stored.regionGroups = new LinkedHashMap<>();
         REGIONS.forEach((name, boxes) -> stored.regionGroups.put(name, boxes.stream().map(StoredRegion::from).toList()));
+        stored.regionOptions = new LinkedHashMap<>(OPTIONS);
         stored.blockFilters = new LinkedHashMap<>();
         FILTERS.forEach((name, rules) -> stored.blockFilters.put(name, rules.stream().map(StoredBlockFilter::from).toList()));
         return stored;
@@ -474,12 +493,18 @@ public final class SelectiveRenderConfig {
             if (regions.containsKey(normalize(name))) rules.put(normalize(name), filters.stream().map(StoredBlockFilter::toRule).toList());
         });
         return new RegionDocument(dimension, regions, selected, hidden, selectedHidden, rules,
-                stored.enabled, stored.formatVersion >= 5 ? stored.hideEnabled : true);
+                stored.enabled, stored.formatVersion >= 5 ? stored.hideEnabled : true,
+                stored.regionOptions == null ? Map.of() : stored.regionOptions);
     }
 
     /** Validate/write first. Only edits to the current dimension may refresh live rendering. */
     static void editRegion(MinecraftClient client, String dimension, String oldName, String newName,
                            List<BlockRegion> boxes, boolean hidden, boolean selected, List<BlockFilterRule> rules) {
+        editRegion(client, dimension, oldName, newName, boxes, hidden, selected, rules, null);
+    }
+    static void editRegion(MinecraftClient client, String dimension, String oldName, String newName,
+                           List<BlockRegion> boxes, boolean hidden, boolean selected, List<BlockFilterRule> rules,
+                           RegionOptions options) {
         RegionDocument current = editorDocument(client, dimension);
         if (current == null) throw new IllegalArgumentException("The region file is no longer available");
         RegionDocument edited = current.edit(oldName, newName, boxes, hidden, selected, rules);
@@ -487,6 +512,8 @@ public final class SelectiveRenderConfig {
         stored.formatVersion = 8;
         stored.ownerHash = sha256(sessionOwner);
         stored.dimension = dimension;
+        stored.regionOptions = new LinkedHashMap<>(edited.options());
+        if (options != null) stored.regionOptions.put(newName.trim().toLowerCase(java.util.Locale.ROOT), options);
         stored.enabled = edited.rendering();
         stored.hideEnabled = edited.hiding();
         stored.activeRegions = List.copyOf(edited.selected());
@@ -504,6 +531,12 @@ public final class SelectiveRenderConfig {
             reset();
             applyStoredConfig(stored);
             SelectiveRenderState.refreshChange(previous);
+            RegionOptions before = current.options().getOrDefault(oldName, RegionOptions.DEFAULT);
+            RegionOptions after = stored.regionOptions.getOrDefault(newName.trim().toLowerCase(java.util.Locale.ROOT), RegionOptions.DEFAULT);
+            if (SelectiveRenderState.filteringActive() && (before.boundary() != after.boundary()
+                    || !java.util.Objects.equals(before.cullFluids(), after.cullFluids()))) {
+                SelectiveRenderState.refreshVisibilityRegions(boxes);
+            }
         }
     }
 
@@ -532,6 +565,7 @@ public final class SelectiveRenderConfig {
 
     private static void applyState(boolean refresh) {
         VisibilitySnapshot previous = SelectiveRenderState.snapshot();
+        policyIndex = RegionPolicyIndex.of(REGIONS, OPTIONS);
         LinkedHashSet<String> visibleOverrides = new LinkedHashSet<>(HIDDEN_REGIONS);
         if (hideGroupEnabled) visibleOverrides.removeAll(ACTIVE_HIDDEN_REGIONS);
         LinkedHashSet<String> normalRegions = new LinkedHashSet<>(REGIONS.keySet());
@@ -564,7 +598,7 @@ public final class SelectiveRenderConfig {
         java.util.ArrayList<FilteredRegion> result = new java.util.ArrayList<>();
         for (Map.Entry<String, LinkedHashSet<BlockFilterRule>> entry : FILTERS.entrySet()) {
             String name = entry.getKey();
-            if (entry.getValue().isEmpty()) continue;
+            if (entry.getValue().isEmpty() || !OPTIONS.getOrDefault(name, RegionOptions.DEFAULT).filtersActive()) continue;
             for (BlockRegion region : REGIONS.getOrDefault(name, List.of())) {
                 result.add(new FilteredRegion(region, entry.getValue()));
             }
@@ -610,6 +644,8 @@ public final class SelectiveRenderConfig {
 
     private static void applyStoredConfig(StoredConfig stored) {
         FILTERS.clear();
+        OPTIONS.clear();
+        policyIndex = RegionPolicyIndex.of(Map.of(), Map.of());
         if (stored.formatVersion >= 7 && stored.regionGroups != null) {
             stored.regionGroups.forEach((name, regions) -> {
                 if (name != null && regions != null && !regions.isEmpty()) {
@@ -628,6 +664,9 @@ public final class SelectiveRenderConfig {
             REGIONS.put("default", List.of(StoredRegion.fromLegacyChunks(
                     stored.minX, stored.maxX, stored.minZ, stored.maxZ)));
         }
+        if (stored.regionOptions != null) stored.regionOptions.forEach((name, options) -> {
+            if (name != null && options != null && REGIONS.containsKey(normalize(name))) OPTIONS.put(normalize(name), options);
+        });
         if (stored.formatVersion >= 8 && stored.blockFilters != null) {
             stored.blockFilters.forEach((name, rules) -> {
                 if (name == null || rules == null || !REGIONS.containsKey(normalize(name))) return;
@@ -663,6 +702,9 @@ public final class SelectiveRenderConfig {
     }
 
     private static void validateStoredConfig(StoredConfig stored) {
+        if (stored.regionOptions != null) stored.regionOptions.forEach((name, value) -> {
+            if (name == null || value == null) throw new IllegalArgumentException("Invalid region options");
+        });
         // Validate before accepting the primary file, so semantic corruption also tries .bak.
         if (stored.formatVersion >= 7 && stored.regionGroups != null) {
             stored.regionGroups.forEach((name, regions) -> {
@@ -720,6 +762,7 @@ public final class SelectiveRenderConfig {
         Map<String, StoredRegion> regions;
         Map<String, List<StoredRegion>> regionGroups;
         Map<String, List<StoredBlockFilter>> blockFilters;
+        Map<String, RegionOptions> regionOptions;
         int formatVersion;
         @SerializedName("activePreset")
         String activeRegion;
