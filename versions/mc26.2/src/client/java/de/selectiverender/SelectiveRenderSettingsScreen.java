@@ -160,6 +160,9 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 options("Boundary faces", java.util.Arrays.stream(boundaries).map(value -> value.label()).toArray(String[]::new),
                         SelectiveRenderSettings.boundaryMode().ordinal(),
                         i -> SelectiveRenderSettings.setBoundaryMode(boundaries[i]));
+                rows.add(new Row("Appearance", List.of(new Choice("Color / texture / opacity...", false,
+                        () -> minecraft.gui.setScreen(new BoundaryAppearanceScreen(this)),
+                        "Choose a boundary color, loaded block texture and opacity. Appearance is shared by regional mode overrides.")), 0, optionLabelWidth()));
                 options("Cull fluid boundaries", new String[]{"Off", "On"},
                         SelectiveRenderSettings.cullFluidBoundaryFaces() ? 1 : 0,
                         i -> SelectiveRenderSettings.setCullFluidBoundaryFaces(i == 1));

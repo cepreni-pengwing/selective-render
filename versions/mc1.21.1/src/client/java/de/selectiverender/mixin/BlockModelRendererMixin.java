@@ -21,6 +21,7 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(BlockModelRenderer.class)
 abstract class BlockModelRendererMixin {
+    @Unique private static final ThreadLocal<Boolean> selectiverender$texturedBoundary = ThreadLocal.withInitial(() -> false);
     @Unique private static final ThreadLocal<Boolean> selectiverender$coloredBoundary =
             ThreadLocal.withInitial(() -> false);
 
@@ -57,27 +58,32 @@ abstract class BlockModelRendererMixin {
             ci.cancel();
             return;
         }
-        selectiverender$coloredBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.BLACK);
+        selectiverender$coloredBoundary.set(BoundaryColorTexture.custom(mode));
+        selectiverender$texturedBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
     }
 
     @ModifyArgs(method = "renderQuad", at = @At(value = "INVOKE",
-            target = "Lnet/minecraft/client/render/VertexConsumer;quad(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/render/model/BakedQuad;[FFFF[IIZ)V"))
+            target = "Lnet/minecraft/client/render/VertexConsumer;quad(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/render/model/BakedQuad;[FFFFF[IIZ)V"))
     private void selectiverender$colorBoundaryQuad(Args args) {
         if (!selectiverender$coloredBoundary.get()) return;
         BakedQuad quad = args.get(1);
         int[] vertexData = quad.getVertexData().clone();
         int stride = vertexData.length / 4;
-        int u = Float.floatToRawIntBits(BoundaryColorTexture.u());
-        int v = Float.floatToRawIntBits(BoundaryColorTexture.v());
+        boolean textured = selectiverender$texturedBoundary.get();
         for (int vertex = 0; vertex < 4; vertex++) {
-            vertexData[vertex * stride + 4] = u;
-            vertexData[vertex * stride + 5] = v;
+            int offset = vertex * stride;
+            float x = Float.intBitsToFloat(vertexData[offset]), y = Float.intBitsToFloat(vertexData[offset + 1]), z = Float.intBitsToFloat(vertexData[offset + 2]);
+            vertexData[offset + 4] = Float.floatToRawIntBits(BoundaryColorTexture.u(textured, quad.getFace(), x, y, z));
+            vertexData[offset + 5] = Float.floatToRawIntBits(BoundaryColorTexture.v(textured, quad.getFace(), x, y, z));
         }
-        args.set(1, new BakedQuad(vertexData, quad.getColorIndex(), quad.getFace(),
-                quad.getSprite(), quad.hasShade()));
-        args.set(3, 0.0f);
-        args.set(4, 0.0f);
-        args.set(5, 0.0f);
+        args.set(1, new BakedQuad(vertexData, -1, quad.getFace(), BoundaryColorTexture.sprite(textured), false));
+        int color = BoundaryColorTexture.argb(textured);
+        args.set(2, new float[]{1, 1, 1, 1});
+        args.set(3, (color >> 16 & 255) / 255f);
+        args.set(4, (color >> 8 & 255) / 255f);
+        args.set(5, (color & 255) / 255f);
+        args.set(6, (color >>> 24) / 255f);
+        args.set(9, false);
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))

@@ -36,6 +36,20 @@ jobs:
             build: ./gradlew -p versions/mc1.21.1 build --stacktrace
             jar_dir: versions/mc1.21.1/build/libs
             sodium: mc1.21.1-0.8.13-fabric
+          - minecraft: 1.20.1
+            profile: vanilla-indigo
+            java: 17
+            fabric_api: 0.92.2
+            build: ./gradlew build --stacktrace
+            jar_dir: build/libs
+            sodium: ''
+          - minecraft: 1.21.1
+            profile: vanilla-indigo
+            java: 21
+            fabric_api: 0.116.17
+            build: ./gradlew -p versions/mc1.21.1 build --stacktrace
+            jar_dir: versions/mc1.21.1/build/libs
+            sodium: ''
           - minecraft: 26.2
             profile: baseline
             java: 25
@@ -96,9 +110,11 @@ jobs:
           jar=$(find '${{ matrix.jar_dir }}' -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
           test -n "$jar"
           cp "$jar" run/mods/
-          curl --fail --location --retry 3 \
-            --output "run/mods/sodium-${{ matrix.sodium }}.jar" \
-            "https://api.modrinth.com/maven/maven/modrinth/sodium/${{ matrix.sodium }}/sodium-${{ matrix.sodium }}.jar"
+          if [[ -n '${{ matrix.sodium }}' ]]; then
+            curl --fail --location --retry 3 \
+              --output "run/mods/sodium-${{ matrix.sodium }}.jar" \
+              "https://api.modrinth.com/maven/maven/modrinth/sodium/${{ matrix.sodium }}/sodium-${{ matrix.sodium }}.jar"
+          fi
 
       - name: Stage optional WorldEdit compatibility profile
         if: matrix.worldedit_url
@@ -117,7 +133,7 @@ jobs:
 
       - name: Start client and join a singleplayer world
         env:
-          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true
+          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
         with:
           mc: ${{ matrix.minecraft }}
@@ -134,6 +150,10 @@ jobs:
         run: |
           if ! grep -q '\[SR performance\] START' run/logs/latest.log; then
             echo "Performance diagnostics did not initialize after joining the test world." >&2
+            exit 1
+          fi
+          if ! grep -q '\[SR boundary smoke\] PASS' run/logs/latest.log; then
+            echo "Boundary color/texture/opacity runtime smoke did not complete." >&2
             exit 1
           fi
           if grep -E 'WorldEdit selection synchronization unavailable|Could not initialize WorldEdit selection synchronization' run/logs/latest.log; then

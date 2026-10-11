@@ -22,7 +22,7 @@ class RegionPolicyTest {
         regions.put("first", List.of(BOX)); regions.put("second", List.of(BOX));
         var index = RegionPolicyIndex.of(regions, Map.of(
                 "first", RegionOptions.DEFAULT.with(1, SelectiveRenderSettings.BoundaryMode.NORMAL),
-                "second", RegionOptions.DEFAULT.with(1, SelectiveRenderSettings.BoundaryMode.BLACK).with(5, true)));
+                "second", RegionOptions.DEFAULT.with(1, SelectiveRenderSettings.BoundaryMode.COLOR).with(5, true)));
         var resolved = index.optionsAt(5, 5, 5);
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL, resolved.boundary());
         assertEquals(resolved.boundary(), index.boundaryOverrideAt(5, 5, 5));

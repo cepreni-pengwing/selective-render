@@ -51,22 +51,29 @@ abstract class BlockModelRendererMixin {
     private void selectiverender$boundary(BlockQuadOutput output, float x, float y, float z,
             BlockAndTintGetter world, BlockState state, BlockPos pos, BakedQuad quad, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
+                || !((de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
         var mode = BoundaryGeometry.boundaryModeForQuad(pos, quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
-        if (mode == SelectiveRenderSettings.BoundaryMode.BLACK) {
-            long uv = UVPair.pack(BoundaryColorTexture.u(), BoundaryColorTexture.v());
+        if (BoundaryColorTexture.custom(mode)) {
+            boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             var material = quad.materialInfo();
-            var solid = new BakedQuad.MaterialInfo(material.sprite(), ChunkSectionLayer.SOLID,
-                    material.itemRenderType(), -1, material.shade(), material.lightEmission());
-            var black = new BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
-                    uv, uv, uv, uv, quad.direction(), solid);
-            // This instance is reused by vanilla; restore it even if the output throws.
+            var custom = new BakedQuad.MaterialInfo(BoundaryColorTexture.sprite(textured),
+                    textured || SelectiveRenderSettings.boundaryOpacity() < 100 ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
+                    material.itemRenderType(), -1, false, material.lightEmission());
+            var positions = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
+            long[] uv = new long[4];
+            for (int i = 0; i < 4; i++) {
+                var p = positions[i];
+                uv[i] = UVPair.pack(BoundaryColorTexture.u(textured, quad.direction(), p.x(), p.y(), p.z()),
+                        BoundaryColorTexture.v(textured, quad.direction(), p.x(), p.y(), p.z()));
+            }
+            var replacement = new BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
+                    uv[0], uv[1], uv[2], uv[3], quad.direction(), custom);
             int c0 = quadInstance.getColor(0), c1 = quadInstance.getColor(1);
             int c2 = quadInstance.getColor(2), c3 = quadInstance.getColor(3);
             try {
-                quadInstance.setColor(0xFF000000);
-                output.put(x, y, z, black, quadInstance);
+                quadInstance.setColor(BoundaryColorTexture.argb(textured));
+                output.put(x, y, z, replacement, quadInstance);
             } finally {
                 quadInstance.setColor(0, c0); quadInstance.setColor(1, c1);
                 quadInstance.setColor(2, c2); quadInstance.setColor(3, c3);

@@ -24,24 +24,25 @@ abstract class AbstractBlockRenderContextMixin {
     private void selectiverender$cullTransformedBoundaryExtension(@Coerce Object rawQuad,
                                                                   boolean vanillaModel,
                                                                   CallbackInfo ci) {
-        if (!de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED)) return;
+        if (!SelectiveRenderState.filteringActive()) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
-        if (selectiverender$boundaryMode(position, quad)
-                == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
+        var mode = selectiverender$boundaryMode(position, quad);
+        if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
+        else if (BoundaryColorTexture.custom(mode)) quad.material(de.selectiverender.BoundaryMaterial.get(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE));
     }
 
     @Inject(method = "colorizeQuad", at = @At("RETURN"), require = 0)
     private void selectiverender$colorBoundaryFace(@Coerce Object rawQuad, int colorIndex,
                                                     CallbackInfo ci) {
-        if (!de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK)) return;
+        if (!(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
-        if (selectiverender$boundaryMode(position, quad)
-                == SelectiveRenderSettings.BoundaryMode.BLACK) {
-            selectiverender$makeBlack(quad);
+        var mode = selectiverender$boundaryMode(position, quad);
+        if (BoundaryColorTexture.custom(mode)) {
+            selectiverender$makeBlack(quad, mode);
             return;
         }
         Direction direction = quad.cullFace();
@@ -49,10 +50,10 @@ abstract class AbstractBlockRenderContextMixin {
             direction = quad.nominalFace();
             if (direction == null || !selectiverender$isOnBlockFace(quad, direction)) return;
         }
-        if (SelectiveRenderState.boundaryModeForFace(position, direction)
-                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
+        mode = SelectiveRenderState.boundaryModeForFace(position, direction);
+        if (!BoundaryColorTexture.custom(mode)) return;
         if (!SelectiveRenderState.isBoundaryFace(position, direction)) return;
-        selectiverender$makeBlack(quad);
+        selectiverender$makeBlack(quad, mode);
     }
 
     private static SelectiveRenderSettings.BoundaryMode selectiverender$boundaryMode(
@@ -68,12 +69,14 @@ abstract class AbstractBlockRenderContextMixin {
                 position, minX, maxX, minY, maxY, minZ, maxZ);
     }
 
-    private static void selectiverender$makeBlack(MutableQuadView quad) {
-        int color = 0xFF000000;
-        quad.color(color, color, color, color);
-        float u = BoundaryColorTexture.u();
-        float v = BoundaryColorTexture.v();
-        for (int vertex = 0; vertex < 4; vertex++) quad.uv(vertex, u, v);
+    private static void selectiverender$makeBlack(MutableQuadView quad, SelectiveRenderSettings.BoundaryMode mode) {
+        boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
+        int color = BoundaryColorTexture.argb(textured);
+        quad.color(color, color, color, color); quad.colorIndex(-1);
+        Direction face = quad.nominalFace() == null ? Direction.UP : quad.nominalFace();
+        for (int vertex = 0; vertex < 4; vertex++) quad.uv(vertex,
+                BoundaryColorTexture.u(textured, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)),
+                BoundaryColorTexture.v(textured, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)));
     }
 
     private static boolean selectiverender$isOnBlockFace(MutableQuadView quad,

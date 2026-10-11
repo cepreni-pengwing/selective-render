@@ -88,6 +88,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             VirtualSkyLightSampler.tick(client.world);
             PlotSquaredClient.tick();
+            BoundaryRuntimeSmoke.tick(client);
             if (PerformanceDiagnostics.tickEnd()) logPerformanceContext();
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);

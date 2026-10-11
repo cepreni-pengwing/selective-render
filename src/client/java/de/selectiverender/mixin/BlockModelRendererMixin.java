@@ -15,12 +15,14 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArgs;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
+
 
 @Mixin(BlockModelRenderer.class)
 abstract class BlockModelRendererMixin {
+    @Unique private static final ThreadLocal<Boolean> selectiverender$texturedBoundary = ThreadLocal.withInitial(() -> false);
     @Unique private static final ThreadLocal<Boolean> selectiverender$coloredBoundary =
             ThreadLocal.withInitial(() -> false);
 
@@ -57,27 +59,35 @@ abstract class BlockModelRendererMixin {
             ci.cancel();
             return;
         }
-        selectiverender$coloredBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.BLACK);
+        selectiverender$coloredBoundary.set(BoundaryColorTexture.custom(mode));
+        selectiverender$texturedBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
     }
 
-    @ModifyArgs(method = "renderQuad", at = @At(value = "INVOKE",
+    @WrapOperation(method = "renderQuad", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/render/VertexConsumer;quad(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/render/model/BakedQuad;[FFFF[IIZ)V"))
-    private void selectiverender$colorBoundaryQuad(Args args) {
-        if (!selectiverender$coloredBoundary.get()) return;
-        BakedQuad quad = args.get(1);
-        int[] vertexData = quad.getVertexData().clone();
-        int stride = vertexData.length / 4;
-        int u = Float.floatToRawIntBits(BoundaryColorTexture.u());
-        int v = Float.floatToRawIntBits(BoundaryColorTexture.v());
-        for (int vertex = 0; vertex < 4; vertex++) {
-            vertexData[vertex * stride + 4] = u;
-            vertexData[vertex * stride + 5] = v;
+    private void selectiverender$appearance(VertexConsumer consumer, MatrixStack.Entry entry, BakedQuad quad,
+            float[] brightness, float red, float green, float blue, int[] light, int overlay, boolean useColor,
+            Operation<Void> original) {
+        if (!selectiverender$coloredBoundary.get()) {
+            original.call(consumer, entry, quad, brightness, red, green, blue, light, overlay, useColor);
+            return;
         }
-        args.set(1, new BakedQuad(vertexData, quad.getColorIndex(), quad.getFace(),
-                quad.getSprite(), quad.hasShade()));
-        args.set(3, 0.0f);
-        args.set(4, 0.0f);
-        args.set(5, 0.0f);
+        boolean textured = selectiverender$texturedBoundary.get();
+        int color = BoundaryColorTexture.argb(textured);
+        if ((color >>> 24) == 0) return;
+        int[] data = quad.getVertexData(); int stride = data.length / 4;
+        var normal = new org.joml.Vector3f(quad.getFace().getOffsetX(), quad.getFace().getOffsetY(), quad.getFace().getOffsetZ());
+        entry.getNormalMatrix().transform(normal);
+        var position = new org.joml.Vector3f();
+        for (int i = 0; i < 4; i++) {
+            int offset = i * stride;
+            float x = Float.intBitsToFloat(data[offset]), y = Float.intBitsToFloat(data[offset + 1]), z = Float.intBitsToFloat(data[offset + 2]);
+            position.set(x, y, z); entry.getPositionMatrix().transformPosition(position);
+            consumer.vertex(position.x(), position.y(), position.z(),
+                    (color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, (color >>> 24) / 255f,
+                    BoundaryColorTexture.u(textured, quad.getFace(), x, y, z), BoundaryColorTexture.v(textured, quad.getFace(), x, y, z),
+                    overlay, light[i], normal.x(), normal.y(), normal.z());
+        }
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))

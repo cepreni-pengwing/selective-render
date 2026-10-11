@@ -33,10 +33,19 @@ import java.util.List;
 @Pseudo
 @Mixin(value = BlockRenderer.class, remap = false)
 abstract class BlockRendererMixin {
+    @Unique private static final ThreadLocal<Boolean> selectiverender$textured = ThreadLocal.withInitial(() -> false);
     @Unique private static final ThreadLocal<Direction> selectiverender$quadDirection =
             new ThreadLocal<>();
     @Unique private static final ThreadLocal<Boolean> selectiverender$solidColor =
             ThreadLocal.withInitial(() -> false);
+
+    @Redirect(method = "renderModel", at = @At(value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/DefaultMaterials;forBlockState(Lnet/minecraft/block/BlockState;)Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/Material;"))
+    private Material selectiverender$material(BlockState state, BlockRenderContext context, ChunkBuildBuffers buffers) {
+        return BoundaryColorTexture.translucent(context.pos())
+                ? me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.TRANSLUCENT
+                : me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.forBlockState(state);
+    }
 
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlock(BlockRenderContext context,
@@ -52,12 +61,13 @@ abstract class BlockRendererMixin {
                                                     CallbackInfoReturnable<int[]> cir) {
         if (selectiverender$solidColor.get()) selectiverender$solidColor.set(false);
         if (!SelectiveRenderState.filteringActive()
-                || !de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK)) return;
+                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
         SelectiveRenderSettings.BoundaryMode extensionMode =
                 selectiverender$boundaryMode(context, quad);
-        if (extensionMode == SelectiveRenderSettings.BoundaryMode.BLACK) {
+        if (BoundaryColorTexture.custom(extensionMode)) {
             selectiverender$solidColor.set(true);
-            Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
+            selectiverender$textured.set(extensionMode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
+            Arrays.fill(cir.getReturnValue(), BoundaryColorTexture.abgr(selectiverender$textured.get()));
             return;
         }
         Direction direction = selectiverender$quadDirection.get();
@@ -65,11 +75,12 @@ abstract class BlockRendererMixin {
             direction = quad.getLightFace();
             if (!selectiverender$isOnBlockFace(quad, direction)) return;
         }
-        if (SelectiveRenderState.boundaryModeForFace(context.pos(), direction)
-                != SelectiveRenderSettings.BoundaryMode.BLACK) return;
+        var mode = SelectiveRenderState.boundaryModeForFace(context.pos(), direction);
+        if (!BoundaryColorTexture.custom(mode)) return;
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
         selectiverender$solidColor.set(true);
-        Arrays.fill(cir.getReturnValue(), ColorABGR.pack(0, 0, 0, 255));
+        selectiverender$textured.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
+        Arrays.fill(cir.getReturnValue(), BoundaryColorTexture.abgr(selectiverender$textured.get()));
     }
 
     @Inject(method = "writeGeometry", at = @At("HEAD"), cancellable = true)
@@ -84,16 +95,22 @@ abstract class BlockRendererMixin {
                 == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
     }
 
+    @Redirect(method = "renderQuadList", at = @At(value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getSprite()Lnet/minecraft/client/texture/Sprite;"))
+    private net.minecraft.client.texture.Sprite selectiverender$boundarySprite(BakedQuadView quad) {
+        return selectiverender$solidColor.get() ? BoundaryColorTexture.sprite(selectiverender$textured.get()) : quad.getSprite();
+    }
+
     @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
             target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getTexU(I)F"))
     private float selectiverender$solidBoundaryU(BakedQuadView quad, int vertex) {
-        return selectiverender$solidColor.get() ? BoundaryColorTexture.u() : quad.getTexU(vertex);
+        return selectiverender$solidColor.get() ? BoundaryColorTexture.u(selectiverender$textured.get(), quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)) : quad.getTexU(vertex);
     }
 
     @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
             target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getTexV(I)F"))
     private float selectiverender$solidBoundaryV(BakedQuadView quad, int vertex) {
-        return selectiverender$solidColor.get() ? BoundaryColorTexture.v() : quad.getTexV(vertex);
+        return selectiverender$solidColor.get() ? BoundaryColorTexture.v(selectiverender$textured.get(), quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)) : quad.getTexV(vertex);
     }
 
     @Inject(method = "renderQuadList", at = @At("HEAD"))
@@ -104,7 +121,7 @@ abstract class BlockRendererMixin {
                                                 List<BakedQuad> quads, Direction direction,
                                                 CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || !de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK)) return;
+                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
         selectiverender$quadDirection.set(direction);
     }
 

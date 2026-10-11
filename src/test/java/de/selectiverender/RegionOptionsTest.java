@@ -37,7 +37,7 @@ class RegionOptionsTest {
     @Test void renameAndFilterEditsPreserveOverridesAndRules() {
         var box = new BlockRegion(0, 10, 0, 10, 0, 10);
         var rule = new BlockFilterRule(BlockFilterRule.Mode.HIDE, BlockFilterRule.Kind.ID, "minecraft:stone");
-        var options = RegionOptions.DEFAULT.with(0, false).with(1, SelectiveRenderSettings.BoundaryMode.BLACK);
+        var options = RegionOptions.DEFAULT.with(0, false).with(1, SelectiveRenderSettings.BoundaryMode.COLOR);
         var original = new RegionDocument("minecraft:overworld", Map.of("old", List.of(box)),
                 Set.of(), Set.of(), Set.of(), Map.of("old", List.of(rule)), false, false, Map.of("old", options));
         var edited = original.edit("old", "new", List.of(box), true, false, List.of(rule));

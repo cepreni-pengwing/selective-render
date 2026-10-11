@@ -196,7 +196,7 @@ final class RegionEditorScreen extends Screen {
             }
         }
         RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
-        override("Boundary faces", 1, overrides.boundary(), SelectiveRenderSettings.BoundaryMode.values(), new String[]{"Normal", "Black", "Culled"});
+        override("Boundary faces", 1, overrides.boundary(), SelectiveRenderSettings.BoundaryMode.values(), new String[]{"Normal", "Color", "Texture", "Culled"});
         override("Cull fluid faces", 2, overrides.cullFluids(), new Object[]{false, true}, new String[]{"Off", "On"});
         override("Interactions", 3, overrides.interactions(), new Object[]{SelectiveRenderSettings.InteractionMode.NONE, SelectiveRenderSettings.InteractionMode.EVERYWHERE}, new String[]{"Off", "On"});
         override("When rendering is off", 4, overrides.inactiveInteractions(), new Object[]{false, true}, new String[]{"Vanilla", "Filtered"});

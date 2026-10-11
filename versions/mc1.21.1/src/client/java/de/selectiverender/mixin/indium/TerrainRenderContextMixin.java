@@ -16,7 +16,7 @@ abstract class TerrainRenderContextMixin {
     @Inject(method = "tessellateBlock", at = @At("HEAD"), require = 0)
     private void selectiverender$beginBlock(BlockRenderContext context, CallbackInfo ci) {
         if (SelectiveRenderState.filteringActive()
-                && (de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) {
+                && ((de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) {
             IndiumRenderContext.begin(context.pos());
         }
     }

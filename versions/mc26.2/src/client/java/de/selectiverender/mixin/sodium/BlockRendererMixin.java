@@ -35,17 +35,19 @@ abstract class BlockRendererMixin {
     @Inject(method = "processQuad", at = @At("HEAD"), cancellable = true)
     private void selectiverender$boundary(MutableQuadViewImpl quad, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
+                || !((de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
         var mode = selectiverender$boundaryMode(quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
-        } else if (mode == SelectiveRenderSettings.BoundaryMode.BLACK) {
+        } else if (BoundaryColorTexture.custom(mode)) {
+            boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             quad.setTintIndex(-1);
-            quad.setRenderType(ChunkSectionLayer.SOLID);
-            float u = BoundaryColorTexture.u(), v = BoundaryColorTexture.v();
+            quad.cachedSprite(BoundaryColorTexture.sprite(textured));
+            quad.setRenderType(textured || SelectiveRenderSettings.boundaryOpacity() < 100 ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID);
             for (int vertex = 0; vertex < 4; vertex++) {
-                quad.setColor(vertex, 0xFF000000);
-                quad.setUV(vertex, u, v);
+                quad.setColor(vertex, BoundaryColorTexture.argb(textured));
+                quad.setUV(vertex, BoundaryColorTexture.u(textured, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)),
+                        BoundaryColorTexture.v(textured, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)));
             }
         }
     }

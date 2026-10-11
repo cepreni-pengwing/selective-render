@@ -6,8 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BoundaryPolicyTest {
     @Test void appliesConfiguredModeOnlyAcrossVisibleToFilteredCuts() {
-        assertEquals(SelectiveRenderSettings.BoundaryMode.BLACK,
-                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.BLACK,
+        assertEquals(SelectiveRenderSettings.BoundaryMode.COLOR,
+                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.COLOR,
                         true, false, false));
         assertEquals(SelectiveRenderSettings.BoundaryMode.CULLED,
                 BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.CULLED,
@@ -16,13 +16,13 @@ class BoundaryPolicyTest {
 
     @Test void hiddenAndNonBoundaryTransitionsRemainNormal() {
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
-                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.BLACK,
+                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.COLOR,
                         true, false, true));
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
-                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.BLACK,
+                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.COLOR,
                         true, true, false));
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
-                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.BLACK,
+                BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.COLOR,
                         false, false, false));
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
                 BoundaryPolicy.mode(SelectiveRenderSettings.BoundaryMode.NORMAL,

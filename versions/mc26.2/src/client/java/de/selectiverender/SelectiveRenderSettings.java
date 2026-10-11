@@ -28,6 +28,9 @@ public final class SelectiveRenderSettings {
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
     private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
+    private static volatile int boundaryColor;
+    private static volatile int boundaryOpacity = 100;
+    private static volatile String boundaryTexture = "minecraft:stone";
     private static volatile boolean cullFluidBoundaryFaces;
     private static volatile boolean worldEditSelection;
     private static volatile boolean debugBoxes;
@@ -58,6 +61,10 @@ public final class SelectiveRenderSettings {
         interactionMode = stored.interactionMode == null
                 ? InteractionMode.EVERYWHERE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
+        boundaryColor = stored.boundaryColor == null ? 0 : stored.boundaryColor & 0xFFFFFF;
+        boundaryOpacity = stored.boundaryOpacity == null ? 100 : BoundaryStyle.opacity(stored.boundaryOpacity);
+        boundaryTexture = stored.boundaryTexture == null ? "minecraft:stone" : stored.boundaryTexture;
+        BoundaryColorTexture.invalidate();
         cullFluidBoundaryFaces = stored.cullFluidBoundaryFaces;
         worldEditSelection = stored.worldEditSelection;
         debugBoxes = stored.debugBoxes;
@@ -78,6 +85,21 @@ public final class SelectiveRenderSettings {
     public static PlayerVisibility playerVisibility() { return playerVisibility; }
     public static InteractionMode interactionMode() { return interactionMode; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
+    public static int boundaryColor() { return boundaryColor; }
+    public static int boundaryOpacity() { return boundaryOpacity; }
+    public static String boundaryTexture() { return boundaryTexture; }
+    public static void setBoundaryAppearance(int color, String texture, int opacity) {
+        if (boundaryColor == (color & 0xFFFFFF) && boundaryTexture.equals(texture)
+                && boundaryOpacity == BoundaryStyle.opacity(opacity)) return;
+        boundaryColor = color & 0xFFFFFF;
+        boundaryTexture = texture;
+        boundaryOpacity = BoundaryStyle.opacity(opacity);
+        BoundaryColorTexture.invalidate();
+        save();
+        if (SelectiveRenderState.filteringActive()) {
+            SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
+        }
+    }
     public static boolean worldEditSelection() { return worldEditSelection; }
 
     public static void setWorldEditSelection(boolean value) {
@@ -206,6 +228,9 @@ public final class SelectiveRenderSettings {
             stored.playerVisibility = playerVisibility;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
+            stored.boundaryColor = boundaryColor;
+            stored.boundaryOpacity = boundaryOpacity;
+            stored.boundaryTexture = boundaryTexture;
             stored.cullFluidBoundaryFaces = cullFluidBoundaryFaces;
             stored.worldEditSelection = worldEditSelection;
             stored.debugBoxes = debugBoxes;
@@ -262,8 +287,9 @@ public final class SelectiveRenderSettings {
 
     public enum BoundaryMode {
         NORMAL("Normal"),
-        @SerializedName(value = "BLACK", alternate = {"COLORED"})
-        BLACK("Black"),
+        @SerializedName(value = "COLOR", alternate = {"BLACK", "COLORED"})
+        COLOR("Color"),
+        TEXTURE("Texture"),
         CULLED("Culled");
 
         private final String label;
@@ -320,6 +346,9 @@ public final class SelectiveRenderSettings {
         PlayerVisibility playerVisibility;
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
+        Integer boundaryColor;
+        Integer boundaryOpacity;
+        String boundaryTexture;
         @SerializedName(value = "cullFluidBoundaryFaces", alternate = {"cullWaterBoundaryFaces"})
         boolean cullFluidBoundaryFaces;
         boolean worldEditSelection;

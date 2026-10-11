@@ -45,11 +45,13 @@ class SettingsDefaultsTest {
             assertEquals(value, value.next().next().next().next());
             assertNotEquals(value, value.next().next());
         }
-        assertEquals(SelectiveRenderSettings.BoundaryMode.BLACK,
+        assertEquals(SelectiveRenderSettings.BoundaryMode.COLOR,
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next());
-        assertEquals(SelectiveRenderSettings.BoundaryMode.CULLED,
+        assertEquals(SelectiveRenderSettings.BoundaryMode.TEXTURE,
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next().next());
-        assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
+        assertEquals(SelectiveRenderSettings.BoundaryMode.CULLED,
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next().next().next());
+        assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
+                SelectiveRenderSettings.BoundaryMode.NORMAL.next().next().next().next());
     }
 }

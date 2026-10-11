@@ -58,3 +58,12 @@ sourceSets.test {
     runtimeClasspath += sourceSets.client.output
 }
 tasks.test { useJUnitPlatform() }
+
+// A generated white atlas pixel keeps arbitrary boundary colors exact and pack-independent.
+tasks.named('processClientResources', ProcessResources) {
+    doLast {
+        def pixel = new File(destinationDir, 'assets/selectiverender/textures/block/boundary_white.png')
+        pixel.parentFile.mkdirs()
+        pixel.bytes = java.util.Base64.decoder.decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=')
+    }
+}

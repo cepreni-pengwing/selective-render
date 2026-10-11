@@ -33,7 +33,7 @@ abstract class BlockRendererMixin {
     @Inject(method = "processQuad", at = @At("HEAD"), cancellable = true)
     private void selectiverender$applyBoundaryMode(MutableQuadViewImpl quad, CallbackInfo ci) {
         if (!SelectiveRenderState.filteringActive()
-                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.BLACK) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
+                || !((de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
 
         float minX = Float.POSITIVE_INFINITY, minY = Float.POSITIVE_INFINITY, minZ = Float.POSITIVE_INFINITY;
         float maxX = Float.NEGATIVE_INFINITY, maxY = Float.NEGATIVE_INFINITY, maxZ = Float.NEGATIVE_INFINITY;
@@ -48,13 +48,15 @@ abstract class BlockRendererMixin {
                 selectiverender$currentPos, minX, maxX, minY, maxY, minZ, maxZ);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
-        } else if (mode == SelectiveRenderSettings.BoundaryMode.BLACK) {
-            int black = ColorABGR.pack(0, 0, 0, 255);
-            float u = BoundaryColorTexture.u();
-            float v = BoundaryColorTexture.v();
+        } else if (BoundaryColorTexture.custom(mode)) {
+            boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
+            quad.colorIndex(-1);
+            quad.material(de.selectiverender.BoundaryMaterial.get(textured));
+            quad.cachedSprite(BoundaryColorTexture.sprite(textured));
             for (int vertex = 0; vertex < 4; vertex++) {
-                quad.color(vertex, black);
-                quad.uv(vertex, u, v);
+                quad.color(vertex, BoundaryColorTexture.argb(textured));
+                quad.uv(vertex, BoundaryColorTexture.u(textured, quad.lightFace(), quad.x(vertex), quad.y(vertex), quad.z(vertex)),
+                        BoundaryColorTexture.v(textured, quad.lightFace(), quad.x(vertex), quad.y(vertex), quad.z(vertex)));
             }
         }
     }
