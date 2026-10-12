@@ -35,6 +35,9 @@ final class BoundaryRuntimeSmoke {
             assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 50%");
             var probe = client.player.getBlockPos().down();
+            var selected = BoundaryTextureResolver.selectedState();
+            if (BoundaryTextureResolver.virtualWorld(probe, net.minecraft.util.math.Direction.WEST, selected).getBlockState(probe) != selected)
+                throw new IllegalStateException("Boundary virtual block read did not survive production remapping");
             BoundaryTextureResolver.bind(probe, net.minecraft.util.math.Direction.WEST);
             if (BoundaryTextureResolver.bound() == null) throw new IllegalStateException("Boundary model did not resolve a loaded stone face");
             if (Boolean.getBoolean("selectiverender.ctm.smoke")) {

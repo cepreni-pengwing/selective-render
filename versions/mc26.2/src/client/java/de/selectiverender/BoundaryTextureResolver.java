@@ -45,10 +45,11 @@ public final class BoundaryTextureResolver {
         }
         BOUND.set(cache.faces[index]);
     }
-    private static net.minecraft.client.renderer.block.BlockAndTintGetter virtualWorld(BlockPos pos, Direction face, BlockState state) {
+    static net.minecraft.client.renderer.block.BlockAndTintGetter virtualWorld(BlockPos pos, Direction face, BlockState state) {
         Object delegate = Minecraft.getInstance().level;
         return (net.minecraft.client.renderer.block.BlockAndTintGetter)Proxy.newProxyInstance(net.minecraft.client.renderer.block.BlockAndTintGetter.class.getClassLoader(), new Class<?>[]{net.minecraft.client.renderer.block.BlockAndTintGetter.class}, (proxy, method, args) -> {
-            if (method.getName().equals("getBlockState") && args != null && args.length == 1 && args[0] instanceof BlockPos query) {
+            // Use the same signature-based virtual read on all supported game versions.
+            if (method.getReturnType() == BlockState.class && args != null && args.length == 1 && args[0] instanceof BlockPos query) {
                 if (query.equals(pos) || (BoundaryStyle.texture(SelectiveRenderState.boundaryModeAt(query.getX(), query.getY(), query.getZ()))
                         && !Minecraft.getInstance().level.getBlockState(query).isAir() && SelectiveRenderState.isBoundaryFace(query, face))) return state;
             }
