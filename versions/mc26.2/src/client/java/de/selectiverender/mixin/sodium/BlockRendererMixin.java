@@ -45,6 +45,10 @@ abstract class BlockRendererMixin {
         if (!SelectiveRenderState.filteringActive()
                 || !((de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
         var mode = selectiverender$boundaryMode(quad);
+        var cullFace = quad.getCullFace();
+        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL && cullFace != null
+                && SelectiveRenderState.isBoundaryFace(selectiverender$currentPos, cullFace))
+            mode = SelectiveRenderState.boundaryModeForFace(selectiverender$currentPos, cullFace);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {
@@ -55,9 +59,11 @@ abstract class BlockRendererMixin {
             selectiverender$emitting = true;
             try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(selectiverender$currentPos, quad.getLightFace());
+                else de.selectiverender.BoundaryTextureResolver.clear();
                 quad.copyFrom(source);
-                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && preserve) {
-                    selectiverender$emit(quad); continue;
+                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && preserve && de.selectiverender.BoundaryTextureResolver.bound() == null) {
+                    de.selectiverender.BoundaryShaderContext.begin(layer); selectiverender$emit(quad); continue;
                 }
                 quad.setTintIndex(-1);
                 boolean fullbright = de.selectiverender.BoundaryStyle.fullbright(layer);
@@ -67,11 +73,11 @@ abstract class BlockRendererMixin {
                 quad.setRenderType(BoundaryColorTexture.translucent(layer) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID);
                 for (int vertex = 0; vertex < 4; vertex++) {
                     quad.setColor(vertex, BoundaryColorTexture.argb(layer));
-                    quad.setUV(vertex, BoundaryColorTexture.u(layer, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)),
-                            BoundaryColorTexture.v(layer, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)));
+                    quad.setUV(vertex, BoundaryColorTexture.u(layer, selectiverender$currentPos, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)),
+                            BoundaryColorTexture.v(layer, selectiverender$currentPos, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)));
                 }
-                selectiverender$emit(quad);
-            } } finally { selectiverender$emitting = false; }
+                de.selectiverender.BoundaryShaderContext.begin(layer); selectiverender$emit(quad);
+            } } finally { selectiverender$emitting = false; de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryShaderContext.end(); }
             ci.cancel();
         }
     }

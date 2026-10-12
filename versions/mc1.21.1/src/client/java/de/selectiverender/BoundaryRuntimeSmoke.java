@@ -34,11 +34,27 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE);
             assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 50%");
+            var probe = client.player.getBlockPos().down();
+            BoundaryTextureResolver.bind(probe, net.minecraft.util.math.Direction.WEST);
+            if (BoundaryTextureResolver.bound() == null) throw new IllegalStateException("Boundary model did not resolve a loaded stone face");
+            if (Boolean.getBoolean("selectiverender.ctm.smoke")) {
+                var sprite = BoundaryTextureResolver.bound().sprite();
+                var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)sprite.getContents()).selectiverender$images()[0];
+                int pixel = BoundaryStyle.swapRedBlue(image.getColor(0,0));
+                if ((pixel & 0xFFFFFF) != 0x20CC70) throw new IllegalStateException("Boundary model did not use the connected resourcepack tile: " + Integer.toHexString(pixel));
+                SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Loaded resourcepack connected tile resolved");
+            }
+            BoundaryTextureResolver.clear();
+
         } else if (ticks == 55) {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
             assertBoundaryAlpha(false, 128);
             assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR + TEXTURE 50%");
+        } else if (ticks == 62) {
+            SelectiveRenderSettings.setBoundaryAppearance(0xFF0000, "minecraft:stone", 50);
+            SelectiveRenderSettings.setBoundaryRainbow(true);
+            SelectiveRenderClient.LOGGER.info("[SR boundary smoke] Rainbow preset enabled");
         } else if (ticks == 70) {
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 0);
             assertBoundaryAlpha(false, 0);
@@ -48,6 +64,7 @@ final class BoundaryRuntimeSmoke {
             client.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {
             verifyInvalidAppearanceEscape(client);
+            SelectiveRenderSettings.setBoundaryRainbow(false);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.NORMAL);
             SelectiveRenderConfig.deleteRegion(client, NAME);

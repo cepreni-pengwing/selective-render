@@ -35,6 +35,7 @@ import java.util.List;
 @Pseudo
 @Mixin(value = BlockRenderer.class, remap = false)
 abstract class BlockRendererMixin {
+    @Unique private static final ThreadLocal<net.minecraft.util.math.BlockPos> selectiverender$rainbowPos = new ThreadLocal<>();
     @Unique private final de.selectiverender.BoundaryQuadTracker selectiverender$quads = new de.selectiverender.BoundaryQuadTracker();
     @Unique private static final ThreadLocal<Boolean> selectiverender$nativeTexture = ThreadLocal.withInitial(() -> false);
     @Unique private static final ThreadLocal<int[]> selectiverender$nativeColors = new ThreadLocal<>();
@@ -63,18 +64,25 @@ abstract class BlockRendererMixin {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
                 System.arraycopy(brightness, 0, light.br, 0, 4); System.arraycopy(lights, 0, light.lm, 0, 4);
                 selectiverender$textured.set(layer);
-                boolean nativeTexture = layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryColorTexture.preserveSourceTexture(context.state());
+                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(context.pos(), quad.getLightFace());
+                else de.selectiverender.BoundaryTextureResolver.clear();
+                boolean nativeTexture = layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryColorTexture.preserveSourceTexture(context.state()) && de.selectiverender.BoundaryTextureResolver.bound() == null;
                 selectiverender$nativeTexture.set(nativeTexture);
                 var layerMaterial = BoundaryColorTexture.translucent(layer)
                         ? me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.TRANSLUCENT
                         : me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.SOLID;
                 var layerBuilder = selectiverender$buffers.get().get(layerMaterial);
                 layerBuilder.addSprite(nativeTexture ? quad.getSprite() : BoundaryColorTexture.sprite(layer));
-                original.call(renderer, context, layerBuilder, offset, layerMaterial, quad, nativeTexture && selectiverender$nativeColors.get() != null ? selectiverender$nativeColors.get() : colors, light);
+                int[] layerColors = colors;
+                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && !nativeTexture) { layerColors = colors.clone(); Arrays.fill(layerColors, BoundaryColorTexture.abgr(layer)); }
+                de.selectiverender.BoundaryShaderContext.begin(layer);
+                original.call(renderer, context, layerBuilder, offset, layerMaterial, quad, nativeTexture && selectiverender$nativeColors.get() != null ? selectiverender$nativeColors.get() : layerColors, light);
             }
         } finally {
             selectiverender$textured.set(mode);
             selectiverender$nativeTexture.set(false);
+            de.selectiverender.BoundaryTextureResolver.clear();
+            de.selectiverender.BoundaryShaderContext.end();
             System.arraycopy(brightness, 0, light.br, 0, 4); System.arraycopy(lights, 0, light.lm, 0, 4);
         }
     }
@@ -83,6 +91,7 @@ abstract class BlockRendererMixin {
     private void selectiverender$filterBlock(BlockRenderContext context,
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
         selectiverender$quads.reset();
+        selectiverender$rainbowPos.set(context.pos());
         if (SelectiveRenderState.filteringActive()
                 && (de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR)
                 || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)))
@@ -116,8 +125,8 @@ abstract class BlockRendererMixin {
         Direction direction = selectiverender$quadDirection.get();
         if (direction == null) {
             direction = quad.getLightFace();
+            if (!selectiverender$isOnBlockFace(quad, direction)) return;
         }
-        if (!selectiverender$isOnBlockFace(quad, direction)) return;
         var mode = SelectiveRenderState.boundaryModeForFace(context.pos(), direction);
         if (!BoundaryColorTexture.custom(mode)) return;
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
@@ -153,13 +162,13 @@ abstract class BlockRendererMixin {
     @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
             target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getTexU(I)F"))
     private float selectiverender$solidBoundaryU(BakedQuadView quad, int vertex) {
-        return selectiverender$solidColor.get() && !selectiverender$nativeTexture.get() ? BoundaryColorTexture.u(selectiverender$textured.get(), quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)) : quad.getTexU(vertex);
+        return selectiverender$solidColor.get() && !selectiverender$nativeTexture.get() ? BoundaryColorTexture.u(selectiverender$textured.get(), selectiverender$rainbowPos.get(), quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)) : quad.getTexU(vertex);
     }
 
     @Redirect(method = "writeGeometry", at = @At(value = "INVOKE",
             target = "Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;getTexV(I)F"))
     private float selectiverender$solidBoundaryV(BakedQuadView quad, int vertex) {
-        return selectiverender$solidColor.get() && !selectiverender$nativeTexture.get() ? BoundaryColorTexture.v(selectiverender$textured.get(), quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)) : quad.getTexV(vertex);
+        return selectiverender$solidColor.get() && !selectiverender$nativeTexture.get() ? BoundaryColorTexture.v(selectiverender$textured.get(), selectiverender$rainbowPos.get(), quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)) : quad.getTexV(vertex);
     }
 
     @Inject(method = "renderQuadList", at = @At("HEAD"))

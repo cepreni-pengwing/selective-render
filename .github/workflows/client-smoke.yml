@@ -70,6 +70,13 @@ jobs:
             sodium: mc26.2-0.9.2-fabric
             worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/6YnCYPwc/worldedit-mod-7.4.5.jar
             worldedit_sha: 611ff7cc00d78c63a284ef26b6fbc806af295c469375e5e71e4d7e993aa6ea3fa90945e46511c99b6157a01ed5c3868a2a6419b47a38114cc1e67b32c20f7ca3
+          - minecraft: 1.20.1
+            profile: connected-textures
+            java: 17
+            fabric_api: 0.92.2
+            build: ./gradlew build --stacktrace
+            jar_dir: build/libs
+            sodium: mc1.20.1-0.5.13-fabric
     steps:
       - name: Check out repository
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -117,9 +124,21 @@ jobs:
             echo '69bc3930d79b440ce39e135739970ce9e94fa0aea9fb10b0a4b136b0983f5e8a691d926c9d693c905a6f1822a32564bfd5127056acb14a7d9082862e840cd88c  run/mods/worldeditcui.jar' | sha512sum --check
           fi
 
+      - name: Stage connected-texture compatibility profile
+        if: matrix.profile == 'connected-textures'
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --output run/mods/continuity.jar 'https://cdn.modrinth.com/data/1IjD5062/versions/qGTDcjHM/continuity-3.0.0%2B1.20.1.jar'
+          echo '7205cae3c534fd5d5328a9659146911381c06e54da995aabd11745ad72def5bd5120b7cb792fab2e8dcaa4670c23bdba21079b8f6da94152cfc6ea4b415edcbf  run/mods/continuity.jar' | sha512sum --check
+          curl --fail --location --retry 3 --output run/mods/indium.jar 'https://cdn.modrinth.com/data/Orvt0mRa/versions/nQHYSjxO/indium-1.0.36%2Bmc1.20.1.jar'
+          echo '7c5a1851f1fc08ae69318e151d07151fabba6cda2a24616c9251e1a4e5b969453e88b97d60f926271d60e3511bfc6fa05a64a108466efb7f29bec4519547e0c9  run/mods/indium.jar' | sha512sum --check
+          curl --fail --location --retry 3 --output run/mods/iris.jar 'https://cdn.modrinth.com/data/YL57xq9U/versions/s5eFLITc/iris-1.7.6%2Bmc1.20.1.jar'
+          echo 'f1337b0441c31269bd3bfcb28647d521326a83e73128c1ac8d065615f8a5a4ca1e8c96a468b356584236ece5b164ec8d8a52b1878064f4e391ecf4f32885e301  run/mods/iris.jar' | sha512sum --check
+          python3 .github/scripts/prepare-boundary-smoke-pack.py run
+
       - name: Start client and join a singleplayer world
         env:
-          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true
+          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
         with:
           mc: ${{ matrix.minecraft }}
@@ -144,6 +163,10 @@ jobs:
           fi
           if ! grep -q '\[SR placement smoke\] Only-filtered air permits placement' run/logs/latest.log; then
             echo "Only-filter placement runtime smoke did not complete." >&2
+            exit 1
+          fi
+          if [[ '${{ matrix.profile }}' == 'connected-textures' ]] && ! grep -q '\[SR CTM smoke\] Loaded resourcepack connected tile resolved' run/logs/latest.log; then
+            echo "Connected-texture resourcepack runtime smoke did not complete." >&2
             exit 1
           fi
           if grep -E 'WorldEdit selection synchronization unavailable|Could not initialize WorldEdit selection synchronization' run/logs/latest.log; then

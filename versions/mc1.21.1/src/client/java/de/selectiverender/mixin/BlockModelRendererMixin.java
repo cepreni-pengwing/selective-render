@@ -85,9 +85,11 @@ abstract class BlockModelRendererMixin {
         }
         for (var layer : de.selectiverender.BoundaryStyle.renderLayers(selectiverender$texturedBoundary.get())) {
             if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(selectiverender$position.get(), quad.getFace());
+            else de.selectiverender.BoundaryTextureResolver.clear();
             var world = net.minecraft.client.MinecraftClient.getInstance().world;
             var state = world == null ? null : world.getBlockState(selectiverender$position.get());
-            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && state != null && BoundaryColorTexture.preserveSourceTexture(state)) {
+            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && state != null && BoundaryColorTexture.preserveSourceTexture(state) && de.selectiverender.BoundaryTextureResolver.bound() == null) {
                 original.call(consumer, entry, quad, brightness, red, green, blue, alpha, lights, overlay, useColor); continue;
             }
             boolean fullbright = de.selectiverender.BoundaryStyle.fullbright(layer);
@@ -95,13 +97,14 @@ abstract class BlockModelRendererMixin {
             for (int i = 0; i < 4; i++) {
                 int offset = i * stride;
                 float x = Float.intBitsToFloat(data[offset]), y = Float.intBitsToFloat(data[offset + 1]), z = Float.intBitsToFloat(data[offset + 2]);
-                data[offset + 4] = Float.floatToRawIntBits(BoundaryColorTexture.u(layer, quad.getFace(), x, y, z));
-                data[offset + 5] = Float.floatToRawIntBits(BoundaryColorTexture.v(layer, quad.getFace(), x, y, z));
+                data[offset + 4] = Float.floatToRawIntBits(BoundaryColorTexture.u(layer, selectiverender$position.get(), quad.getFace(), x, y, z));
+                data[offset + 5] = Float.floatToRawIntBits(BoundaryColorTexture.v(layer, selectiverender$position.get(), quad.getFace(), x, y, z));
             }
             var replacement = new BakedQuad(data, -1, quad.getFace(), BoundaryColorTexture.sprite(layer), !fullbright);
             original.call(consumer, entry, replacement, fullbright ? new float[]{1,1,1,1} : brightness,
-                    1f, 1f, 1f, 1f, fullbright ? new int[]{0x00F000F0,0x00F000F0,0x00F000F0,0x00F000F0} : lights, overlay, false);
+                    (BoundaryColorTexture.argb(layer) >> 16 & 255) / 255f, (BoundaryColorTexture.argb(layer) >> 8 & 255) / 255f, (BoundaryColorTexture.argb(layer) & 255) / 255f, 1f, fullbright ? new int[]{0x00F000F0,0x00F000F0,0x00F000F0,0x00F000F0} : lights, overlay, false);
         }
+        de.selectiverender.BoundaryTextureResolver.clear();
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))

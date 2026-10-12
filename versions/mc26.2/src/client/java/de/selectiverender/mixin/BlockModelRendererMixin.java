@@ -65,7 +65,9 @@ abstract class BlockModelRendererMixin {
 
             for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
             if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
-            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryColorTexture.preserveSourceTexture(state)) {
+            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(pos, quad.direction());
+            else de.selectiverender.BoundaryTextureResolver.clear();
+            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryColorTexture.preserveSourceTexture(state) && de.selectiverender.BoundaryTextureResolver.bound() == null) {
                 output.put(x, y, z, quad, quadInstance); continue;
             }
             boolean fullbright = de.selectiverender.BoundaryStyle.fullbright(layer);
@@ -77,8 +79,8 @@ abstract class BlockModelRendererMixin {
             long[] uv = new long[4];
             for (int i = 0; i < 4; i++) {
                 var p = positions[i];
-                uv[i] = UVPair.pack(BoundaryColorTexture.u(layer, quad.direction(), p.x(), p.y(), p.z()),
-                        BoundaryColorTexture.v(layer, quad.direction(), p.x(), p.y(), p.z()));
+                uv[i] = UVPair.pack(BoundaryColorTexture.u(layer, pos, quad.direction(), p.x(), p.y(), p.z()),
+                        BoundaryColorTexture.v(layer, pos, quad.direction(), p.x(), p.y(), p.z()));
             }
             var replacement = new BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
                     uv[0], uv[1], uv[2], uv[3], quad.direction(), custom);
@@ -96,6 +98,7 @@ abstract class BlockModelRendererMixin {
             }
             }
         }
+        de.selectiverender.BoundaryTextureResolver.clear();
         ci.cancel();
     }
 }

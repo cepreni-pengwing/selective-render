@@ -76,7 +76,7 @@ java {
 // Reserved slots allow texture alpha without changing Sodium's vertex-light channel.
 tasks.named('processClientResources', ProcessResources) {
     doLast {
-        ['boundary_white': 16, 'boundary_texture': 128, 'boundary_combined': 128].each { name, size ->
+        ['boundary_white': 16, 'boundary_rainbow': 256, 'boundary_texture': 128, 'boundary_combined': 128].each { name, size ->
             def pixel = new File(destinationDir, "assets/selectiverender/textures/block/${name}.png")
             pixel.parentFile.mkdirs()
             def bitmap = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)

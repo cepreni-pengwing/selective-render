@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.5
+
+- Resolved boundary textures through loaded block models and supported connected-texture transforms, with virtual boundary neighbors and a safe fallback for unsupported models
+- Added optional Iris material-metadata handling and consistent material selection for inset/overlay boundary quads
+- Moved the remaining color preview to an opaque native texture, matching the slider rendering path
+- Added a dedicated preset column beside equal-width sliders, including a perimeter Rainbow preset and basic solid colors; clicking Hue exits Rainbow
+- Added rainbow/preview/shader-scope tests and a disposable resourcepack/Continuity/Indium/Iris runtime CI profile across the multi-version workflow
+
 ## 1.11.4
 
 - Fixed Only filters blocking placement into air while keeping hidden blocks and region interaction rules protected

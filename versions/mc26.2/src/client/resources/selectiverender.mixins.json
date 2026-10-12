@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "BoundarySpriteImagesAccess",
+    "iris.BoundaryShaderMetadataMixin",
     "worldedit.CuiEventDispatcherMixin",
     "WorldRendererMixin",
     "LightCoordsMixin",

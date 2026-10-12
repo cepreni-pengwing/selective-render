@@ -35,6 +35,11 @@ abstract class AbstractBlockRenderContextMixin {
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
         var mode = selectiverender$boundaryMode(position, quad);
+        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) {
+            Direction face = quad.cullFace();
+            if (face == null) { face = quad.nominalFace(); if (face == null || !selectiverender$isOnBlockFace(quad, face)) return; }
+            if (SelectiveRenderState.isBoundaryFace(position, face)) mode = SelectiveRenderState.boundaryModeForFace(position, face);
+        }
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED
                 || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && SelectiveRenderSettings.boundaryOpacity() == 0)) ci.cancel();
         else if (BoundaryColorTexture.custom(mode)) {
@@ -48,17 +53,19 @@ abstract class AbstractBlockRenderContextMixin {
             selectiverender$emitting = true;
             try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(position, quad.lightFace());
+                else de.selectiverender.BoundaryTextureResolver.clear();
                 var emitter = ((net.fabricmc.fabric.api.renderer.v1.render.RenderContext)(Object)this).getEmitter();
                 mesh.forEach(emitter::copyFrom);
                 var world = net.minecraft.client.MinecraftClient.getInstance().world;
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && world != null
-                        && BoundaryColorTexture.preserveSourceTexture(world.getBlockState(position))) {
-                    emitter.emit(); continue;
+                        && BoundaryColorTexture.preserveSourceTexture(world.getBlockState(position)) && de.selectiverender.BoundaryTextureResolver.bound() == null) {
+                    de.selectiverender.BoundaryShaderContext.begin(layer); emitter.emit(); continue;
                 }
                 emitter.material(de.selectiverender.BoundaryMaterial.get(layer));
-                selectiverender$makeBlack(emitter, layer);
-                emitter.emit();
-            } } finally { selectiverender$emitting = false; }
+                selectiverender$makeBlack(emitter, layer, position);
+                de.selectiverender.BoundaryShaderContext.begin(layer); emitter.emit();
+            } } finally { selectiverender$emitting = false; de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryShaderContext.end(); }
             ci.cancel();
         }
     }
@@ -73,7 +80,7 @@ abstract class AbstractBlockRenderContextMixin {
         if (position == null) return;
         var mode = selectiverender$boundaryMode(position, quad);
         if (BoundaryColorTexture.custom(mode)) {
-            selectiverender$makeBlack(quad, mode);
+            selectiverender$makeBlack(quad, mode, position);
             return;
         }
         Direction direction = quad.cullFace();
@@ -84,7 +91,7 @@ abstract class AbstractBlockRenderContextMixin {
         mode = SelectiveRenderState.boundaryModeForFace(position, direction);
         if (!BoundaryColorTexture.custom(mode)) return;
         if (!SelectiveRenderState.isBoundaryFace(position, direction)) return;
-        selectiverender$makeBlack(quad, mode);
+        selectiverender$makeBlack(quad, mode, position);
     }
 
     private static SelectiveRenderSettings.BoundaryMode selectiverender$boundaryMode(
@@ -100,13 +107,13 @@ abstract class AbstractBlockRenderContextMixin {
                 position, minX, maxX, minY, maxY, minZ, maxZ);
     }
 
-    private static void selectiverender$makeBlack(MutableQuadView quad, SelectiveRenderSettings.BoundaryMode mode) {
+    private static void selectiverender$makeBlack(MutableQuadView quad, SelectiveRenderSettings.BoundaryMode mode, BlockPos position) {
         int color = BoundaryColorTexture.argb(mode);
         quad.color(color, color, color, color); quad.colorIndex(-1);
         Direction face = quad.nominalFace() == null ? Direction.UP : quad.nominalFace();
         for (int vertex = 0; vertex < 4; vertex++) quad.uv(vertex,
-                BoundaryColorTexture.u(mode, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)),
-                BoundaryColorTexture.v(mode, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)));
+                BoundaryColorTexture.u(mode, position, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)),
+                BoundaryColorTexture.v(mode, position, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)));
     }
 
     private static boolean selectiverender$isOnBlockFace(MutableQuadView quad,
