@@ -55,11 +55,12 @@ abstract class BlockModelRendererMixin {
         var mode = BoundaryGeometry.boundaryModeForQuad(pos, quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
         if (BoundaryColorTexture.custom(mode)) {
+            if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
             boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             var material = quad.materialInfo();
             var custom = new BakedQuad.MaterialInfo(BoundaryColorTexture.sprite(textured),
-                    textured || SelectiveRenderSettings.boundaryOpacity() < 100 ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
-                    material.itemRenderType(), -1, false, material.lightEmission());
+                    BoundaryColorTexture.translucent(textured) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
+                    material.itemRenderType(), -1, false, 15);
             var positions = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
             long[] uv = new long[4];
             for (int i = 0; i < 4; i++) {
@@ -71,10 +72,13 @@ abstract class BlockModelRendererMixin {
                     uv[0], uv[1], uv[2], uv[3], quad.direction(), custom);
             int c0 = quadInstance.getColor(0), c1 = quadInstance.getColor(1);
             int c2 = quadInstance.getColor(2), c3 = quadInstance.getColor(3);
+            int l0 = quadInstance.getLightCoords(0), l1 = quadInstance.getLightCoords(1), l2 = quadInstance.getLightCoords(2), l3 = quadInstance.getLightCoords(3);
             try {
+                quadInstance.setLightCoords(0x00F000F0);
                 quadInstance.setColor(BoundaryColorTexture.argb(textured));
                 output.put(x, y, z, replacement, quadInstance);
             } finally {
+                quadInstance.setLightCoords(0, l0); quadInstance.setLightCoords(1, l1); quadInstance.setLightCoords(2, l2); quadInstance.setLightCoords(3, l3);
                 quadInstance.setColor(0, c0); quadInstance.setColor(1, c1);
                 quadInstance.setColor(2, c2); quadInstance.setColor(3, c3);
             }

@@ -28,7 +28,8 @@ abstract class AbstractBlockRenderContextMixin {
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
         var mode = selectiverender$boundaryMode(position, quad);
-        if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) ci.cancel();
+        if (mode == SelectiveRenderSettings.BoundaryMode.CULLED
+                || (BoundaryColorTexture.custom(mode) && SelectiveRenderSettings.boundaryOpacity() == 0)) ci.cancel();
         else if (BoundaryColorTexture.custom(mode)) quad.material(de.selectiverender.BoundaryMaterial.get(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE));
     }
 

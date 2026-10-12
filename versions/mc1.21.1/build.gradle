@@ -73,11 +73,15 @@ java {
     targetCompatibility = JavaVersion.VERSION_21
 }
 
-// A generated white atlas pixel keeps arbitrary boundary colors exact and pack-independent.
+// Reserved slots allow texture alpha without changing Sodium's vertex-light channel.
 tasks.named('processClientResources', ProcessResources) {
     doLast {
-        def pixel = new File(destinationDir, 'assets/selectiverender/textures/block/boundary_white.png')
-        pixel.parentFile.mkdirs()
-        pixel.bytes = java.util.Base64.decoder.decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=')
+        ['boundary_white': 16, 'boundary_texture': 128].each { name, size ->
+            def pixel = new File(destinationDir, "assets/selectiverender/textures/block/${name}.png")
+            pixel.parentFile.mkdirs()
+            def bitmap = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) bitmap.setRGB(x, y, -1)
+            javax.imageio.ImageIO.write(bitmap, 'png', pixel)
+        }
     }
 }

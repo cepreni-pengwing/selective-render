@@ -87,7 +87,7 @@ final class RegionEditorScreen extends Screen {
         visibleRows = Math.max(1, (height - (error.isEmpty() ? 58 : 82)) / 24);
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var button = addRenderableWidget(Button.builder(Component.literal(tab.label), b -> {
-                if (commitInputs()) minecraft.gui.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, SelectiveRenderSettings.menuNavigation().scroll(tab.name())));
+                if (commitInputs()) minecraft.gui.setScreen(SelectiveRenderSettingsScreen.page(parent, tab));
             }).bounds(viewport.left(), 36 + tab.ordinal() * 26, viewport.navigationWidth(), 20).build());
             button.active = tab != SelectiveRenderSettingsScreen.Tab.REGIONS;
         }

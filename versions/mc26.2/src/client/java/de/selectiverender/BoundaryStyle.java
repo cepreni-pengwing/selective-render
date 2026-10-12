@@ -3,7 +3,7 @@ package de.selectiverender;
 /** Renderer-independent color/opacity math. */
 public final class BoundaryStyle {
     private BoundaryStyle() { }
-    public static int opacity(int value) { return Math.max(0, Math.min(100, Math.round(value / 10f) * 10)); }
+    public static int opacity(int value) { return Math.max(0, Math.min(100, value)); }
     public static int alpha(int percent) { return Math.round(opacity(percent) * 2.55f); }
     public static int hsv(float hue, float saturation, float value) {
         hue = hue - (float)Math.floor(hue);

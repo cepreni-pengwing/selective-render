@@ -49,6 +49,7 @@ abstract class BlockRendererMixin {
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {
+            if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
             boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             quad.colorIndex(-1);
             quad.material(de.selectiverender.BoundaryMaterial.get(textured));

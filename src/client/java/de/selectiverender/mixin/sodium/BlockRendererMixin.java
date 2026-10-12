@@ -24,6 +24,8 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -33,26 +35,42 @@ import java.util.List;
 @Pseudo
 @Mixin(value = BlockRenderer.class, remap = false)
 abstract class BlockRendererMixin {
+    @Unique private static final ThreadLocal<ChunkBuildBuffers> selectiverender$buffers = new ThreadLocal<>();
     @Unique private static final ThreadLocal<Boolean> selectiverender$textured = ThreadLocal.withInitial(() -> false);
     @Unique private static final ThreadLocal<Direction> selectiverender$quadDirection =
             new ThreadLocal<>();
     @Unique private static final ThreadLocal<Boolean> selectiverender$solidColor =
             ThreadLocal.withInitial(() -> false);
 
-    // Sodium methods are not remapped; their Minecraft descriptor types use intermediary names in release JARs.
-    @Redirect(method = "renderModel", at = @At(value = "INVOKE",
-            target = "Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/DefaultMaterials;forBlockState(Lnet/minecraft/class_2680;)Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/Material;"))
-    private Material selectiverender$material(BlockState state, BlockRenderContext context, ChunkBuildBuffers buffers) {
-        return BoundaryColorTexture.translucent(context.pos())
-                ? me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.TRANSLUCENT
-                : me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.forBlockState(state);
+    // Choose the material per boundary quad, not per whole block (waterlogged/glass blocks need both paths).
+    @WrapOperation(method = "renderQuadList", at = @At(value = "INVOKE",
+            target = "Lme/jellysquid/mods/sodium/client/render/chunk/compile/pipeline/BlockRenderer;writeGeometry(Lme/jellysquid/mods/sodium/client/render/chunk/compile/pipeline/BlockRenderContext;Lme/jellysquid/mods/sodium/client/render/chunk/compile/buffers/ChunkModelBuilder;Lnet/minecraft/class_243;Lme/jellysquid/mods/sodium/client/render/chunk/terrain/material/Material;Lme/jellysquid/mods/sodium/client/model/quad/BakedQuadView;[ILme/jellysquid/mods/sodium/client/model/light/data/QuadLightData;)V"))
+    private void selectiverender$material(BlockRenderer renderer, BlockRenderContext context,
+            ChunkModelBuilder builder, Vec3d offset, Material material, BakedQuadView quad,
+            int[] colors, QuadLightData light, Operation<Void> original) {
+        if (selectiverender$solidColor.get() && selectiverender$buffers.get() != null) {
+            material = BoundaryColorTexture.translucent(selectiverender$textured.get())
+                    ? me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.TRANSLUCENT
+                    : me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.SOLID;
+            builder = selectiverender$buffers.get().get(material);
+        }
+        original.call(renderer, context, builder, offset, material, quad, colors, light);
     }
 
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlock(BlockRenderContext context,
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
+        if (SelectiveRenderState.filteringActive()
+                && (de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR)
+                || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)))
+            selectiverender$buffers.set(buffers);
         var pos = context.pos();
         if (!SelectiveRenderState.shouldRender(context.state(), pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
+    }
+
+    @Inject(method = "renderModel", at = @At("RETURN"))
+    private void selectiverender$releaseBuffers(BlockRenderContext context, ChunkBuildBuffers buffers, CallbackInfo ci) {
+        selectiverender$buffers.remove();
     }
 
     @Inject(method = "getVertexColors", at = @At("RETURN"))
@@ -74,8 +92,8 @@ abstract class BlockRendererMixin {
         Direction direction = selectiverender$quadDirection.get();
         if (direction == null) {
             direction = quad.getLightFace();
-            if (!selectiverender$isOnBlockFace(quad, direction)) return;
         }
+        if (!selectiverender$isOnBlockFace(quad, direction)) return;
         var mode = SelectiveRenderState.boundaryModeForFace(context.pos(), direction);
         if (!BoundaryColorTexture.custom(mode)) return;
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
@@ -90,6 +108,11 @@ abstract class BlockRendererMixin {
                                                         Material material, BakedQuadView quad,
                                                         int[] colors, QuadLightData light,
                                                         CallbackInfo ci) {
+        if (selectiverender$solidColor.get()) {
+            if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
+            Arrays.fill(light.br, 1f);
+            Arrays.fill(light.lm, 0x00F000F0);
+        }
         if (!SelectiveRenderState.filteringActive()
                 || !de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED)) return;
         if (selectiverender$boundaryMode(context, quad)

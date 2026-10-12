@@ -42,8 +42,12 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         var state = SelectiveRenderSettings.menuNavigation();
         Tab tab;
         try { tab = Tab.valueOf(state.tab); } catch (IllegalArgumentException error) { tab = Tab.GENERAL; }
-        return tab == Tab.REGIONS ? new RegionEditorScreen(parent)
-                : new SelectiveRenderSettingsScreen(parent, tab, null, state.scroll(tab.name()));
+        return page(parent, tab);
+    }
+
+    static Screen page(Screen parent, Tab tab) {
+        return tab == Tab.REGIONS ? new RegionEditorScreen(parent) : tab == Tab.BOUNDARIES ? new BoundaryAppearanceScreen(parent)
+                : new SelectiveRenderSettingsScreen(parent, tab, null, SelectiveRenderSettings.menuNavigation().scroll(tab.name()));
     }
 
     @Override
@@ -172,18 +176,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                         i -> SelectiveRenderSettings.setInteractWithHiddenRegions(i == 1));
             }
             case REGIONS -> label("Open the region editor to browse saved dimensions");
-            case BOUNDARIES -> {
-                var boundaries = SelectiveRenderSettings.BoundaryMode.values();
-                options("Boundary faces", java.util.Arrays.stream(boundaries).map(value -> value.label()).toArray(String[]::new),
-                        SelectiveRenderSettings.boundaryMode().ordinal(),
-                        i -> SelectiveRenderSettings.setBoundaryMode(boundaries[i]));
-                rows.add(new Row("Appearance", List.of(new Choice("Color / texture / opacity...", false,
-                        () -> minecraft.gui.setScreen(new BoundaryAppearanceScreen(this)),
-                        "Choose a boundary color, loaded block texture and opacity. Appearance is shared by regional mode overrides.")), 0, optionLabelWidth()));
-                options("Cull fluid boundaries", new String[]{"Off", "On"},
-                        SelectiveRenderSettings.cullFluidBoundaryFaces() ? 1 : 0,
-                        i -> SelectiveRenderSettings.setCullFluidBoundaryFaces(i == 1));
-            }
+            case BOUNDARIES -> { } // Dedicated inline boundary page.
             case PLOTS -> {
                 rows.add(new Row("Default plot minimum Y", List.of(), 2));
                 rows.add(new Row("Default plot maximum Y", List.of(), 3));
@@ -237,7 +230,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     private void navigate(Tab nextTab, String nextRegion, int nextScroll) {
         if (!applyNumericSettings()) return;
-        minecraft.gui.setScreen(nextTab == Tab.REGIONS ? new RegionEditorScreen(parent)
+        minecraft.gui.setScreen(nextTab == Tab.BOUNDARIES ? new BoundaryAppearanceScreen(parent) : nextTab == Tab.REGIONS ? new RegionEditorScreen(parent)
                 : new SelectiveRenderSettingsScreen(parent, nextTab, nextRegion, nextScroll));
     }
 

@@ -1,125 +1,116 @@
 package de.selectiverender;
-
 import java.util.List;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
+import net.minecraft.client.gui.widget.SliderWidget;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.registry.Registries;
-
-/** Small staged appearance editor: dragging never triggers repeated chunk rebuilds. */
+/** Inline boundary controls. Sliders commit once on release, not per drag pixel. */
 final class BoundaryAppearanceScreen extends Screen {
     private final Screen parent;
     private TextFieldWidget texture;
     private List<String> blocks, matches = List.of();
-    private String query = "", completionBase, error = "";
-    private int completionIndex = -1, opacity, left, wheelX, wheelY;
+    private String draftTexture, completionBase;
+    private int completionIndex = -1, opacity, right, rightWidth, scroll;
     private float hue, saturation, brightness;
-    private boolean draggingWheel, draggingBrightness;
-    BoundaryAppearanceScreen(Screen parent) { super(Text.literal("Boundary appearance")); this.parent = parent; }
+    private boolean initialized, draftChanged, fieldFocused;
+    BoundaryAppearanceScreen(Screen parent) { super(Text.literal("Selective Render")); this.parent = parent; }
     @Override protected void init() {
-        left = (width - Math.min(300, width - 24)) / 2;
-        wheelX = left + 46; wheelY = 139;
-        float[] hsv = BoundaryStyle.hsv(SelectiveRenderSettings.boundaryColor());
-        hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; opacity = SelectiveRenderSettings.boundaryOpacity();
+        if (!initialized) {
+            float[] hsv = BoundaryStyle.hsv(SelectiveRenderSettings.boundaryColor());
+            hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; opacity = SelectiveRenderSettings.boundaryOpacity();
+            draftTexture = SelectiveRenderSettings.boundaryTexture(); scroll = SelectiveRenderSettings.menuNavigation().scroll("BOUNDARIES"); initialized = true;
+        } else if (texture != null) draftTexture = texture.getText();
         blocks = Registries.BLOCK.getIds().stream().map(Object::toString).sorted().toList();
-        texture = new TextFieldWidget(textRenderer, left + 78, 36, Math.min(222, width - left - 90), 20, Text.literal("Block texture"));
-        texture.setMaxLength(256); texture.setText(SelectiveRenderSettings.boundaryTexture());
-        texture.setChangedListener(value -> { query = value; completionBase = null; completionIndex = -1; updateMatches(); });
-        query = texture.getText(); updateMatches(); addDrawableChild(texture);
-        addDrawableChild(ButtonWidget.builder(Text.literal(opacity + "%"), button -> {
-            opacity = (opacity + 10) % 110; button.setMessage(Text.literal(opacity + "%"));
-        }).dimensions(left + 78, 62, 62, 20).build());
-        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close())
-                .dimensions((width - 100) / 2, height - 26, 100, 20).build());
+        var layout = SettingsViewport.of(width, height, 0, 0);
+        int middle = layout.paneLeft(), size = Math.min(112, Math.max(68, layout.paneWidth() / 3));
+        right = middle + size + 12; rightWidth = Math.max(52, layout.paneWidth() - size - 12);
+        scroll = Math.max(0, Math.min(scroll, Math.max(0, 264 - (height - 70))));
+        for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
+            var b = addDrawableChild(ButtonWidget.builder(Text.literal(tab.label), button -> { commit(); client.setScreen(SelectiveRenderSettingsScreen.page(parent, tab)); })
+                    .dimensions(layout.left(), 36 + tab.ordinal() * 26, layout.navigationWidth(), 20).build());
+            b.active = tab != SelectiveRenderSettingsScreen.Tab.BOUNDARIES;
+        }
+        var modes = new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL, SelectiveRenderSettings.BoundaryMode.CULLED, SelectiveRenderSettings.BoundaryMode.COLOR, SelectiveRenderSettings.BoundaryMode.TEXTURE};
+        for (int i = 0; i < modes.length; i++) {
+            var mode = modes[i]; var b = addDrawableChild(ButtonWidget.builder(Text.literal(mode.label()), button -> { commit(); SelectiveRenderSettings.setBoundaryMode(mode); rebuild(); })
+                    .dimensions(middle, 36 + i * 26 - scroll, size, 20).build()); b.active = mode != SelectiveRenderSettings.boundaryMode(); clip(b);
+        }
+        var fluids = addDrawableChild(ButtonWidget.builder(Text.literal("Cull fluids: " + (SelectiveRenderSettings.cullFluidBoundaryFaces() ? "On" : "Off")), button -> {
+            commit(); SelectiveRenderSettings.setCullFluidBoundaryFaces(!SelectiveRenderSettings.cullFluidBoundaryFaces()); rebuild();
+        }).dimensions(middle, 158 - scroll, size, 20).build()); clip(fluids);
+        texture = new TextFieldWidget(textRenderer, right, 50 - scroll, rightWidth, 20, Text.literal("Block texture"));
+        texture.setMaxLength(256); texture.setText(draftTexture);
+        texture.setChangedListener(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; });
+        addDrawableChild(texture); clip(texture); updateMatches();
+        for (int i = 0; i < 4; i++) { var bar = addDrawableChild(new Bar(i, right, 88 + i * 38 - scroll, rightWidth)); clip(bar); }
+        addDrawableChild(ButtonWidget.builder(Text.literal("Done"), button -> close()).dimensions((width - 100) / 2, height - 26, 100, 20).build());
     }
+    private void clip(net.minecraft.client.gui.widget.ClickableWidget w) { w.visible = w.getY() >= 36 && w.getY() + w.getHeight() <= height - 34; }
+    private void rebuild() { clearChildren(); init(); }
     private void updateMatches() {
-        String prefix = completionBase == null ? query : completionBase;
-        matches = blocks.stream().filter(value -> value.startsWith(prefix) || (!prefix.contains(":") && value.substring(value.indexOf(':') + 1).startsWith(prefix))).limit(100).toList();
+        String prefix = completionBase == null ? draftTexture : completionBase;
+        matches = blocks.stream().filter(v -> v.startsWith(prefix) || (!prefix.contains(":") && v.substring(v.indexOf(':') + 1).startsWith(prefix))).limit(100).toList();
     }
     private boolean complete(int direction) {
         if (!texture.isFocused()) return false;
         if (completionBase == null) { completionBase = texture.getText(); updateMatches(); }
         if (matches.isEmpty()) return true;
-        completionIndex = Math.floorMod(completionIndex + direction, matches.size());
-        String base = completionBase; int index = completionIndex;
-        texture.setText(matches.get(index)); completionBase = base; completionIndex = index;
-        updateMatches(); return true;
+        int index = Math.floorMod(completionIndex + direction, matches.size()); String base = completionBase;
+        texture.setText(matches.get(index)); completionBase = base; completionIndex = index; updateMatches(); return true;
     }
-    private boolean pointer(double x, double y) {
-        double dx = x - wheelX, dy = y - wheelY;
-        if (draggingWheel || (!draggingBrightness && dx * dx + dy * dy <= 36 * 36)) {
-            hue = (float)(Math.atan2(dy, dx) / (Math.PI * 2)); saturation = Math.min(1, (float)Math.hypot(dx, dy) / 36);
-            if (brightness == 0) brightness = 1; draggingWheel = true; return true;
-        }
-        if (draggingBrightness || (x >= left + 96 && x < left + 112 && y >= 103 && y <= 175)) {
-            brightness = Math.max(0, Math.min(1, 1 - (float)(y - 103) / 72)); draggingBrightness = true; return true;
-        }
-        return false;
+    private boolean commit() {
+        Identifier id = Identifier.tryParse(texture.getText().trim());
+        if (id == null || !Registries.BLOCK.containsId(id)) { texture.setEditableColor(0xFFFF6666); return false; }
+        if (draftChanged || !id.toString().equals(SelectiveRenderSettings.boundaryTexture())) SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
+        draftChanged = false; texture.setEditableColor(0xFFFFFFFF); return true;
     }
+    @Override public void tick() { super.tick(); if (fieldFocused && !texture.isFocused()) commit(); fieldFocused = texture.isFocused(); }
+    private int popupY() { int count = Math.min(6, matches.size()); return texture.getY() + 22 + count * 12 < height - 28 ? texture.getY() + 22 : Math.max(36, texture.getY() - count * 12 - 2); }
     @Override public boolean mouseClicked(double x, double y, int button) {
-        if (button == 0 && texture.isFocused() && !matches.isEmpty() && x >= texture.getX() && x < texture.getX() + texture.getWidth()
-                && y >= 58 && y < 58 + Math.min(6, matches.size()) * 12) {
-            texture.setText(matches.get((completionIndex < 0 ? 0 : Math.max(0, completionIndex - 5)) + (int)(y - 58) / 12)); texture.setFocused(false); return true;
+        if (button == 0 && texture.visible && texture.isFocused() && !matches.isEmpty() && x >= right && x < right + rightWidth && y >= popupY() && y < popupY() + Math.min(6, matches.size()) * 12) {
+            int start = completionIndex < 0 ? 0 : Math.max(0, completionIndex - 5);
+            texture.setText(matches.get(start + (int)(y - popupY()) / 12)); texture.setFocused(false); commit(); return true;
         }
-        if (button == 0 && pointer(x, y)) { texture.setFocused(false); return true; }
         return super.mouseClicked(x, y, button);
     }
-    @Override public boolean mouseDragged(double x, double y, int button, double dx, double dy) {
-        if (button == 0 && (draggingWheel || draggingBrightness)) return pointer(x, y);
-        return super.mouseDragged(x, y, button, dx, dy);
-    }
-    @Override public boolean mouseReleased(double x, double y, int button) {
-        draggingWheel = false; draggingBrightness = false; return super.mouseReleased(x, y, button);
+    @Override public boolean mouseReleased(double x, double y, int button) { boolean handled = super.mouseReleased(x, y, button); if (draftChanged && !texture.isFocused()) commit(); return handled; }
+    @Override public boolean mouseScrolled(double x, double y, double horizontal, double amount) {
+        if (amount == 0 || x < SettingsViewport.of(width, height, 0, 0).paneLeft()) return false;
+        scroll = Math.max(0, Math.min(Math.max(0, 264 - (height - 70)), scroll + (amount > 0 ? -24 : 24))); rebuild(); return true;
     }
     @Override public boolean keyPressed(int key, int scan, int modifiers) {
         if (key == 258 && complete((modifiers & 1) == 0 ? 1 : -1)) return true;
-        if (key == 257) { close(); return true; }
-        return super.keyPressed(key, scan, modifiers);
+        if (key == 257 && texture.isFocused()) { commit(); texture.setFocused(false); return true; }
+        boolean handled = super.keyPressed(key, scan, modifiers); if (draftChanged && !texture.isFocused()) commit(); return handled;
     }
-    @Override public void close() {
-        Identifier id = Identifier.tryParse(texture.getText().trim());
-        // Invalid draft input discards all pending appearance changes, but never traps the player.
-        if (id != null && Registries.BLOCK.containsId(id)) {
-            SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
+    @Override public void close() { commit(); client.setScreen(parent); }
+    @Override public void removed() { var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); super.removed(); }
+    private final class Bar extends SliderWidget {
+        private final int kind;
+        Bar(int kind, int x, int y, int size) { super(x, y, size, 20, Text.empty(), kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d); this.kind = kind; updateMessage(); }
+        @Override protected void updateMessage() { setMessage(Text.literal(Math.round(value * (kind == 0 ? 360 : 100)) + (kind == 0 ? "°" : "%"))); }
+        @Override protected void applyValue() { if (kind == 0) hue = (float)value; else if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); draftChanged = true; }
+        @Override public void renderWidget(DrawContext draw, int mouseX, int mouseY, float delta) {
+            for (int x = 0; x < getWidth(); x++) { float f = x / (float)Math.max(1, getWidth() - 1); int rgb = kind == 0 ? BoundaryStyle.hsv(f, 1, 1) : kind == 1 ? BoundaryStyle.hsv(hue, f, brightness) : kind == 2 ? BoundaryStyle.hsv(hue, saturation, f) : BoundaryStyle.hsv(hue, saturation, brightness); if (kind == 3) for (int y = 0; y < 20; y += 4) draw.fill(getX() + x, getY() + y, getX() + x + 1, getY() + y + 4, ((x / 4 + y / 4) & 1) == 0 ? 0xFF555555 : 0xFF999999);
+                draw.fill(getX() + x, getY(), getX() + x + 1, getY() + 20, (kind == 3 ? BoundaryStyle.alpha(Math.round(f * 100)) << 24 : 0xFF000000) | rgb); }
+            int handle = getX() + (int)Math.round(value * (getWidth() - 4)); draw.fill(handle, getY(), handle + 4, getY() + 20, 0xFFEEEEEE);
+            draw.drawCenteredTextWithShadow(textRenderer, getMessage(), getX() + getWidth() / 2, getY() + 6, 0xFFFFFFFF);
         }
-        client.setScreen(parent);
     }
     @Override public void render(DrawContext draw, int mouseX, int mouseY, float delta) {
-        renderBackground(draw, mouseX, mouseY, delta);
-        draw.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
+        renderBackground(draw, mouseX, mouseY, delta); draw.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFFFF);
+        draw.enableScissor(right, 36, right + rightWidth, height - 34); draw.drawTextWithShadow(textRenderer, Text.literal("Block texture"), right, 36 - scroll, 0xFFFFFFFF);
+        String[] labels = {"Hue", "Saturation", "Brightness", "Opacity"};
+        for (int i = 0; i < 4; i++) draw.drawTextWithShadow(textRenderer, Text.literal(labels[i]), right, 74 + i * 38 - scroll, 0xFFFFFFFF);
+        draw.fill(right, 242 - scroll, right + rightWidth, 258 - scroll, BoundaryStyle.alpha(opacity) << 24 | BoundaryStyle.hsv(hue, saturation, brightness)); draw.disableScissor();
         super.render(draw, mouseX, mouseY, delta);
-        draw.drawTextWithShadow(textRenderer, Text.literal("Texture"), left, 42, 0xFFFFFF);
-        draw.drawTextWithShadow(textRenderer, Text.literal("Opacity"), left, 68, 0xFFFFFF);
-        draw.drawTextWithShadow(textRenderer, Text.literal("Color"), left, 91, 0xFFFFFF);
-        for (int y = -36; y < 36; y += 2) for (int x = -36; x < 36; x += 2) {
-            float distance = (float)Math.hypot(x + 1, y + 1) / 36;
-            if (distance <= 1) draw.fill(wheelX + x, wheelY + y, wheelX + x + 2, wheelY + y + 2,
-                    0xFF000000 | BoundaryStyle.hsv((float)(Math.atan2(y + 1, x + 1) / (Math.PI * 2)), distance, 1));
-        }
-        for (int y = 0; y < 72; y++) draw.fill(left + 96, 103 + y, left + 112, 104 + y,
-                0xFF000000 | BoundaryStyle.hsv(hue, saturation, 1 - y / 71f));
-        int markerX = wheelX + Math.round((float)Math.cos(hue * Math.PI * 2) * saturation * 35);
-        int markerY = wheelY + Math.round((float)Math.sin(hue * Math.PI * 2) * saturation * 35);
-        draw.fill(markerX - 2, markerY - 2, markerX + 3, markerY + 3, 0xFF000000);
-        draw.fill(markerX - 1, markerY - 1, markerX + 2, markerY + 2, 0xFFFFFFFF);
-        int valueY = 103 + Math.round((1 - brightness) * 71);
-        draw.fill(left + 94, valueY, left + 114, valueY + 1, 0xFFFFFFFF);
-        int color = BoundaryStyle.hsv(hue, saturation, brightness);
-        draw.fill(left + 130, 106, left + 194, 150, 0xFF000000 | color);
-        draw.drawTextWithShadow(textRenderer, Text.literal(String.format("#%06X", color)), left + 130, 158, 0xFFFFFF);
-        draw.drawTextWithShadow(textRenderer, Text.literal("Brightness"), left + 96, 183, 0xFFFFFF);
-        if (!error.isEmpty()) draw.drawTextWithShadow(textRenderer, Text.literal(error), left, height - 42, UiStyle.ERROR);
-        if (texture.isFocused() && !matches.isEmpty()) {
-            int start = completionIndex < 0 ? 0 : Math.max(0, completionIndex - 5);
-            int count = Math.min(6, matches.size() - start);
-            draw.fill(texture.getX(), 58, texture.getX() + texture.getWidth(), 58 + count * 12, 0xFF202020);
-            for (int i = 0; i < count; i++) {
-                if (start + i == completionIndex) draw.fill(texture.getX(), 58 + i * 12, texture.getX() + texture.getWidth(), 70 + i * 12, 0xFF355870);
-                draw.drawTextWithShadow(textRenderer, Text.literal(matches.get(start + i)), texture.getX() + 2, 60 + i * 12, 0xFFFFFF);
-            }
+        if (texture.visible && texture.isFocused() && !matches.isEmpty()) {
+            int start = completionIndex < 0 ? 0 : Math.max(0, completionIndex - 5), count = Math.min(6, matches.size() - start), top = popupY(); draw.fill(right, top, right + rightWidth, top + count * 12, 0xFF202020);
+            for (int i = 0; i < count; i++) { if (start + i == completionIndex) draw.fill(right, top + i * 12, right + rightWidth, top + (i + 1) * 12, 0xFF355870); draw.drawTextWithShadow(textRenderer, Text.literal(matches.get(start + i)), right + 2, top + 2 + i * 12, 0xFFFFFFFF); }
         }
     }
 }

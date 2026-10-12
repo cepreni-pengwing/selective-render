@@ -3,12 +3,12 @@ import com.google.gson.Gson;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class BoundaryStyleTest {
-    @Test void opacityIsClampedToTenPercentStepsWithExactEndpoints() {
+    @Test void opacitySupportsEveryPercentWithExactEndpoints() {
         assertEquals(0, BoundaryStyle.opacity(-100)); assertEquals(100, BoundaryStyle.opacity(900));
-        assertEquals(30, BoundaryStyle.opacity(26)); assertEquals(20, BoundaryStyle.opacity(24));
+        assertEquals(26, BoundaryStyle.opacity(26)); assertEquals(24, BoundaryStyle.opacity(24));
         assertEquals(0, BoundaryStyle.alpha(0)); assertEquals(255, BoundaryStyle.alpha(100));
         assertEquals(128, BoundaryStyle.alpha(50));
-        for (int value = 0; value <= 100; value += 10) assertEquals(value, BoundaryStyle.opacity(value));
+        for (int value = 0; value <= 100; value++) assertEquals(value, BoundaryStyle.opacity(value));
     }
     @Test void wheelIncludesBlackWhiteAndPrimaryColors() {
         assertEquals(0, BoundaryStyle.hsv(0, 1, 0)); assertEquals(0xFFFFFF, BoundaryStyle.hsv(0, 0, 1));

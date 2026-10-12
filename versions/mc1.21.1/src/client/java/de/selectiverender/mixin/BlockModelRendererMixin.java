@@ -58,6 +58,7 @@ abstract class BlockModelRendererMixin {
             ci.cancel();
             return;
         }
+        if (BoundaryColorTexture.custom(mode) && SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
         selectiverender$coloredBoundary.set(BoundaryColorTexture.custom(mode));
         selectiverender$texturedBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
     }
@@ -83,6 +84,7 @@ abstract class BlockModelRendererMixin {
         args.set(4, (color >> 8 & 255) / 255f);
         args.set(5, (color & 255) / 255f);
         args.set(6, (color >>> 24) / 255f);
+        args.set(7, new int[]{0x00F000F0, 0x00F000F0, 0x00F000F0, 0x00F000F0});
         args.set(9, false);
     }
 

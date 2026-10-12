@@ -87,7 +87,7 @@ final class RegionEditorScreen extends Screen {
         visibleRows = Math.max(1, (height - (error.isEmpty() ? 58 : 82)) / 24);
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var button = addDrawableChild(ButtonWidget.builder(Text.literal(tab.label), b -> {
-                if (commitInputs()) client.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, SelectiveRenderSettings.menuNavigation().scroll(tab.name())));
+                if (commitInputs()) client.setScreen(SelectiveRenderSettingsScreen.page(parent, tab));
             }).dimensions(viewport.left(), 36 + tab.ordinal() * 26, viewport.navigationWidth(), 20).build());
             button.active = tab != SelectiveRenderSettingsScreen.Tab.REGIONS;
         }

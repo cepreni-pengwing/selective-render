@@ -333,6 +333,11 @@ public final class SelectiveRenderState {
             if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE) return true;
             if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.NONE) return false;
         }
+        if (!(entity instanceof PlayerEntity)) {
+            for (FilteredRegion filtered : visibility.filteredRegions()) {
+                if (filtered.excludesEntities((int)Math.floor(entity.getX()), (int)Math.floor(entity.getY()), (int)Math.floor(entity.getZ()))) return false;
+            }
+        }
         boolean inside = shouldRender(entity.getX(), entity.getY(), entity.getZ());
         if (!(entity instanceof PlayerEntity)) return inside;
         return switch (playerVisibility) {

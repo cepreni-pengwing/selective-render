@@ -101,6 +101,7 @@ public final class SelectiveRenderSettings {
         boundaryTexture = texture;
         boundaryOpacity = BoundaryStyle.opacity(opacity);
         BoundaryColorTexture.invalidate();
+        BoundaryColorTexture.prepare();
         save();
         if (SelectiveRenderState.filteringActive()) {
             SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
@@ -140,6 +141,7 @@ public final class SelectiveRenderSettings {
     public static void setBoundaryMode(BoundaryMode value) {
         if (boundaryMode == value) return;
         boundaryMode = value;
+        BoundaryColorTexture.prepare();
         save();
         if (SelectiveRenderState.enabled()) {
             SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());

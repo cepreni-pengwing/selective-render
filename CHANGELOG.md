@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.2
+
+- Rebuilt the Boundaries page with vertical mode buttons and inline texture-ID, hue, saturation, brightness and opacity controls
+- Added continuous 1% opacity using private boundary atlas slots instead of Sodium’s ambient-occlusion vertex channel; 0% emits no boundary quad
+- Disabled boundary diffuse/AO shading and supplied full-bright light coordinates across supported render paths
+- Kept fully opaque boundary textures in opaque materials, with per-quad material selection in Sodium 0.5 to avoid moving entire waterlogged blocks into translucent rendering
+- Only block filters now hide non-player entities inside their region; players and block entities keep their respective visibility/filter policies
+- Shader-pack lighting, shadows and postprocessing still need visual validation and can affect final appearance
+- Applied changes to Minecraft 1.20.1, 1.21.1 and 26.2
+
 ## 1.11.1
 
 - Remember the settings tab and scroll position, with selected region, collapsed dimensions and expanded filter/bounds sections saved per world/server

@@ -59,6 +59,7 @@ abstract class BlockModelRendererMixin {
             ci.cancel();
             return;
         }
+        if (BoundaryColorTexture.custom(mode) && SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
         selectiverender$coloredBoundary.set(BoundaryColorTexture.custom(mode));
         selectiverender$texturedBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
     }
@@ -74,7 +75,7 @@ abstract class BlockModelRendererMixin {
         }
         boolean textured = selectiverender$texturedBoundary.get();
         int color = BoundaryColorTexture.argb(textured);
-        if ((color >>> 24) == 0) return;
+        if (SelectiveRenderSettings.boundaryOpacity() == 0) return;
         int[] data = quad.getVertexData(); int stride = data.length / 4;
         var normal = new org.joml.Vector3f(quad.getFace().getOffsetX(), quad.getFace().getOffsetY(), quad.getFace().getOffsetZ());
         entry.getNormalMatrix().transform(normal);
@@ -86,7 +87,7 @@ abstract class BlockModelRendererMixin {
             consumer.vertex(position.x(), position.y(), position.z(),
                     (color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, (color >>> 24) / 255f,
                     BoundaryColorTexture.u(textured, quad.getFace(), x, y, z), BoundaryColorTexture.v(textured, quad.getFace(), x, y, z),
-                    overlay, light[i], normal.x(), normal.y(), normal.z());
+                    overlay, 0x00F000F0, normal.x(), normal.y(), normal.z());
         }
     }
 

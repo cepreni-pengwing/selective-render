@@ -40,10 +40,14 @@ abstract class BlockRendererMixin {
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {
+            if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
             boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             quad.setTintIndex(-1);
+            quad.setEmissive(true);
+            quad.setDiffuseShade(false);
+            quad.setAmbientOcclusion(net.minecraft.util.TriState.FALSE);
             quad.cachedSprite(BoundaryColorTexture.sprite(textured));
-            quad.setRenderType(textured || SelectiveRenderSettings.boundaryOpacity() < 100 ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID);
+            quad.setRenderType(BoundaryColorTexture.translucent(textured) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID);
             for (int vertex = 0; vertex < 4; vertex++) {
                 quad.setColor(vertex, BoundaryColorTexture.argb(textured));
                 quad.setUV(vertex, BoundaryColorTexture.u(textured, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)),

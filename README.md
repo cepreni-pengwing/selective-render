@@ -63,7 +63,7 @@ Optional Y limits are inclusive. When omitted, both limits come from the Selecti
 
 - Player visibility has six modes, including local-player-only and everyone-except-local-player; player hitboxes follow the same policy.
 - Interactions can be limited to regions, allowed outside them, or left unrestricted. A separate option controls interactions with hidden regions and filtered blocks.
-- Boundary faces can use Normal, Color, Texture, or Culled mode. Color offers an HSV wheel and brightness control; Texture uses the selected loaded block model’s representative texture, including resource-pack replacements. Shared appearance settings include opacity from 0–100% in 10% steps. Region mode overrides use the same appearance. Transparent boundaries use sorted translucent rendering and may cost more than opaque faces. Legacy Black settings become Color with black. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
+- Boundary faces can use Normal, Color, Texture, or Culled mode. Color offers hue, saturation and brightness sliders; Texture uses a static copy of the selected loaded block model’s representative texture, including resource-pack replacements, resampled into a 128×128 boundary slot. Shared appearance settings include opacity from 0–100% in 1% steps. Region mode overrides use the same appearance. Transparent boundaries use sorted translucent rendering and may cost more than opaque faces. Legacy Black settings become Color with black. Only block filters also hide non-player entities inside their region; player visibility stays separate. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
 - An optional fluid-boundary setting can hide fluid faces cut by a render boundary, including lava, flowing states, waterlogged blocks, and modded fluids using the supported fluid renderer, independently of the block boundary mode.
 - One shared virtual-skylight setting lets light reach render regions, hidden regions and filtered blocks from above, from the sides, from both, or from neither.
 - The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
@@ -74,7 +74,7 @@ Optional Y limits are inclusive. When omitted, both limits come from the Selecti
 
 Selective Render has builds for Minecraft 1.20.1, 1.21.1, and 26.2. Use the matching JAR; these builds are not interchangeable. The 1.20.1 and 1.21.1 builds target their corresponding Java/Fabric environments, and the 26.2 build targets Java 25. See the release assets and project metadata for exact dependency requirements.
 
-The mod does not reduce render distance, server-sent chunks, or network traffic. Selected content must already be within the normal client render distance. Distant Horizons LODs and some custom mod renderers may not be filtered. Conquest Reforged extension-toggle boundaries are not fully supported in black/culled modes. Particle and dropped-item lighting can briefly be inaccurate under filtered roofs.
+The mod does not reduce render distance, server-sent chunks, or network traffic. Selected content must already be within the normal client render distance. Distant Horizons LODs and some custom mod renderers may not be filtered. Conquest Reforged extension-toggle boundaries are not fully supported in custom/culled modes. Particle and dropped-item lighting can briefly be inaccurate under filtered roofs.
 
 ## Building and contributing
 

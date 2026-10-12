@@ -18,13 +18,18 @@ final class BoundaryRuntimeSmoke {
                 throw new IllegalStateException("Boundary smoke region could not be created");
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 50);
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR);
+            assertBoundaryAlpha(false, 128);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR 50%");
         } else if (ticks == 40) {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE);
+            assertBoundaryAlpha(true, 128);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 50%");
         } else if (ticks == 70) {
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 0);
+            assertBoundaryAlpha(true, 0);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 0%");
+        } else if (ticks == 80) {
+            client.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {
             verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
@@ -32,6 +37,12 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderConfig.deleteRegion(client, NAME);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] PASS");
         }
+    }
+
+    private static void assertBoundaryAlpha(boolean textured, int expected) {
+        var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(textured).getContents()).selectiverender$images()[0];
+        if ((image.getColor(0, 0) >>> 24) != expected)
+            throw new IllegalStateException("Boundary atlas alpha does not match requested opacity");
     }
 
     private static void verifyInvalidAppearanceEscape(MinecraftClient client) {
@@ -42,6 +53,8 @@ final class BoundaryRuntimeSmoke {
         client.setScreen(parent);
         var appearance = new BoundaryAppearanceScreen(parent);
         client.setScreen(appearance);
+        if (appearance.children().stream().filter(child -> child instanceof net.minecraft.client.gui.widget.SliderWidget).count() != 4)
+            throw new IllegalStateException("Boundary page did not initialize all four sliders");
         var field = appearance.children().stream().filter(child -> child instanceof net.minecraft.client.gui.widget.TextFieldWidget)
                 .map(child -> (net.minecraft.client.gui.widget.TextFieldWidget) child).findFirst().orElseThrow();
         field.setText("selectiverender:missing_smoke_block");
