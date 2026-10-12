@@ -32,6 +32,8 @@ final class RegionEditorScreen extends Screen {
     private String error = "";
     private int paneLeft, paneWidth, navLeft, navWidth, navScroll, scroll, visibleRows;
     private boolean deletionArmed;
+    private boolean navigationRestored;
+    private String restoredDimension;
     private boolean boxesOpen, filtersOpen, refreshRequested, documentsLoaded;
     private BlockFilterRule.Mode newFilterMode = BlockFilterRule.Mode.HIDE;
     private Input newFilterInput;
@@ -43,6 +45,20 @@ final class RegionEditorScreen extends Screen {
     }
 
     @Override
+    public void removed() {
+        var state = SelectiveRenderSettings.menuNavigation();
+        state.tab = "REGIONS";
+        var view = state.region(context == null ? "menu" : context);
+        view.dimension = document == null ? null : document.dimension();
+        view.selected = region;
+        view.collapsed = new HashSet<>(collapsed);
+        view.scroll = scroll; view.navigationScroll = navScroll;
+        view.filtersOpen = filtersOpen; view.boxesOpen = boxesOpen;
+        SelectiveRenderSettings.saveMenuNavigation();
+        super.removed();
+    }
+
+    @Override
     protected void init() {
         inputs.clear(); captions.clear(); rows.clear(); newFilterInput = null; filterEdits.clear();
         if (!documentsLoaded) {
@@ -50,7 +66,16 @@ final class RegionEditorScreen extends Screen {
             documentsLoaded = true;
         }
         if (minecraft.level != null && context == null) context = SelectiveRenderConfig.contextIdentity(minecraft, minecraft.level);
-        String dimension = document == null ? null : document.dimension();
+        if (!navigationRestored) {
+            var view = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context);
+            collapsed.addAll(view.collapsed);
+            region = view.selected;
+            restoredDimension = view.dimension;
+            scroll = Math.max(0, view.scroll); navScroll = Math.max(0, view.navigationScroll);
+            filtersOpen = view.filtersOpen; boxesOpen = view.boxesOpen;
+            navigationRestored = true;
+        }
+        String dimension = document == null ? restoredDimension : document.dimension();
         document = documents.stream().filter(value -> value.dimension().equals(dimension)).findFirst()
                 .orElse(documents.isEmpty() ? null : documents.get(0));
         if (document != null && !document.regions().containsKey(region)) region = document.regions().keySet().iterator().next();
@@ -62,7 +87,7 @@ final class RegionEditorScreen extends Screen {
         visibleRows = Math.max(1, (height - (error.isEmpty() ? 58 : 82)) / 24);
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var button = addRenderableWidget(Button.builder(Component.literal(tab.label), b -> {
-                if (commitInputs()) minecraft.gui.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, 0));
+                if (commitInputs()) minecraft.gui.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, SelectiveRenderSettings.menuNavigation().scroll(tab.name())));
             }).bounds(viewport.left(), 36 + tab.ordinal() * 26, viewport.navigationWidth(), 20).build());
             button.active = tab != SelectiveRenderSettingsScreen.Tab.REGIONS;
         }
@@ -341,9 +366,10 @@ final class RegionEditorScreen extends Screen {
         Input(Field definition, int x, int y, int size) {
             this.definition = definition; this.x = x; this.y = y; this.size = size;
             widget = new EditBox(font, x, y, size, 20, Component.literal(definition.key()));
+            widget.setTextColor(0xFFFFFFFF); widget.setTextColorUneditable(0xFFFFFFFF);
             widget.setMaxLength(4096); widget.setValue(definition.value()); committed = definition.value();
             widget.setResponder(value -> {
-                widget.setTextColor(0xFFFFFF);
+                widget.setTextColor(0xFFFFFFFF);
                 if (!completing) { completionBase = null; completionIndex = -1; popupClosed = false; matchQuery = null; }
                 if (definition.completion()) {
                     if (selectors == null) selectors = SelectiveRenderClient.blockFilterSuggestions("");
@@ -357,10 +383,10 @@ final class RegionEditorScreen extends Screen {
             if (widget.getValue().equals(committed)) return true;
             try {
                 definition.change().accept(widget.getValue());
-                committed = widget.getValue(); error = ""; widget.setTextColor(0xFFFFFF);
+                committed = widget.getValue(); error = ""; widget.setTextColor(0xFFFFFFFF);
                 return true;
             } catch (IllegalArgumentException exception) {
-                error = exception.getMessage(); widget.setTextColor(UiStyle.ERROR); return false;
+                error = exception.getMessage(); widget.setTextColor(0xFF000000 | UiStyle.ERROR); return false;
             }
         }
         boolean complete(boolean backwards) {

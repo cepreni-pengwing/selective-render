@@ -32,6 +32,8 @@ final class RegionEditorScreen extends Screen {
     private String error = "";
     private int paneLeft, paneWidth, navLeft, navWidth, navScroll, scroll, visibleRows;
     private boolean deletionArmed;
+    private boolean navigationRestored;
+    private String restoredDimension;
     private boolean boxesOpen, filtersOpen, refreshRequested, documentsLoaded;
     private BlockFilterRule.Mode newFilterMode = BlockFilterRule.Mode.HIDE;
     private Input newFilterInput;
@@ -43,6 +45,20 @@ final class RegionEditorScreen extends Screen {
     }
 
     @Override
+    public void removed() {
+        var state = SelectiveRenderSettings.menuNavigation();
+        state.tab = "REGIONS";
+        var view = state.region(context == null ? "menu" : context);
+        view.dimension = document == null ? null : document.dimension();
+        view.selected = region;
+        view.collapsed = new HashSet<>(collapsed);
+        view.scroll = scroll; view.navigationScroll = navScroll;
+        view.filtersOpen = filtersOpen; view.boxesOpen = boxesOpen;
+        SelectiveRenderSettings.saveMenuNavigation();
+        super.removed();
+    }
+
+    @Override
     protected void init() {
         inputs.clear(); captions.clear(); rows.clear(); newFilterInput = null; filterEdits.clear();
         if (!documentsLoaded) {
@@ -50,7 +66,16 @@ final class RegionEditorScreen extends Screen {
             documentsLoaded = true;
         }
         if (client.world != null && context == null) context = SelectiveRenderConfig.contextIdentity(client, client.world);
-        String dimension = document == null ? null : document.dimension();
+        if (!navigationRestored) {
+            var view = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context);
+            collapsed.addAll(view.collapsed);
+            region = view.selected;
+            restoredDimension = view.dimension;
+            scroll = Math.max(0, view.scroll); navScroll = Math.max(0, view.navigationScroll);
+            filtersOpen = view.filtersOpen; boxesOpen = view.boxesOpen;
+            navigationRestored = true;
+        }
+        String dimension = document == null ? restoredDimension : document.dimension();
         document = documents.stream().filter(value -> value.dimension().equals(dimension)).findFirst()
                 .orElse(documents.isEmpty() ? null : documents.get(0));
         if (document != null && !document.regions().containsKey(region)) region = document.regions().keySet().iterator().next();
@@ -62,7 +87,7 @@ final class RegionEditorScreen extends Screen {
         visibleRows = Math.max(1, (height - (error.isEmpty() ? 58 : 82)) / 24);
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var button = addDrawableChild(ButtonWidget.builder(Text.literal(tab.label), b -> {
-                if (commitInputs()) client.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, 0));
+                if (commitInputs()) client.setScreen(new SelectiveRenderSettingsScreen(parent, tab, null, SelectiveRenderSettings.menuNavigation().scroll(tab.name())));
             }).dimensions(viewport.left(), 36 + tab.ordinal() * 26, viewport.navigationWidth(), 20).build());
             button.active = tab != SelectiveRenderSettingsScreen.Tab.REGIONS;
         }

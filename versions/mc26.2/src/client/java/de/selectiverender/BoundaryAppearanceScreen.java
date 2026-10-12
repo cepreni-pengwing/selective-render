@@ -86,8 +86,10 @@ final class BoundaryAppearanceScreen extends Screen {
     }
     @Override public void onClose() {
         Identifier id = Identifier.tryParse(texture.getValue().trim());
-        if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) { error = "Choose an available block ID"; return; }
-        SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
+        // Invalid draft input discards all pending appearance changes, but never traps the player.
+        if (id != null && BuiltInRegistries.BLOCK.containsKey(id)) {
+            SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
+        }
         minecraft.gui.setScreen(parent);
     }
     @Override public void extractRenderState(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {

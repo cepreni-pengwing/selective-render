@@ -38,6 +38,23 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private boolean maximumWasFocused;
     private boolean reloadWasFocused, heightWasFocused;
 
+    public static Screen open(Screen parent) {
+        var state = SelectiveRenderSettings.menuNavigation();
+        Tab tab;
+        try { tab = Tab.valueOf(state.tab); } catch (IllegalArgumentException error) { tab = Tab.GENERAL; }
+        return tab == Tab.REGIONS ? new RegionEditorScreen(parent)
+                : new SelectiveRenderSettingsScreen(parent, tab, null, state.scroll(tab.name()));
+    }
+
+    @Override
+    public void removed() {
+        var state = SelectiveRenderSettings.menuNavigation();
+        state.tab = tab.name();
+        state.scrolls.put(tab.name(), scroll);
+        SelectiveRenderSettings.saveMenuNavigation();
+        super.removed();
+    }
+
     public SelectiveRenderSettingsScreen(Screen parent) {
         this(parent, Tab.GENERAL, null, 0);
     }
@@ -68,7 +85,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         scroll = viewport.scroll();
         for (Tab value : Tab.values()) {
             var button = addRenderableWidget(Button.builder(Component.literal(value.label),
-                    b -> navigate(value, null, 0))
+                    b -> navigate(value, null, SelectiveRenderSettings.menuNavigation().scroll(value.name())))
                     .bounds(left, 36 + value.ordinal() * 26, navigationWidth, 20).build());
             button.active = value != tab;
         }
@@ -236,10 +253,10 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             else if (plot) SelectiveRenderSettings.setDefaultPlotMinY(value);
             else SelectiveRenderSettings.setFullReloadThreshold(value);
             field.setValue(Integer.toString(field == plotMaximumField ? SelectiveRenderSettings.defaultPlotMaxY() : plot ? SelectiveRenderSettings.defaultPlotMinY() : SelectiveRenderSettings.fullReloadThreshold()));
-            field.setTextColor(0xFFFFFF);
+            field.setTextColor(0xFFFFFFFF);
             return true;
         } catch (NumberFormatException error) {
-            field.setTextColor(UiStyle.ERROR);
+            field.setTextColor(0xFF000000 | UiStyle.ERROR);
             return false;
         }
     }

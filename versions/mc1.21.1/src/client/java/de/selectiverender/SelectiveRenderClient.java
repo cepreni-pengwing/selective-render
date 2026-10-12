@@ -96,7 +96,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (BLOCK_FILTERS_KEY.wasPressed()) toggleBlockFilters();
             while (SETTINGS_KEY.wasPressed()) {
                 if (client.currentScreen == null) {
-                    client.setScreen(new SelectiveRenderSettingsScreen(null));
+                    client.setScreen(SelectiveRenderSettingsScreen.open(null));
                 }
             }
         });
@@ -155,8 +155,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(filterCommand("f"))
                 .then(listCommand("list"))
                 .then(listCommand("l"))
-                .then(diagnosticsCommand("diagnose"))
-                .then(diagnosticsCommand("diag"));
+                .then(diagnosticsCommand("diagnose"));
     }
 
     private static LiteralArgumentBuilder<FabricClientCommandSource> diagnosticsCommand(String name) {

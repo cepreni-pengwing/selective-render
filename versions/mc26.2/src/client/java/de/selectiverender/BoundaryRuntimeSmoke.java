@@ -26,10 +26,31 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 0);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 0%");
         } else if (ticks == 100) {
+            verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.NORMAL);
             SelectiveRenderConfig.deleteRegion(client, NAME);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] PASS");
         }
+    }
+
+    private static void verifyInvalidAppearanceEscape(net.minecraft.client.Minecraft client) {
+        int color = SelectiveRenderSettings.boundaryColor();
+        int opacity = SelectiveRenderSettings.boundaryOpacity();
+        String texture = SelectiveRenderSettings.boundaryTexture();
+        var parent = new SelectiveRenderSettingsScreen(null, SelectiveRenderSettingsScreen.Tab.BOUNDARIES, null, 0);
+        client.gui.setScreen(parent);
+        var appearance = new BoundaryAppearanceScreen(parent);
+        client.gui.setScreen(appearance);
+        var field = appearance.children().stream().filter(child -> child instanceof net.minecraft.client.gui.components.EditBox)
+                .map(child -> (net.minecraft.client.gui.components.EditBox) child).findFirst().orElseThrow();
+        field.setValue("selectiverender:missing_smoke_block");
+        appearance.onClose();
+        if (client.gui.screen() != parent || color != SelectiveRenderSettings.boundaryColor()
+                || opacity != SelectiveRenderSettings.boundaryOpacity()
+                || !texture.equals(SelectiveRenderSettings.boundaryTexture()))
+            throw new IllegalStateException("Invalid boundary input trapped the player or changed appearance");
+        client.gui.setScreen(null);
+        SelectiveRenderClient.LOGGER.info("[SR menu smoke] Invalid boundary ID safely discarded");
     }
 }

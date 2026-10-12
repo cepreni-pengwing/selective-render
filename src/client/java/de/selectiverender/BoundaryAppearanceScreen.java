@@ -81,8 +81,10 @@ final class BoundaryAppearanceScreen extends Screen {
     }
     @Override public void close() {
         Identifier id = Identifier.tryParse(texture.getText().trim());
-        if (id == null || !Registries.BLOCK.containsId(id)) { error = "Choose an available block ID"; return; }
-        SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
+        // Invalid draft input discards all pending appearance changes, but never traps the player.
+        if (id != null && Registries.BLOCK.containsId(id)) {
+            SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
+        }
         client.setScreen(parent);
     }
     @Override public void render(DrawContext draw, int mouseX, int mouseY, float delta) {

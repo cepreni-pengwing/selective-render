@@ -26,10 +26,31 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 0);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 0%");
         } else if (ticks == 100) {
+            verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.NORMAL);
             SelectiveRenderConfig.deleteRegion(client, NAME);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] PASS");
         }
+    }
+
+    private static void verifyInvalidAppearanceEscape(MinecraftClient client) {
+        int color = SelectiveRenderSettings.boundaryColor();
+        int opacity = SelectiveRenderSettings.boundaryOpacity();
+        String texture = SelectiveRenderSettings.boundaryTexture();
+        var parent = new SelectiveRenderSettingsScreen(null, SelectiveRenderSettingsScreen.Tab.BOUNDARIES, null, 0);
+        client.setScreen(parent);
+        var appearance = new BoundaryAppearanceScreen(parent);
+        client.setScreen(appearance);
+        var field = appearance.children().stream().filter(child -> child instanceof net.minecraft.client.gui.widget.TextFieldWidget)
+                .map(child -> (net.minecraft.client.gui.widget.TextFieldWidget) child).findFirst().orElseThrow();
+        field.setText("selectiverender:missing_smoke_block");
+        appearance.close();
+        if (client.currentScreen != parent || color != SelectiveRenderSettings.boundaryColor()
+                || opacity != SelectiveRenderSettings.boundaryOpacity()
+                || !texture.equals(SelectiveRenderSettings.boundaryTexture()))
+            throw new IllegalStateException("Invalid boundary input trapped the player or changed appearance");
+        client.setScreen(null);
+        SelectiveRenderClient.LOGGER.info("[SR menu smoke] Invalid boundary ID safely discarded");
     }
 }

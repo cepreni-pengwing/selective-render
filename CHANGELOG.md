@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.1
+
+- Remember the settings tab and scroll position, with selected region, collapsed dimensions and expanded filter/bounds sections saved per world/server
+- Fix invisible typed filter text in Minecraft 26.2
+- Allow leaving boundary appearance with an invalid block ID without applying pending appearance changes
+- Remove the diagnostic command alias; use `/sr diagnose`
+- Apply the menu and command fixes across all three Minecraft builds
+
 ## 1.11.0
 
 - Added Texture boundary mode using loaded block-model textures and block-ID autocomplete

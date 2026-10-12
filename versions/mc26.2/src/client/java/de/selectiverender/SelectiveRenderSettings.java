@@ -42,6 +42,10 @@ public final class SelectiveRenderSettings {
     private static volatile int defaultPlotMaxY = 319;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
+    private static MenuNavigationState menuNavigation = new MenuNavigationState();
+    static MenuNavigationState menuNavigation() { return menuNavigation; }
+    static void saveMenuNavigation() { save(); }
+
     private SelectiveRenderSettings() { }
 
     public static void load() {
@@ -56,6 +60,8 @@ public final class SelectiveRenderSettings {
             }
             return;
         }
+        menuNavigation = stored.menuNavigation == null ? new MenuNavigationState() : stored.menuNavigation;
+        menuNavigation.normalize();
         playerVisibility = stored.playerVisibility == null
                 ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
         interactionMode = stored.interactionMode == null
@@ -225,6 +231,7 @@ public final class SelectiveRenderSettings {
             Files.createDirectories(path.getParent());
             StoredSettings stored = new StoredSettings();
             stored.formatVersion = SETTINGS_FORMAT_VERSION;
+            stored.menuNavigation = menuNavigation;
             stored.playerVisibility = playerVisibility;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
@@ -343,6 +350,7 @@ public final class SelectiveRenderSettings {
 
     private static final class StoredSettings {
         int formatVersion;
+        MenuNavigationState menuNavigation;
         PlayerVisibility playerVisibility;
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;

@@ -7,7 +7,7 @@ import de.selectiverender.SelectiveRenderSettingsScreen;
 /** Optional entrypoint: loaded by Mod Menu only when it is installed. */
 public final class SelectiveRenderModMenu implements ModMenuApi {
     @Override
-    public ConfigScreenFactory<SelectiveRenderSettingsScreen> getModConfigScreenFactory() {
-        return SelectiveRenderSettingsScreen::new;
+    public ConfigScreenFactory<?> getModConfigScreenFactory() {
+        return SelectiveRenderSettingsScreen::open;
     }
 }
