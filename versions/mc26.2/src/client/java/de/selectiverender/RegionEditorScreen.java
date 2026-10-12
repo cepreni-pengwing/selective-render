@@ -110,9 +110,21 @@ final class RegionEditorScreen extends Screen {
                     document = documents.stream().filter(value -> value.dimension().equals(entry.dimension())).findFirst().orElseThrow();
                     region = entry.name(); deletionArmed = false; scroll = 0; boxesOpen = false; filtersOpen = false; addingFilter = false;
                 }
-            })).bounds(navLeft, 36 + (i - navScroll) * 24, entry.name() == null ? navWidth : Math.min(navWidth, Math.max(36, font.width(label) + 16)), 20).build());
+            })).bounds(navLeft, 36 + (i - navScroll) * 24, entry.name() == null ? navWidth : Math.min(Math.max(24, navWidth - 48), Math.max(24, font.width(label) + 16)), 20).build());
             button.active = entry.name() == null || document == null
                     || !entry.dimension().equals(document.dimension()) || !entry.name().equals(region);
+            if (entry.name() != null) {
+                var listedDocument = documents.stream().filter(value -> value.dimension().equals(entry.dimension())).findFirst().orElseThrow();
+                boolean listedSelected = listedDocument.isSelected(entry.name());
+                addRenderableWidget(Button.builder(Component.literal(listedSelected ? "On" : "Off"), b -> runAction(() -> {
+                    SelectiveRenderConfig.editRegion(minecraft, entry.dimension(), entry.name(), entry.name(),
+                            listedDocument.regions().get(entry.name()), listedDocument.hidden().contains(entry.name()), !listedSelected,
+                            listedDocument.filters().getOrDefault(entry.name(), List.of()),
+                            listedDocument.options().getOrDefault(entry.name(), RegionOptions.DEFAULT));
+                    documents = SelectiveRenderConfig.editorDocuments(minecraft);
+                })).bounds(navLeft + navWidth - 44, 36 + (i - navScroll) * 24, 44, 20).build());
+            }
+
         }
         if (document == null) info("No saved regions in this world or server");
         else buildRows();
@@ -169,8 +181,6 @@ final class RegionEditorScreen extends Screen {
         field("Name", "name", region, false, value -> save(value, boxes(), hidden(), selected(), rules()));
         options("Type", List.of(new Choice("Render", !hidden(), () -> save(region, boxes(), false, selected(), rules())),
                 new Choice("Hidden", hidden(), () -> save(region, boxes(), true, selected(), rules()))));
-        options("Selected", List.of(new Choice("Off", !selected(), () -> save(region, boxes(), hidden(), false, rules())),
-                new Choice("On", selected(), () -> save(region, boxes(), hidden(), true, rules()))));
         accordion("Filters", rules().size(), filtersOpen, () -> filtersOpen = !filtersOpen);
         if (filtersOpen) {
             RegionOptions currentOptions = document.options().getOrDefault(region, RegionOptions.DEFAULT);

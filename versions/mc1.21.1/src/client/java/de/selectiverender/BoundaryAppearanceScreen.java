@@ -11,6 +11,7 @@ import net.minecraft.registry.Registries;
 /** Inline boundary controls. Sliders commit once on release, not per drag pixel. */
 final class BoundaryAppearanceScreen extends Screen {
     private final Screen parent;
+    private BoundarySliderTexture sliderTexture;
     private TextFieldWidget texture;
     private List<String> blocks, matches = List.of();
     private String draftTexture, completionBase;
@@ -37,16 +38,19 @@ final class BoundaryAppearanceScreen extends Screen {
         boolean colorOn = BoundaryStyle.color(SelectiveRenderSettings.boundaryMode());
         boolean textureOn = BoundaryStyle.texture(SelectiveRenderSettings.boundaryMode());
         for (int i = 0; i < 2; i++) {
-            boolean colorButton = i == 0;
+            boolean colorButton = i == 1;
             String label = (colorButton ? "Color: " : "Texture: ") + ((colorButton ? colorOn : textureOn) ? "On" : "Off");
             var b = addDrawableChild(ButtonWidget.builder(Text.literal(label), button -> {
                 commit(); SelectiveRenderSettings.setBoundaryMode(BoundaryStyle.layers(colorButton ? !colorOn : colorOn,
                         colorButton ? textureOn : !textureOn)); rebuild();
             }).dimensions(middle, 36 + i * 26 - scroll, size, 20).build()); clip(b);
         }
+        var lighting = addDrawableChild(ButtonWidget.builder(Text.literal("Color lighting: " + (SelectiveRenderSettings.boundaryColorLighting() ? "On" : "Off")), button -> {
+            commit(); SelectiveRenderSettings.setBoundaryColorLighting(!SelectiveRenderSettings.boundaryColorLighting()); rebuild();
+        }).dimensions(middle, 104 - scroll, size, 20).build()); clip(lighting);
         var fluids = addDrawableChild(ButtonWidget.builder(Text.literal("Cull fluids: " + (SelectiveRenderSettings.cullFluidBoundaryFaces() ? "On" : "Off")), button -> {
             commit(); SelectiveRenderSettings.setCullFluidBoundaryFaces(!SelectiveRenderSettings.cullFluidBoundaryFaces()); rebuild();
-        }).dimensions(middle, 104 - scroll, size, 20).build()); clip(fluids);
+        }).dimensions(middle, 146 - scroll, size, 20).build()); clip(fluids);
         texture = new TextFieldWidget(textRenderer, right, 50 - scroll, rightWidth, 20, Text.literal("Block texture"));
         texture.setMaxLength(256); texture.setText(draftTexture);
         texture.setChangedListener(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; });
@@ -94,40 +98,20 @@ final class BoundaryAppearanceScreen extends Screen {
         boolean handled = super.keyPressed(key, scan, modifiers); if (draftChanged && !texture.isFocused()) commit(); return handled;
     }
     @Override public void close() { commit(); client.setScreen(parent); }
-    @Override public void removed() { var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); super.removed(); }
-    private static void gradient(DrawContext draw, int x, int y, int width, int height, int start, int end) {
-        draw.getMatrices().push();
-        draw.getMatrices().translate(x + width, y, 0);
-        draw.getMatrices().multiply(net.minecraft.util.math.RotationAxis.POSITIVE_Z.rotationDegrees(90));
-        draw.fillGradient(0, 0, height, width, end, start);
-        draw.getMatrices().pop();
-    }
+    @Override public void removed() { if (sliderTexture != null) { sliderTexture.close(); sliderTexture = null; } var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); super.removed(); }
     private final class Bar extends SliderWidget {
         private final int kind;
         Bar(int kind, int x, int y, int size) { super(x, y, size, 20, Text.empty(), kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d); this.kind = kind; updateMessage(); }
         @Override protected void updateMessage() { setMessage(Text.literal(Math.round(value * (kind == 0 ? 360 : 100)) + (kind == 0 ? "°" : "%"))); }
         @Override protected void applyValue() { if (kind == 0) hue = (float)value; else if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); draftChanged = true; }
         @Override public void renderWidget(DrawContext draw, int mouseX, int mouseY, float delta) {
-            if (kind == 3) for (int x = 0; x < getWidth(); x += 4) for (int y = 0; y < 20; y += 4)
-                draw.fill(getX() + x, getY() + y, getX() + Math.min(x + 4, getWidth()), getY() + y + 4,
-                        ((x / 4 + y / 4) & 1) == 0 ? 0xFF555555 : 0xFF999999);
-            if (kind == 0) {
-                for (int i = 0; i < 6; i++) {
-                    int left = getWidth() * i / 6, right = getWidth() * (i + 1) / 6;
-                    gradient(draw, getX() + left, getY(), right - left, 20,
-                            0xFF000000 | BoundaryStyle.hsv(i / 6f, 1, 1),
-                            0xFF000000 | BoundaryStyle.hsv((i + 1) / 6f, 1, 1));
-                }
-            } else {
-                int rgb = BoundaryStyle.hsv(hue, saturation, brightness);
-                int start = kind == 1 ? 0xFF000000 | BoundaryStyle.hsv(hue, 0, brightness)
-                        : kind == 2 ? 0xFF000000 : rgb;
-                int end = kind == 1 ? 0xFF000000 | BoundaryStyle.hsv(hue, 1, brightness)
-                        : kind == 2 ? 0xFF000000 | BoundaryStyle.hsv(hue, saturation, 1) : 0xFF000000 | rgb;
-                gradient(draw, getX(), getY(), getWidth(), 20, start, end);
-            }
+            draw.getMatrices().push(); draw.getMatrices().translate(0, 0, 300);
+            if (sliderTexture == null) sliderTexture = new BoundarySliderTexture();
+            sliderTexture.update(hue, saturation, brightness);
+            sliderTexture.draw(draw, kind, getX(), getY(), getWidth());
             int handle = getX() + (int)Math.round(value * (getWidth() - 4)); draw.fill(handle, getY(), handle + 4, getY() + 20, 0xFFEEEEEE);
             draw.drawCenteredTextWithShadow(textRenderer, getMessage(), getX() + getWidth() / 2, getY() + 6, 0xFFFFFFFF);
+            draw.getMatrices().pop();
         }
     }
     @Override public void render(DrawContext draw, int mouseX, int mouseY, float delta) {
@@ -138,8 +122,10 @@ final class BoundaryAppearanceScreen extends Screen {
         draw.fill(right, 242 - scroll, right + rightWidth, 258 - scroll, BoundaryStyle.alpha(opacity) << 24 | BoundaryStyle.hsv(hue, saturation, brightness)); draw.disableScissor();
         super.render(draw, mouseX, mouseY, delta);
         if (texture.visible && texture.isFocused() && !matches.isEmpty()) {
+            draw.getMatrices().push(); draw.getMatrices().translate(0, 0, 400);
             int start = completionIndex < 0 ? 0 : Math.max(0, completionIndex - 5), count = Math.min(6, matches.size() - start), top = popupY(); draw.fill(right, top, right + rightWidth, top + count * 12, 0xFF202020);
             for (int i = 0; i < count; i++) { if (start + i == completionIndex) draw.fill(right, top + i * 12, right + rightWidth, top + (i + 1) * 12, 0xFF355870); draw.drawTextWithShadow(textRenderer, Text.literal(matches.get(start + i)), right + 2, top + 2 + i * 12, 0xFFFFFFFF); }
+            draw.getMatrices().pop();
         }
     }
 }

@@ -142,6 +142,10 @@ jobs:
             echo "Boundary color/texture/opacity runtime smoke did not complete." >&2
             exit 1
           fi
+          if ! grep -q '\[SR placement smoke\] Only-filtered air permits placement' run/logs/latest.log; then
+            echo "Only-filter placement runtime smoke did not complete." >&2
+            exit 1
+          fi
           if grep -E 'WorldEdit selection synchronization unavailable|Could not initialize WorldEdit selection synchronization' run/logs/latest.log; then
             echo "The WorldEdit adapter failed to initialize." >&2
             exit 1

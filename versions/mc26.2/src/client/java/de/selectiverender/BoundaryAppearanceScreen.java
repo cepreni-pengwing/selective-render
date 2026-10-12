@@ -11,6 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 /** Inline boundary controls. Sliders commit once on release, not per drag pixel. */
 final class BoundaryAppearanceScreen extends Screen {
     private final Screen parent;
+    private BoundarySliderTexture sliderTexture;
     private EditBox texture;
     private List<String> blocks, matches = List.of();
     private String draftTexture, completionBase;
@@ -37,16 +38,19 @@ final class BoundaryAppearanceScreen extends Screen {
         boolean colorOn = BoundaryStyle.color(SelectiveRenderSettings.boundaryMode());
         boolean textureOn = BoundaryStyle.texture(SelectiveRenderSettings.boundaryMode());
         for (int i = 0; i < 2; i++) {
-            boolean colorButton = i == 0;
+            boolean colorButton = i == 1;
             String label = (colorButton ? "Color: " : "Texture: ") + ((colorButton ? colorOn : textureOn) ? "On" : "Off");
             var b = addRenderableWidget(Button.builder(Component.literal(label), button -> {
                 commit(); SelectiveRenderSettings.setBoundaryMode(BoundaryStyle.layers(colorButton ? !colorOn : colorOn,
                         colorButton ? textureOn : !textureOn)); rebuild();
             }).bounds(middle, 36 + i * 26 - scroll, size, 20).build()); clip(b);
         }
+        var lighting = addRenderableWidget(Button.builder(Component.literal("Color lighting: " + (SelectiveRenderSettings.boundaryColorLighting() ? "On" : "Off")), button -> {
+            commit(); SelectiveRenderSettings.setBoundaryColorLighting(!SelectiveRenderSettings.boundaryColorLighting()); rebuild();
+        }).bounds(middle, 104 - scroll, size, 20).build()); clip(lighting);
         var fluids = addRenderableWidget(Button.builder(Component.literal("Cull fluids: " + (SelectiveRenderSettings.cullFluidBoundaryFaces() ? "On" : "Off")), button -> {
             commit(); SelectiveRenderSettings.setCullFluidBoundaryFaces(!SelectiveRenderSettings.cullFluidBoundaryFaces()); rebuild();
-        }).bounds(middle, 104 - scroll, size, 20).build()); clip(fluids);
+        }).bounds(middle, 146 - scroll, size, 20).build()); clip(fluids);
         texture = new EditBox(font, right, 50 - scroll, rightWidth, 20, Component.literal("Block texture"));
         texture.setMaxLength(256); texture.setValue(draftTexture);
         texture.setResponder(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; });
@@ -96,38 +100,16 @@ final class BoundaryAppearanceScreen extends Screen {
         boolean handled = super.keyPressed(event); if (draftChanged && !texture.isFocused()) commit(); return handled;
     }
     @Override public void onClose() { commit(); minecraft.gui.setScreen(parent); }
-    @Override public void removed() { var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); super.removed(); }
-    private static void gradient(GuiGraphicsExtractor draw, int x, int y, int width, int height, int start, int end) {
-        draw.pose().pushMatrix();
-        draw.pose().translate(x + width, y);
-        draw.pose().rotate((float)Math.PI / 2);
-        draw.fillGradient(0, 0, height, width, end, start);
-        draw.pose().popMatrix();
-    }
+    @Override public void removed() { if (sliderTexture != null) { sliderTexture.close(); sliderTexture = null; } var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); super.removed(); }
     private final class Bar extends AbstractSliderButton {
         private final int kind;
         Bar(int kind, int x, int y, int size) { super(x, y, size, 20, Component.empty(), kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d); this.kind = kind; updateMessage(); }
         @Override protected void updateMessage() { setMessage(Component.literal(Math.round(value * (kind == 0 ? 360 : 100)) + (kind == 0 ? "°" : "%"))); }
         @Override protected void applyValue() { if (kind == 0) hue = (float)value; else if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); draftChanged = true; }
         @Override public void extractWidgetRenderState(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
-            if (kind == 3) for (int x = 0; x < getWidth(); x += 4) for (int y = 0; y < 20; y += 4)
-                draw.fill(getX() + x, getY() + y, getX() + Math.min(x + 4, getWidth()), getY() + y + 4,
-                        ((x / 4 + y / 4) & 1) == 0 ? 0xFF555555 : 0xFF999999);
-            if (kind == 0) {
-                for (int i = 0; i < 6; i++) {
-                    int left = getWidth() * i / 6, right = getWidth() * (i + 1) / 6;
-                    gradient(draw, getX() + left, getY(), right - left, 20,
-                            0xFF000000 | BoundaryStyle.hsv(i / 6f, 1, 1),
-                            0xFF000000 | BoundaryStyle.hsv((i + 1) / 6f, 1, 1));
-                }
-            } else {
-                int rgb = BoundaryStyle.hsv(hue, saturation, brightness);
-                int start = kind == 1 ? 0xFF000000 | BoundaryStyle.hsv(hue, 0, brightness)
-                        : kind == 2 ? 0xFF000000 : rgb;
-                int end = kind == 1 ? 0xFF000000 | BoundaryStyle.hsv(hue, 1, brightness)
-                        : kind == 2 ? 0xFF000000 | BoundaryStyle.hsv(hue, saturation, 1) : 0xFF000000 | rgb;
-                gradient(draw, getX(), getY(), getWidth(), 20, start, end);
-            }
+            if (sliderTexture == null) sliderTexture = new BoundarySliderTexture();
+            sliderTexture.update(hue, saturation, brightness);
+            sliderTexture.draw(draw, kind, getX(), getY(), getWidth());
             int handle = getX() + (int)Math.round(value * (getWidth() - 4)); draw.fill(handle, getY(), handle + 4, getY() + 20, 0xFFEEEEEE);
             draw.centeredText(font, getMessage(), getX() + getWidth() / 2, getY() + 6, 0xFFFFFFFF);
         }

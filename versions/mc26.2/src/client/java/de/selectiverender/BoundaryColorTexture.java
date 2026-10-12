@@ -65,7 +65,7 @@ public final class BoundaryColorTexture {
                 var image = images[level];
                 for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
                     int pixel = textured ? original.getPixel(x * source.width() / image.getWidth(), y * source.height() / image.getHeight()) : 0xFFFFFFFF;
-                    pixel = BoundaryStyle.compose(pixel, SelectiveRenderSettings.boundaryColor(), SelectiveRenderSettings.boundaryOpacity(), mode);
+                    pixel = BoundaryStyle.compose(pixel, SelectiveRenderSettings.boundaryColor(), mode == SelectiveRenderSettings.BoundaryMode.TEXTURE ? 100 : SelectiveRenderSettings.boundaryOpacity(), mode);
                     image.setPixel(x, y, pixel);
                 }
                 com.mojang.blaze3d.systems.RenderSystem.getDevice().createCommandEncoder().writeToTexture(atlas.getTexture(), image, level, 0, target.getX() >> level, target.getY() >> level);
@@ -76,7 +76,7 @@ public final class BoundaryColorTexture {
     }
     public static boolean translucent(boolean textured) { return translucent(textured ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR); }
     public static boolean translucent(SelectiveRenderSettings.BoundaryMode mode) {
-        return SelectiveRenderSettings.boundaryOpacity() < 100 || (mode == SelectiveRenderSettings.BoundaryMode.TEXTURE && textureHasAlpha);
+        return mode == SelectiveRenderSettings.BoundaryMode.TEXTURE ? textureHasAlpha : SelectiveRenderSettings.boundaryOpacity() < 100;
     }
     public static float u() { var s = sprite(false); return (s.getU0() + s.getU1()) * .5f; }
     public static float v() { var s = sprite(false); return (s.getV0() + s.getV1()) * .5f; }
@@ -98,6 +98,10 @@ public final class BoundaryColorTexture {
     public static int argb(SelectiveRenderSettings.BoundaryMode mode) { return 0xFFFFFFFF; }
     public static int abgr(boolean textured) { return 0xFFFFFFFF; }
     public static int abgr(SelectiveRenderSettings.BoundaryMode mode) { return 0xFFFFFFFF; }
+    /** Preserve already-resolved connected/animated UVs when the chosen block is the actual block. */
+    public static boolean preserveSourceTexture(net.minecraft.world.level.block.state.BlockState state) {
+        return net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString().equals(SelectiveRenderSettings.boundaryTexture());
+    }
     public static boolean custom(SelectiveRenderSettings.BoundaryMode mode) {
         return BoundaryStyle.color(mode) || BoundaryStyle.texture(mode);
     }

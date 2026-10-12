@@ -20,18 +20,30 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR);
             assertBoundaryAlpha(false, 128);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR 50%");
+            BlockPos air = pos.up(2);
+            if (client.world.getBlockState(air).isAir()) {
+                SelectiveRenderConfig.setBlockFilter(client, NAME, new BlockFilterRule(BlockFilterRule.Mode.ONLY, BlockFilterRule.Kind.ID, "minecraft:stone"));
+                SelectiveRenderSettings.setInteractWithHiddenRegions(false);
+                if (SelectiveRenderState.shouldInteract(air) || !SelectiveRenderState.shouldPlaceAt(air))
+                    throw new IllegalStateException("Only-filtered air must permit placement without permitting hidden-block interaction");
+                SelectiveRenderConfig.clearBlockFilters(client, NAME);
+                SelectiveRenderClient.LOGGER.info("[SR placement smoke] Only-filtered air permits placement");
+            } else throw new IllegalStateException("Placement smoke expected an air cell above the spawn");
+
         } else if (ticks == 40) {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE);
-            assertBoundaryAlpha(true, 128);
+            assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 50%");
         } else if (ticks == 55) {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
-            assertBoundaryAlpha(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE, 192);
+            assertBoundaryAlpha(false, 128);
+            assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR + TEXTURE 50%");
         } else if (ticks == 70) {
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 0);
-            assertBoundaryAlpha(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE, 0);
-            SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 0%");
+            assertBoundaryAlpha(false, 0);
+            assertBoundaryAlpha(true, 255);
+            SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR 0% / TEXTURE unchanged");
         } else if (ticks == 80) {
             client.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {

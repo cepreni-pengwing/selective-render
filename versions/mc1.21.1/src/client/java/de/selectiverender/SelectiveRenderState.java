@@ -363,6 +363,17 @@ public final class SelectiveRenderState {
                 !hiddenAllowed && isFilteredOut(position), hiddenAllowed)) return false;
         return allowsInteractionAt(options, x, y, z, hiddenAllowed);
     }
+    /** Empty destinations still obey region geometry, but are not hidden block content. */
+    public static boolean shouldPlaceAt(BlockPos position) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.world == null || !client.world.getBlockState(position).isAir()) return shouldInteract(position);
+        int x = position.getX(), y = position.getY(), z = position.getZ();
+        RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
+        boolean hiddenAllowed = options.hiddenInteractions() == null
+                ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
+        if (isActivelyHidden(position) && !hiddenAllowed) return false;
+        return allowsInteractionAt(options, x, y, z, hiddenAllowed);
+    }
     private static boolean allowsInteractionAt(RegionOptions options, int x, int y, int z, boolean hiddenAllowed) {
         var mode = options.interactions() == null ? SelectiveRenderSettings.interactionMode() : options.interactions();
         boolean inactive = options.inactiveInteractions() == null

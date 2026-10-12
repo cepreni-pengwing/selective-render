@@ -46,7 +46,7 @@ abstract class ClientPlayerInteractionManagerMixin {
         BlockPos target = hit.getBlockPos();
         Item item = player.getStackInHand(hand).getItem();
         boolean placesOutsideRenderedArea = isPlacementItem(item)
-                && !SelectiveRenderState.shouldInteract(target.offset(hit.getSide()));
+                && !SelectiveRenderState.shouldPlaceAt(target.offset(hit.getSide()));
         if (!SelectiveRenderState.shouldInteract(target) || placesOutsideRenderedArea) {
             cir.setReturnValue(ActionResult.FAIL);
         }
@@ -71,7 +71,7 @@ abstract class ClientPlayerInteractionManagerMixin {
         if (client.crosshairTarget instanceof BlockHitResult hit
                 && (!SelectiveRenderState.shouldInteract(hit.getBlockPos())
                 || isPlacementItem(item)
-                && !SelectiveRenderState.shouldInteract(hit.getBlockPos().offset(hit.getSide())))) {
+                && !SelectiveRenderState.shouldPlaceAt(hit.getBlockPos().offset(hit.getSide())))) {
             cir.setReturnValue(ActionResult.FAIL);
         }
     }

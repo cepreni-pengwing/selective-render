@@ -30,6 +30,7 @@ public final class SelectiveRenderSettings {
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile int boundaryColor;
     private static volatile int boundaryOpacity = 100;
+    private static volatile boolean boundaryColorLighting;
     private static volatile String boundaryTexture = "minecraft:stone";
     private static volatile boolean cullFluidBoundaryFaces;
     private static volatile boolean worldEditSelection;
@@ -68,6 +69,7 @@ public final class SelectiveRenderSettings {
                 ? InteractionMode.EVERYWHERE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
         boundaryColor = stored.boundaryColor == null ? 0 : stored.boundaryColor & 0xFFFFFF;
+        boundaryColorLighting = stored.boundaryColorLighting;
         boundaryOpacity = stored.boundaryOpacity == null ? 100 : BoundaryStyle.opacity(stored.boundaryOpacity);
         boundaryTexture = stored.boundaryTexture == null ? "minecraft:stone" : stored.boundaryTexture;
         if (boundaryMode == BoundaryMode.CULLED) { boundaryMode = BoundaryMode.COLOR; boundaryOpacity = 0; }
@@ -93,6 +95,13 @@ public final class SelectiveRenderSettings {
     public static InteractionMode interactionMode() { return interactionMode; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
     public static int boundaryColor() { return boundaryColor; }
+    public static boolean boundaryColorLighting() { return boundaryColorLighting; }
+    public static void setBoundaryColorLighting(boolean value) {
+        if (boundaryColorLighting == value) return;
+        boundaryColorLighting = value;
+        save();
+        if (SelectiveRenderState.filteringActive()) SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
+    }
     public static int boundaryOpacity() { return boundaryOpacity; }
     public static String boundaryTexture() { return boundaryTexture; }
     public static void setBoundaryAppearance(int color, String texture, int opacity) {
@@ -240,6 +249,7 @@ public final class SelectiveRenderSettings {
             stored.boundaryMode = boundaryMode;
             stored.boundaryColor = boundaryColor;
             stored.boundaryOpacity = boundaryOpacity;
+            stored.boundaryColorLighting = boundaryColorLighting;
             stored.boundaryTexture = boundaryTexture;
             stored.cullFluidBoundaryFaces = cullFluidBoundaryFaces;
             stored.worldEditSelection = worldEditSelection;
@@ -360,6 +370,7 @@ public final class SelectiveRenderSettings {
         BoundaryMode boundaryMode;
         Integer boundaryColor;
         Integer boundaryOpacity;
+        boolean boundaryColorLighting;
         String boundaryTexture;
         @SerializedName(value = "cullFluidBoundaryFaces", alternate = {"cullWaterBoundaryFaces"})
         boolean cullFluidBoundaryFaces;

@@ -66,7 +66,7 @@ public final class BoundaryColorTexture {
                 for (int y = 0; y < image.getHeight(); y++) for (int x = 0; x < image.getWidth(); x++) {
                     int pixel = textured ? original.getColor(x * source.getWidth() / image.getWidth(), y * source.getHeight() / image.getHeight()) : 0xFFFFFFFF;
                     pixel = BoundaryStyle.swapRedBlue(pixel);
-                    pixel = BoundaryStyle.compose(pixel, SelectiveRenderSettings.boundaryColor(), SelectiveRenderSettings.boundaryOpacity(), mode);
+                    pixel = BoundaryStyle.compose(pixel, SelectiveRenderSettings.boundaryColor(), mode == SelectiveRenderSettings.BoundaryMode.TEXTURE ? 100 : SelectiveRenderSettings.boundaryOpacity(), mode);
                     image.setColor(x, y, BoundaryStyle.swapRedBlue(pixel));
                 }
                 image.upload(level, target.getX() >> level, target.getY() >> level, false);
@@ -77,7 +77,7 @@ public final class BoundaryColorTexture {
     }
     public static boolean translucent(boolean textured) { return translucent(textured ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR); }
     public static boolean translucent(SelectiveRenderSettings.BoundaryMode mode) {
-        return SelectiveRenderSettings.boundaryOpacity() < 100 || (mode == SelectiveRenderSettings.BoundaryMode.TEXTURE && textureHasAlpha);
+        return mode == SelectiveRenderSettings.BoundaryMode.TEXTURE ? textureHasAlpha : SelectiveRenderSettings.boundaryOpacity() < 100;
     }
     public static float u() { var s = sprite(false); return (s.getMinU() + s.getMaxU()) * .5f; }
     public static float v() { var s = sprite(false); return (s.getMinV() + s.getMaxV()) * .5f; }
@@ -99,6 +99,10 @@ public final class BoundaryColorTexture {
     public static int argb(SelectiveRenderSettings.BoundaryMode mode) { return 0xFFFFFFFF; }
     public static int abgr(boolean textured) { return 0xFFFFFFFF; }
     public static int abgr(SelectiveRenderSettings.BoundaryMode mode) { return 0xFFFFFFFF; }
+    /** Preserve already-resolved connected/animated UVs when the chosen block is the actual block. */
+    public static boolean preserveSourceTexture(net.minecraft.block.BlockState state) {
+        return net.minecraft.registry.Registries.BLOCK.getId(state.getBlock()).toString().equals(SelectiveRenderSettings.boundaryTexture());
+    }
     public static boolean custom(SelectiveRenderSettings.BoundaryMode mode) {
         return BoundaryStyle.color(mode) || BoundaryStyle.texture(mode);
     }

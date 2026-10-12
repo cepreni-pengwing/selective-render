@@ -3,6 +3,31 @@ package de.selectiverender;
 /** Renderer-independent color/opacity math. */
 public final class BoundaryStyle {
     private BoundaryStyle() { }
+    public static boolean fullbright(SelectiveRenderSettings.BoundaryMode mode) {
+        return mode == SelectiveRenderSettings.BoundaryMode.COLOR && !SelectiveRenderSettings.boundaryColorLighting();
+    }
+    public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode) {
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE)
+            return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE, SelectiveRenderSettings.BoundaryMode.COLOR};
+        return new SelectiveRenderSettings.BoundaryMode[]{mode};
+    }
+    public static boolean visibleLayer(SelectiveRenderSettings.BoundaryMode mode) {
+        return mode != SelectiveRenderSettings.BoundaryMode.COLOR || SelectiveRenderSettings.boundaryOpacity() > 0;
+    }
+    /** Every slider pixel is opaque, including its checkerboard-composited opacity preview. */
+    public static int sliderPixel(int kind, int x, int y, float hue, float saturation, float brightness) {
+        float f = Math.max(0, Math.min(255, x)) / 255f;
+        int color = kind == 0 ? hsv(f, 1, 1) : kind == 1 ? hsv(hue, f, brightness)
+                : kind == 2 ? hsv(hue, saturation, f) : hsv(hue, saturation, brightness);
+        if (kind == 3) {
+            int gray = ((x / 4 + y / 4) & 1) == 0 ? 0x55 : 0x99;
+            int r = Math.round(gray * (1 - f) + (color >> 16 & 255) * f);
+            int g = Math.round(gray * (1 - f) + (color >> 8 & 255) * f);
+            int b = Math.round(gray * (1 - f) + (color & 255) * f);
+            color = r << 16 | g << 8 | b;
+        }
+        return 0xFF000000 | color;
+    }
     public static int opacity(int value) { return Math.max(0, Math.min(100, value)); }
     public static int alpha(int percent) { return Math.round(opacity(percent) * 2.55f); }
     public static boolean color(SelectiveRenderSettings.BoundaryMode mode) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.4
+
+- Fixed Only filters blocking placement into air while keeping hidden blocks and region interaction rules protected
+- Moved region selection toggles into the region navigation list
+- Split boundary Texture and Color into independent render layers; Texture receives lighting and no longer uses Color opacity, with an optional lighting toggle for Color
+- Preserved resolved source UVs/textures when the selected texture ID matches the actual block, including supported connected/animated textures; other IDs retain the documented representative-texture fallback
+- Replaced slider gradient batching with opaque GUI textures and extended placement, opacity and menu runtime checks across all three builds
+
 ## 1.11.3
 
 - Replaced exclusive boundary modes with independent Color and Texture toggles, including combined layers and an unchanged-face fallback when both are off

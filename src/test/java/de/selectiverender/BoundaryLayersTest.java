@@ -33,6 +33,19 @@ class BoundaryLayersTest {
             previous = color;
         }
     }
+    @Test void sliderTexturesRemainOpaqueAcrossTheBlueHueRange() {
+        for (int hue = 230; hue <= 275; hue++) for (int kind = 0; kind < 4; kind++) for (int x = 0; x < 256; x++) {
+            int pixel = BoundaryStyle.sliderPixel(kind, x, 7, hue / 360f, 1, 1);
+            assertEquals(255, pixel >>> 24);
+        }
+        assertEquals(0xFF000000, BoundaryStyle.sliderPixel(2, 0, 0, 265 / 360f, 1, 1));
+        assertEquals(0xFF000000 | BoundaryStyle.hsv(265 / 360f, 1, 1), BoundaryStyle.sliderPixel(2, 255, 0, 265 / 360f, 1, 1));
+    }
+    @Test void textureAndColorAreSeparateDrawLayersInStableOrder() {
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE,
+                SelectiveRenderSettings.BoundaryMode.COLOR}, BoundaryStyle.renderLayers(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE));
+        assertFalse(BoundaryStyle.fullbright(SelectiveRenderSettings.BoundaryMode.TEXTURE));
+    }
     private static void face(BoundaryQuadTracker tracker, float z, boolean reverse) {
         float[][] vertices = {{0,0,z}, {1,0,z}, {1,1,z}, {0,1,z}};
         for (int i = 0; i < 4; i++) { var v = vertices[reverse ? 3-i : i]; tracker.vertex(i,v[0],v[1],v[2]); }

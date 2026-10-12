@@ -63,17 +63,22 @@ abstract class BlockModelRendererMixin {
             for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, vertices[v].x(), vertices[v].y(), vertices[v].z());
             if (!selectiverender$quads.get().accept(quad.direction().ordinal())) { ci.cancel(); return; }
 
-            if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
+            for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
+            if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryColorTexture.preserveSourceTexture(state)) {
+                output.put(x, y, z, quad, quadInstance); continue;
+            }
+            boolean fullbright = de.selectiverender.BoundaryStyle.fullbright(layer);
             var material = quad.materialInfo();
-            var custom = new BakedQuad.MaterialInfo(BoundaryColorTexture.sprite(mode),
-                    BoundaryColorTexture.translucent(mode) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
-                    material.itemRenderType(), -1, false, 15);
+            var custom = new BakedQuad.MaterialInfo(BoundaryColorTexture.sprite(layer),
+                    BoundaryColorTexture.translucent(layer) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
+                    material.itemRenderType(), -1, !fullbright, fullbright ? 15 : 0);
             var positions = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
             long[] uv = new long[4];
             for (int i = 0; i < 4; i++) {
                 var p = positions[i];
-                uv[i] = UVPair.pack(BoundaryColorTexture.u(mode, quad.direction(), p.x(), p.y(), p.z()),
-                        BoundaryColorTexture.v(mode, quad.direction(), p.x(), p.y(), p.z()));
+                uv[i] = UVPair.pack(BoundaryColorTexture.u(layer, quad.direction(), p.x(), p.y(), p.z()),
+                        BoundaryColorTexture.v(layer, quad.direction(), p.x(), p.y(), p.z()));
             }
             var replacement = new BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
                     uv[0], uv[1], uv[2], uv[3], quad.direction(), custom);
@@ -81,13 +86,14 @@ abstract class BlockModelRendererMixin {
             int c2 = quadInstance.getColor(2), c3 = quadInstance.getColor(3);
             int l0 = quadInstance.getLightCoords(0), l1 = quadInstance.getLightCoords(1), l2 = quadInstance.getLightCoords(2), l3 = quadInstance.getLightCoords(3);
             try {
-                quadInstance.setLightCoords(0x00F000F0);
-                quadInstance.setColor(BoundaryColorTexture.argb(mode));
+                if (fullbright) quadInstance.setLightCoords(0x00F000F0);
+                quadInstance.setColor(BoundaryColorTexture.argb(layer));
                 output.put(x, y, z, replacement, quadInstance);
             } finally {
                 quadInstance.setLightCoords(0, l0); quadInstance.setLightCoords(1, l1); quadInstance.setLightCoords(2, l2); quadInstance.setLightCoords(3, l3);
                 quadInstance.setColor(0, c0); quadInstance.setColor(1, c1);
                 quadInstance.setColor(2, c2); quadInstance.setColor(3, c3);
+            }
             }
         }
         ci.cancel();

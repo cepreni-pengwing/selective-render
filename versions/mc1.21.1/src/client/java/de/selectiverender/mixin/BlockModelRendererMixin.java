@@ -25,6 +25,7 @@ abstract class BlockModelRendererMixin {
     @Inject(method = "render", at = @At("HEAD"))
     private void selectiverender$resetBoundaryCopies(CallbackInfo ci) { selectiverender$quads.get().reset(); }
 
+    @Unique private static final ThreadLocal<BlockPos> selectiverender$position = new ThreadLocal<>();
     @Unique private static final ThreadLocal<SelectiveRenderSettings.BoundaryMode> selectiverender$texturedBoundary = ThreadLocal.withInitial(() -> SelectiveRenderSettings.BoundaryMode.COLOR);
     @Unique private static final ThreadLocal<Boolean> selectiverender$coloredBoundary =
             ThreadLocal.withInitial(() -> false);
@@ -62,7 +63,7 @@ abstract class BlockModelRendererMixin {
             ci.cancel();
             return;
         }
-        if (BoundaryColorTexture.custom(mode) && SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
         if (BoundaryColorTexture.custom(mode)) {
             int[] vertices = quad.getVertexData(); int stride = vertices.length / 4;
             for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, Float.intBitsToFloat(vertices[v * stride]),
@@ -71,31 +72,36 @@ abstract class BlockModelRendererMixin {
         }
         selectiverender$coloredBoundary.set(BoundaryColorTexture.custom(mode));
         selectiverender$texturedBoundary.set(mode);
+        selectiverender$position.set(pos);
     }
 
-    @ModifyArgs(method = "renderQuad", at = @At(value = "INVOKE",
+    @com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation(method = "renderQuad", at = @At(value = "INVOKE",
             target = "Lnet/minecraft/client/render/VertexConsumer;quad(Lnet/minecraft/client/util/math/MatrixStack$Entry;Lnet/minecraft/client/render/model/BakedQuad;[FFFFF[IIZ)V"))
-    private void selectiverender$colorBoundaryQuad(Args args) {
-        if (!selectiverender$coloredBoundary.get()) return;
-        BakedQuad quad = args.get(1);
-        int[] vertexData = quad.getVertexData().clone();
-        int stride = vertexData.length / 4;
-        var mode = selectiverender$texturedBoundary.get();
-        for (int vertex = 0; vertex < 4; vertex++) {
-            int offset = vertex * stride;
-            float x = Float.intBitsToFloat(vertexData[offset]), y = Float.intBitsToFloat(vertexData[offset + 1]), z = Float.intBitsToFloat(vertexData[offset + 2]);
-            vertexData[offset + 4] = Float.floatToRawIntBits(BoundaryColorTexture.u(mode, quad.getFace(), x, y, z));
-            vertexData[offset + 5] = Float.floatToRawIntBits(BoundaryColorTexture.v(mode, quad.getFace(), x, y, z));
+    private void selectiverender$appearance(VertexConsumer consumer, MatrixStack.Entry entry, BakedQuad quad,
+            float[] brightness, float red, float green, float blue, float alpha, int[] lights, int overlay, boolean useColor,
+            com.llamalad7.mixinextras.injector.wrapoperation.Operation<Void> original) {
+        if (!selectiverender$coloredBoundary.get()) {
+            original.call(consumer, entry, quad, brightness, red, green, blue, alpha, lights, overlay, useColor); return;
         }
-        args.set(1, new BakedQuad(vertexData, -1, quad.getFace(), BoundaryColorTexture.sprite(mode), false));
-        int color = BoundaryColorTexture.argb(mode);
-        args.set(2, new float[]{1, 1, 1, 1});
-        args.set(3, (color >> 16 & 255) / 255f);
-        args.set(4, (color >> 8 & 255) / 255f);
-        args.set(5, (color & 255) / 255f);
-        args.set(6, (color >>> 24) / 255f);
-        args.set(7, new int[]{0x00F000F0, 0x00F000F0, 0x00F000F0, 0x00F000F0});
-        args.set(9, false);
+        for (var layer : de.selectiverender.BoundaryStyle.renderLayers(selectiverender$texturedBoundary.get())) {
+            if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+            var world = net.minecraft.client.MinecraftClient.getInstance().world;
+            var state = world == null ? null : world.getBlockState(selectiverender$position.get());
+            if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && state != null && BoundaryColorTexture.preserveSourceTexture(state)) {
+                original.call(consumer, entry, quad, brightness, red, green, blue, alpha, lights, overlay, useColor); continue;
+            }
+            boolean fullbright = de.selectiverender.BoundaryStyle.fullbright(layer);
+            int[] data = quad.getVertexData().clone(); int stride = data.length / 4;
+            for (int i = 0; i < 4; i++) {
+                int offset = i * stride;
+                float x = Float.intBitsToFloat(data[offset]), y = Float.intBitsToFloat(data[offset + 1]), z = Float.intBitsToFloat(data[offset + 2]);
+                data[offset + 4] = Float.floatToRawIntBits(BoundaryColorTexture.u(layer, quad.getFace(), x, y, z));
+                data[offset + 5] = Float.floatToRawIntBits(BoundaryColorTexture.v(layer, quad.getFace(), x, y, z));
+            }
+            var replacement = new BakedQuad(data, -1, quad.getFace(), BoundaryColorTexture.sprite(layer), !fullbright);
+            original.call(consumer, entry, replacement, fullbright ? new float[]{1,1,1,1} : brightness,
+                    1f, 1f, 1f, 1f, fullbright ? new int[]{0x00F000F0,0x00F000F0,0x00F000F0,0x00F000F0} : lights, overlay, false);
+        }
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))

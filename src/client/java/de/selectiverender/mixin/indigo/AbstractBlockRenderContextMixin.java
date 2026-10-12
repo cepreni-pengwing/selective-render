@@ -18,30 +18,56 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Pseudo
 @Mixin(targets = "net.fabricmc.fabric.impl.client.indigo.renderer.render.AbstractBlockRenderContext", remap = false)
 abstract class AbstractBlockRenderContextMixin {
+    @org.spongepowered.asm.mixin.Unique private boolean selectiverender$emitting;
+    @com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation(method = "renderQuad", at = @At(value = "INVOKE",
+            target = "Lnet/fabricmc/fabric/impl/client/indigo/renderer/render/AbstractBlockRenderContext;transform(Lnet/fabricmc/fabric/api/renderer/v1/mesh/MutableQuadView;)Z"), require = 0)
+    private boolean selectiverender$skipRepeatedTransforms(@Coerce Object context, MutableQuadView quad,
+            com.llamalad7.mixinextras.injector.wrapoperation.Operation<Boolean> original) {
+        return selectiverender$emitting || original.call(context, quad);
+    }
     @Inject(method = "renderQuad", at = @At(value = "INVOKE",
             target = "Lnet/fabricmc/fabric/impl/client/indigo/renderer/render/AbstractBlockRenderContext;transform(Lnet/fabricmc/fabric/api/renderer/v1/mesh/MutableQuadView;)Z",
             shift = At.Shift.AFTER), cancellable = true, require = 0)
     private void selectiverender$cullTransformedBoundaryExtension(@Coerce Object rawQuad,
                                                                   boolean vanillaModel,
                                                                   CallbackInfo ci) {
-        if (!SelectiveRenderState.filteringActive()) return;
+        if (selectiverender$emitting || !SelectiveRenderState.filteringActive()) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
         var mode = selectiverender$boundaryMode(position, quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED
-                || (BoundaryColorTexture.custom(mode) && SelectiveRenderSettings.boundaryOpacity() == 0)) ci.cancel();
+                || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && SelectiveRenderSettings.boundaryOpacity() == 0)) ci.cancel();
         else if (BoundaryColorTexture.custom(mode)) {
             var tracker = IndiumRenderContext.boundaryQuads();
             for (int v = 0; v < 4; v++) tracker.vertex(v, quad.x(v), quad.y(v), quad.z(v));
             if (!tracker.accept(quad.lightFace().ordinal())) { ci.cancel(); return; }
-            quad.material(de.selectiverender.BoundaryMaterial.get(mode));
+            // Snapshot before the context's reusable emitter mutates or resets its storage.
+            var meshBuilder = net.fabricmc.fabric.api.renderer.v1.RendererAccess.INSTANCE.getRenderer().meshBuilder();
+            meshBuilder.getEmitter().copyFrom(quad).emit();
+            var mesh = meshBuilder.build();
+            selectiverender$emitting = true;
+            try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
+                if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+                var emitter = ((net.fabricmc.fabric.api.renderer.v1.render.RenderContext)(Object)this).getEmitter();
+                mesh.forEach(emitter::copyFrom);
+                var world = net.minecraft.client.MinecraftClient.getInstance().world;
+                if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && world != null
+                        && BoundaryColorTexture.preserveSourceTexture(world.getBlockState(position))) {
+                    emitter.emit(); continue;
+                }
+                emitter.material(de.selectiverender.BoundaryMaterial.get(layer));
+                selectiverender$makeBlack(emitter, layer);
+                emitter.emit();
+            } } finally { selectiverender$emitting = false; }
+            ci.cancel();
         }
     }
 
     @Inject(method = "colorizeQuad", at = @At("RETURN"), require = 0)
     private void selectiverender$colorBoundaryFace(@Coerce Object rawQuad, int colorIndex,
                                                     CallbackInfo ci) {
+        if (selectiverender$emitting) return;
         if (!(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
         if (!(rawQuad instanceof MutableQuadView quad)) return;
         BlockPos position = IndiumRenderContext.position();
