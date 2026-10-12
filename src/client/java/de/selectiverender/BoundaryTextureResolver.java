@@ -16,8 +16,11 @@ import net.fabricmc.fabric.api.renderer.v1.Renderer;
 public final class BoundaryTextureResolver {
     /** Marker for the detached model collector; native renderer adapters must not cast it to their terrain context. */
     public interface ModelContext { }
-    public record Face(Sprite sprite, float u0, float u1, float v0, float v1, int color, boolean translucent, float area) { }
+    public record Face(Sprite sprite, float u0, float u1, float v0, float v1, int color, boolean translucent, float area, BoundaryUv.Mapping uv) { }
     private static final AtomicInteger EPOCH = new AtomicInteger();
+    private static final AtomicInteger NESTED_SMOKE = new AtomicInteger();
+    public static int nestedSmokeFaces() { return NESTED_SMOKE.get(); }
+    static void resetNestedSmokeFaces() { NESTED_SMOKE.set(0); }
     private static final ThreadLocal<Cache> CACHE = ThreadLocal.withInitial(Cache::new);
     private static final ThreadLocal<Face> BOUND = new ThreadLocal<>();
     private static final Set<String> WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -41,7 +44,12 @@ public final class BoundaryTextureResolver {
         int index = face.ordinal();
         if (!cache.resolved[index]) {
             cache.resolved[index] = true;
-            try { cache.faces[index] = resolve(pos, face, selectedState()); }
+            try (var scope = BoundaryModelScope.open()) {
+                cache.faces[index] = resolve(pos, face, selectedState());
+                if (Boolean.getBoolean("selectiverender.ctm.smoke") && scope.nested() && cache.faces[index] != null
+                        && cache.faces[index].sprite().getContents().getId().getPath().contains("sr_boundary_smoke")) NESTED_SMOKE.incrementAndGet();
+                scope.complete();
+            }
             catch (Exception error) { if (WARNED.add(SelectiveRenderSettings.boundaryTexture()))
                 SelectiveRenderClient.LOGGER.warn("Could not resolve boundary model {}: {}; using representative texture", SelectiveRenderSettings.boundaryTexture(), error.toString()); }
         }
@@ -73,7 +81,27 @@ public final class BoundaryTextureResolver {
             int tint = MinecraftClient.getInstance().getBlockColors().getColor(state, world, pos, tintIndex);
             color = 0xFF000000 | ((color >> 16 & 255)*(tint >> 16 & 255)/255)<<16 | ((color >> 8 & 255)*(tint >> 8 & 255)/255)<<8 | (color & 255)*(tint & 255)/255;
         }
-        return new Face(sprite, minU, maxU, minV, maxV, color | 0xFF000000, quad.material().blendMode() == net.fabricmc.fabric.api.renderer.v1.material.BlendMode.TRANSLUCENT || net.minecraft.client.render.RenderLayers.getBlockLayer(state) == net.minecraft.client.render.RenderLayer.getTranslucent(), area);
+        return new Face(sprite, minU, maxU, minV, maxV, color | 0xFF000000, quad.material().blendMode() == net.fabricmc.fabric.api.renderer.v1.material.BlendMode.TRANSLUCENT || net.minecraft.client.render.RenderLayers.getBlockLayer(state) == net.minecraft.client.render.RenderLayer.getTranslucent(), area, mapping(quad, face));
+    }
+    private static BoundaryUv.Mapping mapping(QuadView quad, Direction face) {
+        float[] s=new float[4], t=new float[4], u=new float[4], v=new float[4];
+        for (int i=0;i<4;i++) {
+            s[i]=face.getAxis()==Direction.Axis.X?quad.z(i):quad.x(i);
+            t[i]=face.getAxis()==Direction.Axis.Y?quad.z(i):quad.y(i);
+            u[i]=quad.u(i); v[i]=quad.v(i);
+        }
+        return BoundaryUv.of(s,t,u,v);
+    }
+    private static BoundaryUv.Mapping vanillaMapping(net.minecraft.client.render.model.BakedQuad quad, Direction face) {
+        int[] data=quad.getVertexData(); int stride=data.length/4;
+        float[] s=new float[4], t=new float[4], u=new float[4], v=new float[4];
+        for (int i=0;i<4;i++) {
+            int offset=i*stride;
+            s[i]=Float.intBitsToFloat(data[offset+(face.getAxis()==Direction.Axis.X?2:0)]);
+            t[i]=Float.intBitsToFloat(data[offset+(face.getAxis()==Direction.Axis.Y?2:1)]);
+            u[i]=Float.intBitsToFloat(data[offset+4]); v[i]=Float.intBitsToFloat(data[offset+5]);
+        }
+        return BoundaryUv.of(s,t,u,v);
     }
     private static Face resolve(BlockPos pos, Direction face, BlockState state) {
         var client = MinecraftClient.getInstance(); var world = virtualWorld(pos, face, state);
@@ -83,7 +111,7 @@ public final class BoundaryTextureResolver {
             var quads = new ArrayList<net.minecraft.client.render.model.BakedQuad>(model.getQuads(state, face, net.minecraft.util.math.random.Random.create(pos.asLong())));
             quads.addAll(model.getQuads(state, null, net.minecraft.util.math.random.Random.create(pos.asLong())));
             return quads.stream().filter(quad -> quad.getFace() == face).findFirst().map(quad -> new Face(quad.getSprite(), quad.getSprite().getMinU(), quad.getSprite().getMaxU(), quad.getSprite().getMinV(), quad.getSprite().getMaxV(), -1,
-                    net.minecraft.client.render.RenderLayers.getBlockLayer(state) == net.minecraft.client.render.RenderLayer.getTranslucent(), 1)).orElse(null);
+                    net.minecraft.client.render.RenderLayers.getBlockLayer(state) == net.minecraft.client.render.RenderLayer.getTranslucent(), 1, vanillaMapping(quad, face))).orElse(null);
         }
         var delegate = renderer.meshBuilder().getEmitter();
         var transforms = new ArrayList<net.fabricmc.fabric.api.renderer.v1.render.RenderContext.QuadTransform>();

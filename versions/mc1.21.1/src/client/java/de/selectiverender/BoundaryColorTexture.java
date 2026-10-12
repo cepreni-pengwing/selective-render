@@ -93,7 +93,7 @@ public final class BoundaryColorTexture {
         boolean textured = BoundaryStyle.texture(mode);
         if (!textured) return u();
         var resolved = BoundaryTextureResolver.bound();
-        if (resolved != null) { float f = Math.max(0,Math.min(1,face.getAxis() == Direction.Axis.X ? z : x)); return resolved.u0() + (resolved.u1() - resolved.u0()) * f; }
+        if (resolved != null) return resolved.uv().u(Math.max(0,Math.min(1,face.getAxis()==Direction.Axis.X?z:x)), Math.max(0,Math.min(1,face.getAxis()==Direction.Axis.Y?z:y)));
         var s = sprite(mode); float value = Math.max(0, Math.min(1, face.getAxis() == Direction.Axis.X ? z : x));
         return s.getMinU() + (s.getMaxU() - s.getMinU()) * value;
     }
@@ -102,7 +102,7 @@ public final class BoundaryColorTexture {
         boolean textured = BoundaryStyle.texture(mode);
         if (!textured) return v();
         var resolved = BoundaryTextureResolver.bound();
-        if (resolved != null) { float f = Math.max(0,Math.min(1,face.getAxis() == Direction.Axis.Y ? z : 1-y)); return resolved.v0() + (resolved.v1() - resolved.v0()) * f; }
+        if (resolved != null) return resolved.uv().v(Math.max(0,Math.min(1,face.getAxis()==Direction.Axis.X?z:x)), Math.max(0,Math.min(1,face.getAxis()==Direction.Axis.Y?z:y)));
         var s = sprite(mode); float value = Math.max(0, Math.min(1, face.getAxis() == Direction.Axis.Y ? z : 1 - y));
         return s.getMinV() + (s.getMaxV() - s.getMinV()) * value;
     }

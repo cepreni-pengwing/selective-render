@@ -14,7 +14,7 @@ import net.fabricmc.fabric.api.client.renderer.v1.mesh.*;
 import net.fabricmc.fabric.api.client.renderer.v1.Renderer;
 /** Resolves a configured block model at a virtual boundary, using real loaded-pack quads and CTM transforms. */
 public final class BoundaryTextureResolver {
-    public record Face(TextureAtlasSprite sprite, float u0, float u1, float v0, float v1, int color, boolean translucent, float area) { }
+    public record Face(TextureAtlasSprite sprite, float u0, float u1, float v0, float v1, int color, boolean translucent, float area, BoundaryUv.Mapping uv) { }
     private static final AtomicInteger EPOCH = new AtomicInteger();
     private static final ThreadLocal<Cache> CACHE = ThreadLocal.withInitial(Cache::new);
     private static final ThreadLocal<Face> BOUND = new ThreadLocal<>();
@@ -39,7 +39,9 @@ public final class BoundaryTextureResolver {
         int index = face.ordinal();
         if (!cache.resolved[index]) {
             cache.resolved[index] = true;
-            try { cache.faces[index] = resolve(pos, face, selectedState()); }
+            try (var scope = BoundaryModelScope.open()) {
+                cache.faces[index] = resolve(pos, face, selectedState()); scope.complete();
+            }
             catch (Exception error) { if (WARNED.add(SelectiveRenderSettings.boundaryTexture()))
                 SelectiveRenderClient.LOGGER.warn("Could not resolve boundary model {}: {}; using representative texture", SelectiveRenderSettings.boundaryTexture(), error.toString()); }
         }
@@ -72,7 +74,16 @@ public final class BoundaryTextureResolver {
             int tint = source == null ? -1 : source.colorInWorld(state, world, pos);
             color = 0xFF000000 | ((color >> 16 & 255)*(tint >> 16 & 255)/255)<<16 | ((color >> 8 & 255)*(tint >> 8 & 255)/255)<<8 | (color & 255)*(tint & 255)/255;
         }
-        return new Face(sprite, minU, maxU, minV, maxV, color | 0xFF000000, quad.chunkLayer() == net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT, area);
+        return new Face(sprite, minU, maxU, minV, maxV, color | 0xFF000000, quad.chunkLayer() == net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT, area, mapping(quad, face));
+    }
+    private static BoundaryUv.Mapping mapping(QuadView quad, Direction face) {
+        float[] s=new float[4], t=new float[4], u=new float[4], v=new float[4];
+        for (int i=0;i<4;i++) {
+            s[i]=face.getAxis()==Direction.Axis.X?quad.z(i):quad.x(i);
+            t[i]=face.getAxis()==Direction.Axis.Y?quad.z(i):quad.y(i);
+            u[i]=quad.u(i); v[i]=quad.v(i);
+        }
+        return BoundaryUv.of(s,t,u,v);
     }
     private static Face resolve(BlockPos pos, Direction face, BlockState state) {
         var client = net.minecraft.client.Minecraft.getInstance(); var world = virtualWorld(pos, face, state);

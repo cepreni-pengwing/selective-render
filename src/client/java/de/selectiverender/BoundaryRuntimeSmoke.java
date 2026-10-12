@@ -50,6 +50,9 @@ final class BoundaryRuntimeSmoke {
                 SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Loaded resourcepack connected tile resolved");
             }
             BoundaryTextureResolver.clear();
+            if (Boolean.getBoolean("selectiverender.ctm.smoke")) {
+                verifyNestedCtm(probe); verifyRepeatCtm(probe); BoundaryTextureResolver.resetNestedSmokeFaces();
+            }
 
         } else if (ticks == 55) {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
@@ -68,6 +71,10 @@ final class BoundaryRuntimeSmoke {
         } else if (ticks == 80) {
             client.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {
+            if (Boolean.getBoolean("selectiverender.ctm.smoke")) {
+                if (BoundaryTextureResolver.nestedSmokeFaces() == 0) throw new IllegalStateException("CTM tile was not resolved from an active terrain render context");
+                SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Nested terrain faces resolved: {}", BoundaryTextureResolver.nestedSmokeFaces());
+            }
             verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryRainbow(false);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
@@ -75,6 +82,44 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderConfig.deleteRegion(client, NAME);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] PASS");
         }
+    }
+
+    private static void verifyNestedCtm(BlockPos probe) {
+        try {
+            var type=Class.forName("me.pepperbell.continuity.client.model.ModelObjectsContainer");
+            var local=(ThreadLocal<?>)type.getField("THREAD_LOCAL").get(null);
+            Object original=local.get(), transform=type.getField("ctmQuadTransform").get(original);
+            var active=transform.getClass().getDeclaredField("active"); active.setAccessible(true);
+            boolean wasActive=active.getBoolean(transform);
+            try {
+                active.setBoolean(transform,true); BoundaryTextureResolver.invalidate();
+                BoundaryTextureResolver.bind(probe, net.minecraft.util.math.Direction.WEST);
+                if (BoundaryTextureResolver.bound()==null || !BoundaryTextureResolver.bound().sprite().getContents().getId().getPath().contains("sr_boundary_smoke"))
+                    throw new IllegalStateException("Nested CTM read skipped resourcepack processing");
+                if (local.get()!=original || !active.getBoolean(transform)) throw new IllegalStateException("Boundary CTM read changed the outer terrain context");
+            } finally { active.setBoolean(transform,wasActive); BoundaryTextureResolver.clear(); }
+            SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Active outer context preserved");
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Nested CTM smoke could not inspect its fixture", error); }
+    }
+
+    private static void verifyRepeatCtm(BlockPos probe) {
+        int color=SelectiveRenderSettings.boundaryColor(), opacity=SelectiveRenderSettings.boundaryOpacity();
+        String texture=SelectiveRenderSettings.boundaryTexture();
+        try {
+            SelectiveRenderSettings.setBoundaryAppearance(color,"minecraft:dirt",opacity);
+            String base=repeatTile(probe), vertical=repeatTile(probe.up()), horizontal=repeatTile(probe.south());
+            if (base.equals(vertical) || base.equals(horizontal) || !base.equals(repeatTile(probe.add(0,8,8))))
+                throw new IllegalStateException("Boundary 8x8 repeat mapping collapsed to a single tile or lost its period");
+            SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Distinct 8x8 repeat tiles and period verified");
+        } finally { SelectiveRenderSettings.setBoundaryAppearance(color,texture,opacity); BoundaryTextureResolver.clear(); }
+    }
+
+    private static String repeatTile(BlockPos pos) {
+        BoundaryTextureResolver.bind(pos,net.minecraft.util.math.Direction.WEST);
+        if (BoundaryTextureResolver.bound()==null) throw new IllegalStateException("Repeat model did not resolve");
+        String id=BoundaryTextureResolver.bound().sprite().getContents().getId().toString();
+        if (!id.contains("sr_boundary_smoke_repeat")) throw new IllegalStateException("Repeat model did not use its resourcepack: "+id);
+        return id;
     }
 
     private static void assertBoundaryAlpha(boolean textured, int expected) {

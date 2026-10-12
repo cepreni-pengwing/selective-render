@@ -25,6 +25,10 @@ with ZipFile(packs / 'SR-boundary-smoke.zip', 'w', ZIP_DEFLATED) as pack:
     pack.writestr(prefix + 'stone.properties', 'matchBlocks=minecraft:stone\nmethod=ctm\ntiles=0-46\n')
     for tile in range(47):
         pack.writestr(prefix + str(tile) + '.png', png((32, 204, 112)))
+    repeat = 'assets/minecraft/optifine/ctm/sr_boundary_smoke_repeat/'
+    pack.writestr(repeat + 'dirt.properties', 'matchTiles=dirt\nmethod=repeat\nwidth=8\nheight=8\ntiles=0-63\n')
+    for tile in range(64):
+        pack.writestr(repeat + str(tile) + '.png', png((16 + tile % 8 * 24, 16 + tile // 8 * 24, 200)))
 options = run / 'options.txt'
 lines = options.read_text(encoding='utf-8').splitlines() if options.exists() else []
 lines = [line for line in lines if not line.startswith('resourcePacks:')]

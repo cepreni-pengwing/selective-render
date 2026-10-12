@@ -169,6 +169,11 @@ jobs:
             echo "Connected-texture resourcepack runtime smoke did not complete." >&2
             exit 1
           fi
+          if [[ '${{ matrix.profile }}' == 'connected-textures' ]]; then
+            grep -q '\[SR CTM smoke\] Active outer context preserved' run/logs/latest.log
+            grep -q '\[SR CTM smoke\] Distinct 8x8 repeat tiles and period verified' run/logs/latest.log
+            grep -q '\[SR CTM smoke\] Nested terrain faces resolved' run/logs/latest.log
+          fi
           if grep -E 'WorldEdit selection synchronization unavailable|Could not initialize WorldEdit selection synchronization' run/logs/latest.log; then
             echo "The WorldEdit adapter failed to initialize." >&2
             exit 1

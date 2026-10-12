@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.6
+
+- Isolated nested boundary-model CTM processing from Continuity's active terrain context, preserving the outer renderer state and resourcepack feature switches
+- Preserved model UV rotation, mirroring and cropped-tile scale instead of rebuilding texture mapping from min/max coordinates
+- Added distinct 8x8 repeat-pattern, nested-context restoration and actual terrain CTM checks, plus UV regression tests
+
 ## 1.11.5
 
 - Resolved boundary textures through loaded block models and supported connected-texture transforms, with virtual boundary neighbors and a safe fallback for unsupported models
