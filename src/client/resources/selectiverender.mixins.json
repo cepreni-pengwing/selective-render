@@ -4,6 +4,7 @@
   "compatibilityLevel": "JAVA_17",
   "client": [
     "BoundarySpriteImagesAccess",
+    "BoundaryBakedModelMixin",
     "iris.BoundaryShaderMetadataMixin",
     "worldedit.CuiEventDispatcherMixin",
     "WorldRendererMixin",

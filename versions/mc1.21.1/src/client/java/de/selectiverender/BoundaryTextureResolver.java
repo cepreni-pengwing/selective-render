@@ -14,6 +14,8 @@ import net.fabricmc.fabric.api.renderer.v1.mesh.*;
 import net.fabricmc.fabric.api.renderer.v1.Renderer;
 /** Resolves a configured block model at a virtual boundary, using real loaded-pack quads and CTM transforms. */
 public final class BoundaryTextureResolver {
+    /** Marker for the detached model collector; native renderer adapters must not cast it to their terrain context. */
+    public interface ModelContext { }
     public record Face(Sprite sprite, float u0, float u1, float v0, float v1, int color, boolean translucent, float area) { }
     private static final AtomicInteger EPOCH = new AtomicInteger();
     private static final ThreadLocal<Cache> CACHE = ThreadLocal.withInitial(Cache::new);
@@ -95,7 +97,7 @@ public final class BoundaryTextureResolver {
             catch (InvocationTargetException e) { throw e.getCause(); }
         });
         var context = (net.fabricmc.fabric.api.renderer.v1.render.RenderContext)Proxy.newProxyInstance(net.fabricmc.fabric.api.renderer.v1.render.RenderContext.class.getClassLoader(),
-                new Class<?>[]{net.fabricmc.fabric.api.renderer.v1.render.RenderContext.class}, (proxy,method,args) -> {
+                new Class<?>[]{net.fabricmc.fabric.api.renderer.v1.render.RenderContext.class, ModelContext.class}, (proxy,method,args) -> {
             switch (method.getName()) {
                 case "getEmitter": return emitter;
                 case "pushTransform": transforms.add((net.fabricmc.fabric.api.renderer.v1.render.RenderContext.QuadTransform)args[0]); return null;
