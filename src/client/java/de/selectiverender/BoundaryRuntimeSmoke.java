@@ -94,8 +94,8 @@ final class BoundaryRuntimeSmoke {
             try {
                 active.setBoolean(transform,true); BoundaryTextureResolver.invalidate();
                 BoundaryTextureResolver.bind(probe, net.minecraft.util.math.Direction.WEST);
-                if (BoundaryTextureResolver.bound()==null || !BoundaryTextureResolver.bound().sprite().getContents().getId().getPath().contains("sr_boundary_smoke"))
-                    throw new IllegalStateException("Nested CTM read skipped resourcepack processing");
+                if (BoundaryTextureResolver.bound()==null || BoundaryTextureResolver.smokePixel(BoundaryTextureResolver.bound()) != 0x20CC70)
+                    throw new IllegalStateException("Nested CTM read skipped resourcepack processing: " + (BoundaryTextureResolver.bound()==null ? "unresolved" : BoundaryTextureResolver.bound().sprite().getContents().getId() + " pixel=" + Integer.toHexString(BoundaryTextureResolver.smokePixel(BoundaryTextureResolver.bound()))));
                 if (local.get()!=original || !active.getBoolean(transform)) throw new IllegalStateException("Boundary CTM read changed the outer terrain context");
             } finally { active.setBoolean(transform,wasActive); BoundaryTextureResolver.clear(); }
             SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Active outer context preserved");
@@ -118,7 +118,10 @@ final class BoundaryRuntimeSmoke {
         BoundaryTextureResolver.bind(pos,net.minecraft.util.math.Direction.WEST);
         if (BoundaryTextureResolver.bound()==null) throw new IllegalStateException("Repeat model did not resolve");
         String id=BoundaryTextureResolver.bound().sprite().getContents().getId().toString();
-        if (!id.contains("sr_boundary_smoke_repeat")) throw new IllegalStateException("Repeat model did not use its resourcepack: "+id);
+        int pixel=BoundaryTextureResolver.smokePixel(BoundaryTextureResolver.bound());
+        int r=pixel>>16 & 255, g=pixel>>8 & 255;
+        if ((pixel & 255)!=200 || r<16 || r>184 || g<16 || g>184 || (r-16)%24!=0 || (g-16)%24!=0)
+            throw new IllegalStateException("Repeat model did not use its resourcepack: "+id+" pixel="+Integer.toHexString(pixel));
         return id;
     }
 

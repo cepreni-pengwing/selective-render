@@ -47,7 +47,7 @@ public final class BoundaryTextureResolver {
             try (var scope = BoundaryModelScope.open()) {
                 cache.faces[index] = resolve(pos, face, selectedState());
                 if (Boolean.getBoolean("selectiverender.ctm.smoke") && scope.nested() && cache.faces[index] != null
-                        && cache.faces[index].sprite().getContents().getId().getPath().contains("sr_boundary_smoke")) NESTED_SMOKE.incrementAndGet();
+                        && smokePixel(cache.faces[index]) == 0x20CC70) NESTED_SMOKE.incrementAndGet();
                 scope.complete();
             }
             catch (Exception error) { if (WARNED.add(SelectiveRenderSettings.boundaryTexture()))
@@ -65,6 +65,10 @@ public final class BoundaryTextureResolver {
             }
             try { return method.invoke(delegate, args); } catch (InvocationTargetException e) { throw e.getCause(); }
         });
+    }
+    static int smokePixel(Face face) {
+        var image=((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)face.sprite().getContents()).selectiverender$images()[0];
+        return BoundaryStyle.swapRedBlue(image.getColor(0,0)) & 0xFFFFFF;
     }
     private static Face capture(QuadView quad, BlockPos pos, Direction face, BlockState state, net.minecraft.world.BlockRenderView world) {
         if (quad.lightFace() != face) return null;
