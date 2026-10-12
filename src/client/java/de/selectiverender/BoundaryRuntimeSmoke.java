@@ -24,9 +24,13 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE);
             assertBoundaryAlpha(true, 128);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 50%");
+        } else if (ticks == 55) {
+            SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
+            assertBoundaryAlpha(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE, 192);
+            SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR + TEXTURE 50%");
         } else if (ticks == 70) {
             SelectiveRenderSettings.setBoundaryAppearance(0x20C0FF, "minecraft:stone", 0);
-            assertBoundaryAlpha(true, 0);
+            assertBoundaryAlpha(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE, 0);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] TEXTURE 0%");
         } else if (ticks == 80) {
             client.setScreen(new BoundaryAppearanceScreen(null));
@@ -40,7 +44,10 @@ final class BoundaryRuntimeSmoke {
     }
 
     private static void assertBoundaryAlpha(boolean textured, int expected) {
-        var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(textured).getContents()).selectiverender$images()[0];
+        assertBoundaryAlpha(textured ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR, expected);
+    }
+    private static void assertBoundaryAlpha(SelectiveRenderSettings.BoundaryMode mode, int expected) {
+        var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(mode).getContents()).selectiverender$images()[0];
         if ((image.getColor(0, 0) >>> 24) != expected)
             throw new IllegalStateException("Boundary atlas alpha does not match requested opacity");
     }
@@ -57,6 +64,11 @@ final class BoundaryRuntimeSmoke {
             throw new IllegalStateException("Boundary page did not initialize all four sliders");
         var field = appearance.children().stream().filter(child -> child instanceof net.minecraft.client.gui.widget.TextFieldWidget)
                 .map(child -> (net.minecraft.client.gui.widget.TextFieldWidget) child).findFirst().orElseThrow();
+        appearance.setFocused(field); field.setFocused(true);
+        field.setText("minecraft:s");
+        appearance.keyPressed(264, 0, 0);
+        if (!field.isFocused() || appearance.getFocused() != field)
+            throw new IllegalStateException("Autocomplete arrow navigation escaped the input field");
         field.setText("selectiverender:missing_smoke_block");
         appearance.close();
         if (client.currentScreen != parent || color != SelectiveRenderSettings.boundaryColor()

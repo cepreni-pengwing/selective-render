@@ -22,7 +22,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(BlockModelRenderer.class)
 abstract class BlockModelRendererMixin {
-    @Unique private static final ThreadLocal<Boolean> selectiverender$texturedBoundary = ThreadLocal.withInitial(() -> false);
+    @org.spongepowered.asm.mixin.Unique private static final ThreadLocal<de.selectiverender.BoundaryQuadTracker> selectiverender$quads = ThreadLocal.withInitial(de.selectiverender.BoundaryQuadTracker::new);
+    @Inject(method = "render", at = @At("HEAD"))
+    private void selectiverender$resetBoundaryCopies(CallbackInfo ci) { selectiverender$quads.get().reset(); }
+
+    @Unique private static final ThreadLocal<SelectiveRenderSettings.BoundaryMode> selectiverender$texturedBoundary = ThreadLocal.withInitial(() -> SelectiveRenderSettings.BoundaryMode.COLOR);
     @Unique private static final ThreadLocal<Boolean> selectiverender$coloredBoundary =
             ThreadLocal.withInitial(() -> false);
 
@@ -60,8 +64,14 @@ abstract class BlockModelRendererMixin {
             return;
         }
         if (BoundaryColorTexture.custom(mode) && SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
+        if (BoundaryColorTexture.custom(mode)) {
+            int[] vertices = quad.getVertexData(); int stride = vertices.length / 4;
+            for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, Float.intBitsToFloat(vertices[v * stride]),
+                    Float.intBitsToFloat(vertices[v * stride + 1]), Float.intBitsToFloat(vertices[v * stride + 2]));
+            if (!selectiverender$quads.get().accept(quad.getFace().ordinal())) { ci.cancel(); return; }
+        }
         selectiverender$coloredBoundary.set(BoundaryColorTexture.custom(mode));
-        selectiverender$texturedBoundary.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
+        selectiverender$texturedBoundary.set(mode);
     }
 
     @WrapOperation(method = "renderQuad", at = @At(value = "INVOKE",
@@ -73,8 +83,8 @@ abstract class BlockModelRendererMixin {
             original.call(consumer, entry, quad, brightness, red, green, blue, light, overlay, useColor);
             return;
         }
-        boolean textured = selectiverender$texturedBoundary.get();
-        int color = BoundaryColorTexture.argb(textured);
+        var mode = selectiverender$texturedBoundary.get();
+        int color = BoundaryColorTexture.argb(mode);
         if (SelectiveRenderSettings.boundaryOpacity() == 0) return;
         int[] data = quad.getVertexData(); int stride = data.length / 4;
         var normal = new org.joml.Vector3f(quad.getFace().getOffsetX(), quad.getFace().getOffsetY(), quad.getFace().getOffsetZ());
@@ -86,7 +96,7 @@ abstract class BlockModelRendererMixin {
             position.set(x, y, z); entry.getPositionMatrix().transformPosition(position);
             consumer.vertex(position.x(), position.y(), position.z(),
                     (color >> 16 & 255) / 255f, (color >> 8 & 255) / 255f, (color & 255) / 255f, (color >>> 24) / 255f,
-                    BoundaryColorTexture.u(textured, quad.getFace(), x, y, z), BoundaryColorTexture.v(textured, quad.getFace(), x, y, z),
+                    BoundaryColorTexture.u(mode, quad.getFace(), x, y, z), BoundaryColorTexture.v(mode, quad.getFace(), x, y, z),
                     overlay, 0x00F000F0, normal.x(), normal.y(), normal.z());
         }
     }

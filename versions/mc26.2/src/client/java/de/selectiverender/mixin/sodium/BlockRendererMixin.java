@@ -18,6 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = BlockRenderer.class, remap = false)
 abstract class BlockRendererMixin {
+    @Unique private final de.selectiverender.BoundaryQuadTracker selectiverender$quads = new de.selectiverender.BoundaryQuadTracker();
     // Sodium 0.9.2 moved its current block position into a superclass. Keep the
     // renderModel argument instead of shadowing that internal field so minor Sodium
     // layout changes do not prevent the mixin from applying at world load.
@@ -27,6 +28,7 @@ abstract class BlockRendererMixin {
     private void selectiverender$filterBlock(BlockStateModel model, BlockState state,
             BlockPos position, BlockPos origin, CallbackInfo ci) {
         selectiverender$currentPos = position;
+        selectiverender$quads.reset();
         if (!SelectiveRenderState.shouldRender(state, position.getX(), position.getY(), position.getZ())) ci.cancel();
     }
 
@@ -40,18 +42,19 @@ abstract class BlockRendererMixin {
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {
+            for (int v = 0; v < 4; v++) selectiverender$quads.vertex(v, quad.getX(v), quad.getY(v), quad.getZ(v));
+            if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) { ci.cancel(); return; }
             if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
-            boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             quad.setTintIndex(-1);
             quad.setEmissive(true);
             quad.setDiffuseShade(false);
             quad.setAmbientOcclusion(net.minecraft.util.TriState.FALSE);
-            quad.cachedSprite(BoundaryColorTexture.sprite(textured));
-            quad.setRenderType(BoundaryColorTexture.translucent(textured) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID);
+            quad.cachedSprite(BoundaryColorTexture.sprite(mode));
+            quad.setRenderType(BoundaryColorTexture.translucent(mode) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID);
             for (int vertex = 0; vertex < 4; vertex++) {
-                quad.setColor(vertex, BoundaryColorTexture.argb(textured));
-                quad.setUV(vertex, BoundaryColorTexture.u(textured, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)),
-                        BoundaryColorTexture.v(textured, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)));
+                quad.setColor(vertex, BoundaryColorTexture.argb(mode));
+                quad.setUV(vertex, BoundaryColorTexture.u(mode, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)),
+                        BoundaryColorTexture.v(mode, quad.getLightFace(), quad.getX(vertex), quad.getY(vertex), quad.getZ(vertex)));
             }
         }
     }

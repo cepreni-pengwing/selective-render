@@ -8,11 +8,12 @@ import java.util.Map;
 final class RegionPolicyIndex {
     private record Policy(RegionIndex index, RegionOptions options) { }
     private final List<Policy> policies;
-    final boolean blackOverride, textureOverride, culledOverride;
+    final boolean blackOverride, textureOverride, combinedOverride, culledOverride;
     private RegionPolicyIndex(List<Policy> policies) {
         this.policies = List.copyOf(policies);
-        blackOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.COLOR);
-        textureOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.TEXTURE);
+        blackOverride = policies.stream().anyMatch(policy -> BoundaryStyle.color(policy.options().boundary()));
+        textureOverride = policies.stream().anyMatch(policy -> BoundaryStyle.texture(policy.options().boundary()));
+        combinedOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
         culledOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.CULLED);
     }
     static RegionPolicyIndex of(Map<String, List<BlockRegion>> regions, Map<String, RegionOptions> options) {

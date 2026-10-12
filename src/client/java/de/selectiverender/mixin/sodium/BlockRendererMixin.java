@@ -35,8 +35,9 @@ import java.util.List;
 @Pseudo
 @Mixin(value = BlockRenderer.class, remap = false)
 abstract class BlockRendererMixin {
+    @Unique private final de.selectiverender.BoundaryQuadTracker selectiverender$quads = new de.selectiverender.BoundaryQuadTracker();
     @Unique private static final ThreadLocal<ChunkBuildBuffers> selectiverender$buffers = new ThreadLocal<>();
-    @Unique private static final ThreadLocal<Boolean> selectiverender$textured = ThreadLocal.withInitial(() -> false);
+    @Unique private static final ThreadLocal<SelectiveRenderSettings.BoundaryMode> selectiverender$textured = ThreadLocal.withInitial(() -> SelectiveRenderSettings.BoundaryMode.COLOR);
     @Unique private static final ThreadLocal<Direction> selectiverender$quadDirection =
             new ThreadLocal<>();
     @Unique private static final ThreadLocal<Boolean> selectiverender$solidColor =
@@ -49,6 +50,8 @@ abstract class BlockRendererMixin {
             ChunkModelBuilder builder, Vec3d offset, Material material, BakedQuadView quad,
             int[] colors, QuadLightData light, Operation<Void> original) {
         if (selectiverender$solidColor.get() && selectiverender$buffers.get() != null) {
+            for (int v = 0; v < 4; v++) selectiverender$quads.vertex(v, quad.getX(v), quad.getY(v), quad.getZ(v));
+            if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) return;
             material = BoundaryColorTexture.translucent(selectiverender$textured.get())
                     ? me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.TRANSLUCENT
                     : me.jellysquid.mods.sodium.client.render.chunk.terrain.material.DefaultMaterials.SOLID;
@@ -60,6 +63,7 @@ abstract class BlockRendererMixin {
     @Inject(method = "renderModel", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterBlock(BlockRenderContext context,
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
+        selectiverender$quads.reset();
         if (SelectiveRenderState.filteringActive()
                 && (de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR)
                 || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)))
@@ -85,7 +89,7 @@ abstract class BlockRendererMixin {
                 selectiverender$boundaryMode(context, quad);
         if (BoundaryColorTexture.custom(extensionMode)) {
             selectiverender$solidColor.set(true);
-            selectiverender$textured.set(extensionMode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
+            selectiverender$textured.set(extensionMode);
             Arrays.fill(cir.getReturnValue(), BoundaryColorTexture.abgr(selectiverender$textured.get()));
             return;
         }
@@ -98,7 +102,7 @@ abstract class BlockRendererMixin {
         if (!BoundaryColorTexture.custom(mode)) return;
         if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
         selectiverender$solidColor.set(true);
-        selectiverender$textured.set(mode == SelectiveRenderSettings.BoundaryMode.TEXTURE);
+        selectiverender$textured.set(mode);
         Arrays.fill(cir.getReturnValue(), BoundaryColorTexture.abgr(selectiverender$textured.get()));
     }
 

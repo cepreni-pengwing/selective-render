@@ -25,6 +25,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(ModelBlockRenderer.class)
 abstract class BlockModelRendererMixin {
+    @org.spongepowered.asm.mixin.Unique private static final ThreadLocal<de.selectiverender.BoundaryQuadTracker> selectiverender$quads = ThreadLocal.withInitial(de.selectiverender.BoundaryQuadTracker::new);
+    @Inject(method = "tesselateBlock", at = @At("HEAD"))
+    private void selectiverender$resetBoundaryCopies(CallbackInfo ci) { selectiverender$quads.get().reset(); }
+
     @Shadow @Final private QuadInstance quadInstance;
 
     @Inject(method = "tesselateBlock", at = @At("HEAD"), cancellable = true)
@@ -55,18 +59,21 @@ abstract class BlockModelRendererMixin {
         var mode = BoundaryGeometry.boundaryModeForQuad(pos, quad);
         if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) return;
         if (BoundaryColorTexture.custom(mode)) {
+            var vertices = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
+            for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, vertices[v].x(), vertices[v].y(), vertices[v].z());
+            if (!selectiverender$quads.get().accept(quad.direction().ordinal())) { ci.cancel(); return; }
+
             if (SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
-            boolean textured = mode == SelectiveRenderSettings.BoundaryMode.TEXTURE;
             var material = quad.materialInfo();
-            var custom = new BakedQuad.MaterialInfo(BoundaryColorTexture.sprite(textured),
-                    BoundaryColorTexture.translucent(textured) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
+            var custom = new BakedQuad.MaterialInfo(BoundaryColorTexture.sprite(mode),
+                    BoundaryColorTexture.translucent(mode) ? ChunkSectionLayer.TRANSLUCENT : ChunkSectionLayer.SOLID,
                     material.itemRenderType(), -1, false, 15);
             var positions = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
             long[] uv = new long[4];
             for (int i = 0; i < 4; i++) {
                 var p = positions[i];
-                uv[i] = UVPair.pack(BoundaryColorTexture.u(textured, quad.direction(), p.x(), p.y(), p.z()),
-                        BoundaryColorTexture.v(textured, quad.direction(), p.x(), p.y(), p.z()));
+                uv[i] = UVPair.pack(BoundaryColorTexture.u(mode, quad.direction(), p.x(), p.y(), p.z()),
+                        BoundaryColorTexture.v(mode, quad.direction(), p.x(), p.y(), p.z()));
             }
             var replacement = new BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
                     uv[0], uv[1], uv[2], uv[3], quad.direction(), custom);
@@ -75,7 +82,7 @@ abstract class BlockModelRendererMixin {
             int l0 = quadInstance.getLightCoords(0), l1 = quadInstance.getLightCoords(1), l2 = quadInstance.getLightCoords(2), l3 = quadInstance.getLightCoords(3);
             try {
                 quadInstance.setLightCoords(0x00F000F0);
-                quadInstance.setColor(BoundaryColorTexture.argb(textured));
+                quadInstance.setColor(BoundaryColorTexture.argb(mode));
                 output.put(x, y, z, replacement, quadInstance);
             } finally {
                 quadInstance.setLightCoords(0, l0); quadInstance.setLightCoords(1, l1); quadInstance.setLightCoords(2, l2); quadInstance.setLightCoords(3, l3);

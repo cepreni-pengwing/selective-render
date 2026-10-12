@@ -41,8 +41,11 @@ public final class SelectiveRenderConfig {
     public static boolean hasBoundaryMode(SelectiveRenderSettings.BoundaryMode mode) {
         RegionPolicyIndex index = policyIndex;
         return SelectiveRenderSettings.boundaryMode() == mode
+                || (SelectiveRenderSettings.boundaryMode() == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE
+                    && (mode == SelectiveRenderSettings.BoundaryMode.COLOR || mode == SelectiveRenderSettings.BoundaryMode.TEXTURE))
                 || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && index.blackOverride)
                 || (mode == SelectiveRenderSettings.BoundaryMode.TEXTURE && index.textureOverride)
+                || (mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE && index.combinedOverride)
                 || (mode == SelectiveRenderSettings.BoundaryMode.CULLED && index.culledOverride);
     }
 

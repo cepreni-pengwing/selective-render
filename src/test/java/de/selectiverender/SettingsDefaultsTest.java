@@ -49,9 +49,9 @@ class SettingsDefaultsTest {
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next());
         assertEquals(SelectiveRenderSettings.BoundaryMode.TEXTURE,
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next().next());
-        assertEquals(SelectiveRenderSettings.BoundaryMode.CULLED,
+        assertEquals(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE,
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next().next().next());
-        assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
+        assertEquals(SelectiveRenderSettings.BoundaryMode.CULLED,
                 SelectiveRenderSettings.BoundaryMode.NORMAL.next().next().next().next());
     }
 }

@@ -70,6 +70,7 @@ public final class SelectiveRenderSettings {
         boundaryColor = stored.boundaryColor == null ? 0 : stored.boundaryColor & 0xFFFFFF;
         boundaryOpacity = stored.boundaryOpacity == null ? 100 : BoundaryStyle.opacity(stored.boundaryOpacity);
         boundaryTexture = stored.boundaryTexture == null ? "minecraft:stone" : stored.boundaryTexture;
+        if (boundaryMode == BoundaryMode.CULLED) { boundaryMode = BoundaryMode.COLOR; boundaryOpacity = 0; }
         BoundaryColorTexture.invalidate();
         cullFluidBoundaryFaces = stored.cullFluidBoundaryFaces;
         worldEditSelection = stored.worldEditSelection;
@@ -299,7 +300,8 @@ public final class SelectiveRenderSettings {
         @SerializedName(value = "COLOR", alternate = {"BLACK", "COLORED"})
         COLOR("Color"),
         TEXTURE("Texture"),
-        CULLED("Culled");
+        COLOR_TEXTURE("Color + texture"),
+        CULLED("Culled"); // Legacy saved data only; no longer offered by the menu.
 
         private final String label;
 

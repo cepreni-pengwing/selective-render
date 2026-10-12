@@ -221,7 +221,15 @@ final class RegionEditorScreen extends Screen {
             }
         }
         RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
-        override("Boundary faces", 1, overrides.boundary(), SelectiveRenderSettings.BoundaryMode.values(), new String[]{"Normal", "Color", "Texture", "Culled"});
+        var boundary = overrides.boundary() == null ? SelectiveRenderSettings.boundaryMode() : overrides.boundary();
+        boolean colorOn = BoundaryStyle.color(boundary) || boundary == SelectiveRenderSettings.BoundaryMode.CULLED;
+        boolean textureOn = BoundaryStyle.texture(boundary);
+        options("Boundary layers", List.of(
+                new Choice("Use global", overrides.boundary() == null, () -> setOption(1, null)),
+                new Choice(boundary == SelectiveRenderSettings.BoundaryMode.CULLED ? "Color: On (0%)" : "Color: " + (colorOn ? "On" : "Off"),
+                        false, () -> setOption(1, BoundaryStyle.layers(!colorOn, textureOn))),
+                new Choice("Texture: " + (textureOn ? "On" : "Off"), false,
+                        () -> setOption(1, BoundaryStyle.layers(colorOn, !textureOn)))));
         override("Cull fluid faces", 2, overrides.cullFluids(), new Object[]{false, true}, new String[]{"Off", "On"});
         override("Interactions", 3, overrides.interactions(), new Object[]{SelectiveRenderSettings.InteractionMode.NONE, SelectiveRenderSettings.InteractionMode.EVERYWHERE}, new String[]{"Off", "On"});
         override("When rendering is off", 4, overrides.inactiveInteractions(), new Object[]{false, true}, new String[]{"Vanilla", "Filtered"});
@@ -396,6 +404,7 @@ final class RegionEditorScreen extends Screen {
             int index = completionIndex < 0 ? (backwards ? values.size() - 1 : 0)
                     : Math.floorMod(completionIndex + (backwards ? -1 : 1), values.size());
             choose(index);
+            setFocused(widget); widget.setFocused(true);
             return true;
         }
     }

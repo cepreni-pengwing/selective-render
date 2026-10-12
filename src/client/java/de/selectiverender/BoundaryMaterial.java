@@ -5,8 +5,9 @@ import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 public final class BoundaryMaterial {
     private static volatile RenderMaterial solid, translucent;
     private BoundaryMaterial() { }
-    public static RenderMaterial get(boolean textured) {
-        boolean alpha = BoundaryColorTexture.translucent(textured);
+    public static RenderMaterial get(boolean textured) { return get(textured ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR); }
+    public static RenderMaterial get(SelectiveRenderSettings.BoundaryMode mode) {
+        boolean alpha = BoundaryColorTexture.translucent(mode);
         RenderMaterial value = alpha ? translucent : solid;
         if (value != null) return value;
         synchronized (BoundaryMaterial.class) {

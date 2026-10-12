@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.3
+
+- Replaced exclusive boundary modes with independent Color and Texture toggles, including combined layers and an unchanged-face fallback when both are off
+- Deduplicated coplanar boundary model overlays and baked custom colors into SR-owned textures to prevent grass tint/overlay differences
+- Replaced per-pixel slider strips with continuous gradients and kept Up/Down autocomplete navigation inside focused block/tag fields
+- Applied the changes to all three Minecraft builds and extended unit/runtime checks
+
 ## 1.11.2
 
 - Rebuilt the Boundaries page with vertical mode buttons and inline texture-ID, hue, saturation, brightness and opacity controls
