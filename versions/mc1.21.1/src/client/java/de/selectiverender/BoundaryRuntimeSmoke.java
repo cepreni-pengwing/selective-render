@@ -68,6 +68,7 @@ final class BoundaryRuntimeSmoke {
         } else if (ticks == 100) {
             verifyRegionToggleTransition(client);
             verifyRegionalBoundaries(client);
+            verifyRegionalControlVisibility(client);
             verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryRainbow(false);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
@@ -139,6 +140,41 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,document.regions().get(NAME),false,true,
                     document.filters().getOrDefault(NAME,java.util.List.of()),original);
         }
+    }
+
+
+    private static void verifyRegionalControlVisibility(MinecraftClient client) {
+        var originalMode=SelectiveRenderSettings.boundaryMode();
+        var editor=new RegionEditorScreen(null);
+        client.setScreen(editor);
+        try {
+            var regionField=RegionEditorScreen.class.getDeclaredField("region"); regionField.setAccessible(true); regionField.set(editor,NAME);
+            var open=RegionEditorScreen.class.getDeclaredField("boundariesOpen"); open.setAccessible(true); open.setBoolean(editor,true);
+            var targetMethod=RegionEditorScreen.class.getDeclaredMethod("boundaryTarget"); targetMethod.setAccessible(true);
+            var target=(BoundaryEditorTarget)targetMethod.invoke(editor);
+            SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
+            target.setColorEnabled(false); editor.init(); assertRegionalPalette(editor,false);
+            target.inheritColor(); editor.init(); assertRegionalPalette(editor,true);
+            target.setTextureEnabled(false); editor.init(); assertRegionalPalette(editor,true);
+            target.setColorEnabled(false); editor.init(); assertRegionalPalette(editor,false);
+            SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE);
+            target.inheritColor(); target.inheritTexture(); editor.init(); assertRegionalPalette(editor,false);
+            SelectiveRenderSettings.setBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR);
+            editor.init(); assertRegionalPalette(editor,true);
+            SelectiveRenderClient.LOGGER.info("[SR menu smoke] Regional Color Off removes all palette rows and widgets; global inheritance follows layer toggles");
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Regional visibility smoke failed",error); }
+        finally { client.setScreen(null); SelectiveRenderSettings.setBoundaryMode(originalMode); }
+    }
+    private static void assertRegionalPalette(RegionEditorScreen editor,boolean enabled) throws ReflectiveOperationException {
+        var palette=RegionEditorScreen.class.getDeclaredField("colorControls"); palette.setAccessible(true);
+        var rowsField=RegionEditorScreen.class.getDeclaredField("rows"); rowsField.setAccessible(true);
+        int count=0;
+        for(Object row:(java.util.List<?>)rowsField.get(editor)) {
+            var label=row.getClass().getDeclaredMethod("label"); label.setAccessible(true);
+            if(((String)label.invoke(row)).startsWith("@color-")) count++;
+        }
+        if((palette.get(editor)!=null)!=enabled || count!=(enabled?5:0))
+            throw new IllegalStateException("Regional Color visibility retained stale palette controls");
     }
 
     private static void verifyInvalidAppearanceEscape(MinecraftClient client) {

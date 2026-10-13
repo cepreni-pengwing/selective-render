@@ -131,7 +131,12 @@ abstract class BlockRendererMixin {
                                                     BakedQuadView quad,
                                                     CallbackInfoReturnable<int[]> cir) {
         if (selectiverender$solidColor.get()) selectiverender$solidColor.set(false);
-        selectiverender$nativeColors.set(BoundaryColorTexture.preserveSourceTexture(context.state()) ? cir.getReturnValue().clone() : null);
+        boolean needsOriginal = BoundaryColorTexture.preserveSourceTexture(context.state())
+                || SelectiveRenderState.filteringActive()
+                && de.selectiverender.BoundaryRenderContext.normalAt(context.pos())
+                && de.selectiverender.BoundaryStyle.color(SelectiveRenderState.boundaryModeAt(
+                        context.pos().getX(), context.pos().getY(), context.pos().getZ()));
+        selectiverender$nativeColors.set(needsOriginal ? cir.getReturnValue().clone() : null);
         if (!SelectiveRenderState.filteringActive()
                 || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
         SelectiveRenderSettings.BoundaryMode extensionMode =

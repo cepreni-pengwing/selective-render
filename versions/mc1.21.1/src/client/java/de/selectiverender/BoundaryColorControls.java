@@ -24,6 +24,7 @@ final class BoundaryColorControls implements AutoCloseable {
     }
     private void apply() {
         changed=false;
+        if (!target.colorEnabled()) return;
         try { target.commit(BoundaryStyle.hsv(hue,saturation,brightness),target.texture(),opacity,rainbow,true,false); }
         catch(IllegalArgumentException error) { reportError.accept(error.getMessage()); }
     }
@@ -36,6 +37,7 @@ final class BoundaryColorControls implements AutoCloseable {
             add.accept(ButtonWidget.builder(Text.literal(label),b-> {
                 if(kind==0) { rainbow=true; saturation=brightness=1; }
                 else { rainbow=false; hue=0; saturation=0; brightness=kind==1?1:0; }
+                for (Bar bar : bars) bar.sync();
                 apply();
             }).dimensions(x+sliderWidth+8,y,presetWidth,20).build());
         }
@@ -58,6 +60,7 @@ final class BoundaryColorControls implements AutoCloseable {
         @Override public boolean keyPressed(int key,int scan,int modifiers) {
             boolean handled=super.keyPressed(key,scan,modifiers); if(handled && changed) apply(); return handled;
         }
+        void sync() { value=kind==0?hue:kind==1?saturation:kind==2?brightness:opacity/100d; updateMessage(); }
         @Override protected void updateMessage() { setMessage(Text.literal(Math.round(value*(kind==0?360:100))+(kind==0?"°":"%"))); }
         @Override protected void applyValue() {
             if(kind==0) { hue=(float)value; rainbow=false; } else if(kind==1) saturation=(float)value;

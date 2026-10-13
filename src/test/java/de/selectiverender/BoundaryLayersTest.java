@@ -31,7 +31,7 @@ class BoundaryLayersTest {
     }
     @Test void colorOverlayHasOnlyATinyOutwardDepthOffset() {
         assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)>0);
-        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)<0.001f);
+        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)<=1f / 256f);
         assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.NORMAL));
         assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.TEXTURE));
     }
@@ -72,6 +72,13 @@ class BoundaryLayersTest {
         face(tracker, 0, true); assertFalse(tracker.accept(2));
         assertTrue(tracker.accept(3)); face(tracker, 1, false); assertTrue(tracker.accept(2));
         tracker.reset(); face(tracker, 0, false); assertTrue(tracker.accept(2));
+    }
+    @Test void nativeDecalPlanesShareOneColorOverlayWithoutMergingSeparateFaces() {
+        var tracker = new BoundaryQuadTracker();
+        face(tracker, 1, false); assertTrue(tracker.accept(2));
+        face(tracker, 1.001f, false); assertFalse(tracker.accept(2));
+        face(tracker, 1.01f, false); assertTrue(tracker.accept(2));
+        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR) > .001f);
     }
     @Test void differentAndNonFlatGeometryIsPreserved() {
         var tracker = new BoundaryQuadTracker(); face(tracker, 0, false); assertTrue(tracker.accept(2));

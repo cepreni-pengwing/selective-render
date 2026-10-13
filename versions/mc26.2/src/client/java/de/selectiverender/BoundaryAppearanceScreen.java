@@ -37,7 +37,7 @@ final class BoundaryAppearanceScreen extends Screen {
         right = middle + size + 12; rightWidth = Math.max(52, layout.paneWidth() - size - 12);
         presetWidth = Math.min(80, Math.max(44, rightWidth / 4));
         sliderWidth = Math.max(32, rightWidth - presetWidth - 12); presetLeft = right + sliderWidth + 12;
-        colorVisible=BoundaryStyle.color(target.mode()); textureVisible=BoundaryStyle.texture(target.mode());
+        colorVisible=target.colorEnabled(); textureVisible=target.textureEnabled();
         colorTop=textureVisible?88:50;
         contentHeight=Math.max(target.regional()?252:192,colorVisible?colorTop+174:textureVisible?70:36);
         scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - (height - 34))));
@@ -46,8 +46,8 @@ final class BoundaryAppearanceScreen extends Screen {
                     .bounds(layout.left(), 36 + tab.ordinal() * 26, layout.navigationWidth(), 20).build());
             b.active = tab != SelectiveRenderSettingsScreen.Tab.BOUNDARIES;
         }
-        boolean colorOn = BoundaryStyle.color(target.mode());
-        boolean textureOn = BoundaryStyle.texture(target.mode());
+        boolean colorOn = target.colorEnabled();
+        boolean textureOn = target.textureEnabled();
         var normal = addRenderableWidget(Button.builder(Component.literal("Normal: " + (target.normal()?"On":"Off")), b -> {
             if(!commit()) return; target.setNormal(!target.normal()); rebuild();
         }).bounds(middle,36-scroll,size,20).build()); clip(normal);

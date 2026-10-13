@@ -169,6 +169,10 @@ jobs:
             echo "Regional boundary appearance persistence/rendering smoke did not complete." >&2
             exit 1
           fi
+          if ! grep -q '\[SR menu smoke\] Regional Color Off removes all palette rows and widgets' run/logs/latest.log; then
+            echo "Regional boundary toggle/inheritance runtime smoke did not complete." >&2
+            exit 1
+          fi
           if [[ '${{ matrix.profile }}' == 'connected-textures' ]] && ! grep -q '\[SR CTM smoke\] Loaded resourcepack connected tile resolved' run/logs/latest.log; then
             echo "Connected-texture resourcepack runtime smoke did not complete." >&2
             exit 1

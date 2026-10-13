@@ -19,6 +19,11 @@ public final class BoundaryQuadTracker {
         if (a > b) { swap = a; a = b; b = swap; } if (c > d) { swap = c; c = d; d = swap; }
         if (a > c) { swap = a; a = c; c = swap; } if (b > d) { swap = b; b = d; d = swap; }
         if (b > c) { swap = b; b = c; c = swap; }
+        // Model tint/decal layers can sit slightly above the same cut plane.
+        // Keep their original geometry, but emit only one custom overlay for that footprint.
+        float coordinate = positions[axis];
+        int integral = Math.round(coordinate);
+        if (Math.abs(coordinate - integral) <= 1f / 512f) plane = q(integral);
         return emitted.add(new Key(face, plane, a, b, c, d));
     }
 }

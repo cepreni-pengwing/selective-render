@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.8
+
+- Separated Color boundaries from native model decals and deduplicated nearby overlay planes while preserving original Normal faces and tint
+- Rebuilt regional boundary widgets cleanly on layout changes and resolved Color/Texture control visibility directly from their independent local or inherited toggles
+- Kept disabled Color palettes from committing stale edits and synchronized regional slider values when choosing presets
+- Applied the fixes and regression checks to all three Minecraft builds
+
 ## 1.11.7
 
 - Added a default-on Normal boundary layer beneath Color; Texture replaces the original surface, while Color opacity affects only its overlay

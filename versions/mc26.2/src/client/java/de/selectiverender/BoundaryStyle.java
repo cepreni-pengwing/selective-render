@@ -16,9 +16,9 @@ public final class BoundaryStyle {
             return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL, mode};
         return new SelectiveRenderSettings.BoundaryMode[]{mode};
     }
-    /** Separate the overlay from coplanar vanilla tint/CTM quads without changing UVs. */
+    /** Clear native model overlays and retain a representable separation in chunk-local vertices. */
     public static float overlayOffset(SelectiveRenderSettings.BoundaryMode layer) {
-        return layer==SelectiveRenderSettings.BoundaryMode.COLOR ? 0.0005f : 0f;
+        return layer==SelectiveRenderSettings.BoundaryMode.COLOR ? 1f / 256f : 0f;
     }
     public static boolean visibleLayer(SelectiveRenderSettings.BoundaryMode mode) {
         return mode != SelectiveRenderSettings.BoundaryMode.COLOR || BoundaryRenderContext.opacity() > 0;

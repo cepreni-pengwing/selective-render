@@ -6,6 +6,27 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class RegionalBoundaryTest {
+    @Test void disabledLayersStayDisabledAcrossAppearanceAndInheritanceChanges() throws Exception {
+        var field=SelectiveRenderSettings.class.getDeclaredField("boundaryMode"); field.setAccessible(true);
+        var previous=field.get(null);
+        var value=new AtomicReference<>(RegionOptions.DEFAULT);
+        var target=new BoundaryEditorTarget(value::get,value::set);
+        try {
+            field.set(null,SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
+            assertTrue(target.colorEnabled()); assertTrue(target.textureEnabled());
+            target.setColorEnabled(false);
+            assertFalse(target.colorEnabled()); assertTrue(target.textureEnabled());
+            target.setNormal(false); target.setLighting(true);
+            assertFalse(target.colorEnabled());
+            target.setTextureEnabled(false); assertFalse(target.textureEnabled());
+            target.inheritColor(); assertTrue(target.colorEnabled()); assertFalse(target.textureEnabled());
+            field.set(null,SelectiveRenderSettings.BoundaryMode.NORMAL);
+            assertFalse(target.colorEnabled());
+            target.setColorEnabled(true); assertTrue(target.colorEnabled());
+            target.inheritTexture(); assertFalse(target.textureEnabled());
+            target.inheritColor(); assertFalse(target.colorEnabled());
+        } finally { field.set(null,previous); }
+    }
     @Test void globalLightingReachesEveryInheritedRegionButKeepsExplicitOverrides() throws Exception {
         var field=SelectiveRenderSettings.class.getDeclaredField("boundaryColorLighting"); field.setAccessible(true);
         boolean previous=field.getBoolean(null);

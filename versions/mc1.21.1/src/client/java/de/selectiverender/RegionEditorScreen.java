@@ -65,6 +65,7 @@ final class RegionEditorScreen extends Screen {
     @Override
     protected void init() {
         if(colorControls!=null) { colorControls.close(); colorControls=null; } previewY=-1;
+        clearChildren();
         inputs.clear(); captions.clear(); rows.clear(); newFilterInput = null; filterEdits.clear();
         if (!documentsLoaded) {
             documents = SelectiveRenderConfig.editorDocuments(client);
@@ -250,7 +251,7 @@ final class RegionEditorScreen extends Screen {
         accordion("Boundaries", -1, boundariesOpen, () -> boundariesOpen=!boundariesOpen);
         if (boundariesOpen) {
             var target=boundaryTarget();
-            boolean colorOn=BoundaryStyle.color(target.mode()), textureOn=BoundaryStyle.texture(target.mode());
+            boolean colorOn=target.colorEnabled(), textureOn=target.textureEnabled();
             options("Normal", List.of(new Choice("Use global",target.normalGlobal(),target::inheritNormal),
                     new Choice(target.normal()?"On":"Off",false,()->target.setNormal(!target.normal()))));
             options("Texture", List.of(new Choice("Use global",target.textureGlobal(),target::inheritTexture),
