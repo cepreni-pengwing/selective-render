@@ -56,7 +56,7 @@ public final class BoundaryStyle {
         return 0xFF000000 | r << 16 | g << 8 | b;
     }
     public static int opacity(int value) { return Math.max(0, Math.min(100, value)); }
-    public static int alpha(int percent) { return Math.round(opacity(percent) * 2.55f); }
+    public static int alpha(int percent) { return (opacity(percent) * 255 + 50) / 100; }
     public static boolean color(SelectiveRenderSettings.BoundaryMode mode) {
         return mode == SelectiveRenderSettings.BoundaryMode.COLOR || mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE;
     }
