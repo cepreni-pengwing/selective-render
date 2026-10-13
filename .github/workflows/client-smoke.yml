@@ -161,6 +161,10 @@ jobs:
             echo "Boundary color/texture/opacity runtime smoke did not complete." >&2
             exit 1
           fi
+          if ! grep -q '\[SR palette smoke\] Global alpha 0/1/25/50/75/99/100 and stable rainbow UVs verified' run/logs/latest.log; then
+            echo "Global color opacity/rainbow runtime checks did not complete." >&2
+            exit 1
+          fi
           if ! grep -q '\[SR placement smoke\] Only-filtered air permits placement' run/logs/latest.log; then
             echo "Only-filter placement runtime smoke did not complete." >&2
             exit 1

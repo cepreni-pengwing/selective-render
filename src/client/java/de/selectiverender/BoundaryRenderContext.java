@@ -25,8 +25,10 @@ public final class BoundaryRenderContext {
     public static boolean rainbow() { var value=options().inheritedColor(); return value==null || value.rainbow()==null?SelectiveRenderSettings.boundaryRainbow():value.rainbow(); }
     public static int vertexColor(net.minecraft.util.math.BlockPos pos, float x, float z) {
         var entry=CURRENT.get();
-        if (!rainbow() || entry==null || entry.rainbowBox()==null) return 0xFF000000|rgb();
+        if (!rainbow()) return 0xFF000000|rgb();
         float[] hsv=BoundaryStyle.hsv(rgb());
-        return 0xFF000000|BoundaryStyle.hsv(BoundaryRainbow.hue(entry.rainbowBox(),pos.getX()+(double)x,pos.getZ()+(double)z),hsv[1],hsv[2]);
+        return 0xFF000000|BoundaryStyle.hsv((entry!=null && entry.rainbowBox()!=null
+                ? BoundaryRainbow.hue(entry.rainbowBox(),pos.getX()+(double)x,pos.getZ()+(double)z)
+                : BoundaryRainbow.hueAt(pos,x,z)),hsv[1],hsv[2]);
     }
 }

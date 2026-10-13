@@ -171,7 +171,7 @@ final class BoundaryAppearanceScreen extends Screen {
         }
     }
     @Override public void render(DrawContext draw, int mouseX, int mouseY, float delta) {
-        renderBackground(draw, mouseX, mouseY, delta); draw.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFFFF);
+        super.render(draw, mouseX, mouseY, delta); draw.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFFFF);
         draw.enableScissor(right, 36, right + rightWidth, height - 34); if(textureVisible) draw.drawTextWithShadow(textRenderer, Text.literal("Block texture"), right, 36 - scroll, 0xFFFFFFFF);
         if(colorVisible) {
         draw.drawTextWithShadow(textRenderer, Text.literal("Presets"), presetLeft, colorTop - 14 - scroll, 0xFFFFFFFF);
@@ -184,7 +184,6 @@ final class BoundaryAppearanceScreen extends Screen {
         draw.getMatrices().pop();
         }
         draw.disableScissor();
-        super.render(draw, mouseX, mouseY, delta);
         if (texture.visible && texture.isFocused() && !matches.isEmpty()) {
             draw.getMatrices().push(); draw.getMatrices().translate(0, 0, 400);
             int start = completionIndex < 0 ? 0 : Math.max(0, completionIndex - 5), count = Math.min(6, matches.size() - start), top = popupY(); draw.fill(right, top, right + rightWidth, top + count * 12, 0xFF202020);

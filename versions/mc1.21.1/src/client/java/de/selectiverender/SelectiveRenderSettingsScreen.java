@@ -345,9 +345,8 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        renderBackground(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, UiStyle.TEXT);
         super.render(context, mouseX, mouseY, delta);
+        context.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, UiStyle.TEXT);
         for (Caption caption : captions) {
             String remaining = caption.text();
             for (int offset = 1; offset <= 11 && !remaining.isEmpty(); offset += 10) {

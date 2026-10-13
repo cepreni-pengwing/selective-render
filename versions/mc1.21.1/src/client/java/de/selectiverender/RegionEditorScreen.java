@@ -573,9 +573,8 @@ final class RegionEditorScreen extends Screen {
 
     @Override
     public void render(DrawContext draw, int mouseX, int mouseY, float delta) {
-        renderBackground(draw, mouseX, mouseY, delta);
-        draw.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
         super.render(draw, mouseX, mouseY, delta);
+        draw.drawCenteredTextWithShadow(textRenderer, title, width / 2, 12, 0xFFFFFF);
         for (Caption caption : captions) drawCaption(draw, caption, 0xFFFFFF);
         if(previewY>=0 && colorControls!=null) colorControls.preview(draw,paneLeft+labelWidth(),previewY,paneWidth-labelWidth());
         if (!error.isEmpty()) drawCaption(draw, new Caption(error, paneLeft, height - 45, paneWidth), UiStyle.ERROR);

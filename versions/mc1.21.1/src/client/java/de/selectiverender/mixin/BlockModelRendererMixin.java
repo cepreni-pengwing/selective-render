@@ -100,7 +100,7 @@ abstract class BlockModelRendererMixin {
             for (int i = 0; i < 4; i++) {
                 int offset = i * stride;
                 float x = Float.intBitsToFloat(data[offset]), y = Float.intBitsToFloat(data[offset + 1]), z = Float.intBitsToFloat(data[offset + 2]);
-                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.regionalColor()) data[offset + 3]=BoundaryColorTexture.abgr(layer, selectiverender$position.get(), quad.getFace(), x,y,z);
+                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR) data[offset + 3]=BoundaryColorTexture.abgr(layer, selectiverender$position.get(), quad.getFace(), x,y,z);
                 float shift=de.selectiverender.BoundaryStyle.overlayOffset(layer);
                 data[offset]=Float.floatToRawIntBits(x+quad.getFace().getOffsetX()*shift);
                 data[offset+1]=Float.floatToRawIntBits(y+quad.getFace().getOffsetY()*shift);
@@ -109,7 +109,7 @@ abstract class BlockModelRendererMixin {
                 data[offset + 5] = Float.floatToRawIntBits(BoundaryColorTexture.v(layer, selectiverender$position.get(), quad.getFace(), x, y, z));
             }
             var replacement = new BakedQuad(data, -1, quad.getFace(), BoundaryColorTexture.sprite(layer), !fullbright);
-            boolean vertexColor=layer==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.regionalColor();
+            boolean vertexColor=layer==SelectiveRenderSettings.BoundaryMode.COLOR;
             original.call(consumer, entry, replacement, fullbright ? new float[]{1,1,1,1} : brightness,
                     vertexColor ? 1f : (BoundaryColorTexture.argb(layer) >> 16 & 255) / 255f, vertexColor ? 1f : (BoundaryColorTexture.argb(layer) >> 8 & 255) / 255f, vertexColor ? 1f : (BoundaryColorTexture.argb(layer) & 255) / 255f, 1f, fullbright ? new int[]{0x00F000F0,0x00F000F0,0x00F000F0,0x00F000F0} : lights, overlay, vertexColor);
         } } finally { de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryRenderContext.clear(); }

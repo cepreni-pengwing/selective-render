@@ -19,7 +19,8 @@ final class BoundarySliderTexture implements AutoCloseable {
         texture.upload();
     }
     void draw(net.minecraft.client.gui.GuiGraphicsExtractor draw, int kind, int x, int y, int width) {
-        draw.blit(id, x, y, width, 20, 0, 1, kind / 5f, (kind + 1) / 5f);
+        // This overload takes x1, y1, x2, y2, rather than width/height.
+        draw.blit(id, x, y, x + width, y + 20, 0, 1, kind / 5f, (kind + 1) / 5f);
     }
     @Override public void close() { net.minecraft.client.Minecraft.getInstance().getTextureManager().release(id); }
 }

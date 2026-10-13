@@ -11,10 +11,10 @@ import net.minecraft.util.math.BlockPos;
 /** Loaded block-model sprites; only the two selected sprites are cached until reload. */
 public final class BoundaryColorTexture {
     private static volatile Sprite colorSprite, textureSprite, displayColor, displayTexture, displayCombined;
-    private static final Sprite[] regionalSprites = new Sprite[101];
+    private static final Sprite[] alphaSprites = new Sprite[101];
     private static volatile boolean dirty = true, textureHasAlpha;
     private BoundaryColorTexture() { }
-    public static synchronized void invalidate() { BoundaryTextureResolver.invalidate(); colorSprite = null; textureSprite = null; displayColor = null; displayTexture = null; displayCombined = null; dirty = true; java.util.Arrays.fill(regionalSprites, null); }
+    public static synchronized void invalidate() { BoundaryTextureResolver.invalidate(); colorSprite = null; textureSprite = null; displayColor = null; displayTexture = null; displayCombined = null; dirty = true; java.util.Arrays.fill(alphaSprites, null); }
     private static Sprite sourceSprite(boolean textured) {
         Sprite cached = textured ? textureSprite : colorSprite;
         if (cached != null) return cached;
@@ -35,11 +35,12 @@ public final class BoundaryColorTexture {
     }
 
     public static Sprite sprite(boolean textured) { return sprite(textured ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR); }
+    /** Immutable alpha sprites serve both global and regional colors; RGB is per vertex. */
     public static Sprite sprite(SelectiveRenderSettings.BoundaryMode mode) {
-        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && BoundaryRenderContext.regionalColor()) {
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR) {
             int opacity=BoundaryRenderContext.opacity();
-            var value=regionalSprites[opacity];
-            if (value==null) { value=MinecraftClient.getInstance().getBakedModelManager().getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getSprite(Identifier.of("selectiverender", "block/boundary_alpha_" + opacity)); regionalSprites[opacity]=value; }
+            var value=alphaSprites[opacity];
+            if (value==null) { value=MinecraftClient.getInstance().getBakedModelManager().getAtlas(SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE).getSprite(Identifier.of("selectiverender", "block/boundary_alpha_" + opacity)); alphaSprites[opacity]=value; }
             return value;
         }
         if (mode == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryTextureResolver.bound()==null && BoundaryRenderContext.regionalTexture())
@@ -67,8 +68,7 @@ public final class BoundaryColorTexture {
         for (int y = 0; y < source.getHeight(); y++) for (int x = 0; x < source.getWidth(); x++)
             if ((original.getColor(x, y) >>> 24) != 255) textureHasAlpha = true;
         atlas.bindTexture();
-        float[] rainbowHsv = BoundaryStyle.hsv(SelectiveRenderSettings.boundaryColor());
-        for (var mode : new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.COLOR, SelectiveRenderSettings.BoundaryMode.TEXTURE, SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE}) {
+        for (var mode : new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE, SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE}) {
             boolean textured = BoundaryStyle.texture(mode);
             var target = sprite(mode);
             var images = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)target.getContents()).selectiverender$images();
@@ -78,9 +78,6 @@ public final class BoundaryColorTexture {
                     int pixel = textured ? original.getColor(x * source.getWidth() / image.getWidth(), y * source.getHeight() / image.getHeight()) : 0xFFFFFFFF;
                     pixel = BoundaryStyle.swapRedBlue(pixel);
                     int color = SelectiveRenderSettings.boundaryColor();
-                    if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && SelectiveRenderSettings.boundaryRainbow()) {
-                        color = BoundaryStyle.hsv(x / (float)Math.max(1, image.getWidth() - 1), rainbowHsv[1], rainbowHsv[2]);
-                    }
                     pixel = BoundaryStyle.compose(pixel, color, mode == SelectiveRenderSettings.BoundaryMode.TEXTURE ? 100 : SelectiveRenderSettings.boundaryOpacity(), mode);
                     image.setColor(x, y, BoundaryStyle.swapRedBlue(pixel));
                 }
@@ -116,20 +113,15 @@ public final class BoundaryColorTexture {
         return s.getMinV() + (s.getMaxV() - s.getMinV()) * value;
     }
     public static float u(SelectiveRenderSettings.BoundaryMode mode, BlockPos pos, Direction face, float x, float y, float z) {
-        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && !BoundaryRenderContext.regionalColor() && SelectiveRenderSettings.boundaryRainbow() && pos != null) {
-            var sprite = sprite(mode); float h = BoundaryRainbow.hueAt(pos, x, z);
-            if (face == Direction.WEST && h == 0) h = 1;
-            return sprite.getMinU() + (sprite.getMaxU() - sprite.getMinU()) * h;
-        }
         return u(mode, face, x, y, z);
     }
     public static float v(SelectiveRenderSettings.BoundaryMode mode, BlockPos pos, Direction face, float x, float y, float z) {
         return v(mode, face, x, y, z);
     }
     public static int argb(boolean textured) { return 0xFFFFFFFF; }
-    public static int argb(SelectiveRenderSettings.BoundaryMode mode) { if (mode==SelectiveRenderSettings.BoundaryMode.COLOR && BoundaryRenderContext.regionalColor()) return 0xFF000000|BoundaryRenderContext.rgb(); return mode == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryTextureResolver.bound() != null ? BoundaryTextureResolver.bound().color() : 0xFFFFFFFF; }
+    public static int argb(SelectiveRenderSettings.BoundaryMode mode) { if (mode==SelectiveRenderSettings.BoundaryMode.COLOR) return 0xFF000000|BoundaryRenderContext.rgb(); return mode == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryTextureResolver.bound() != null ? BoundaryTextureResolver.bound().color() : 0xFFFFFFFF; }
     public static int argb(SelectiveRenderSettings.BoundaryMode mode, BlockPos pos, Direction face, float x, float y, float z) {
-        return mode==SelectiveRenderSettings.BoundaryMode.COLOR && BoundaryRenderContext.regionalColor()
+        return mode==SelectiveRenderSettings.BoundaryMode.COLOR
                 ? BoundaryRenderContext.vertexColor(pos,x,z):argb(mode);
     }
     public static int abgr(SelectiveRenderSettings.BoundaryMode mode, BlockPos pos, Direction face, float x, float y, float z) {

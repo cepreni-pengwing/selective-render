@@ -69,7 +69,22 @@ final class BoundaryRuntimeSmoke {
             assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR 0% / TEXTURE unchanged");
         } else if (ticks == 80) {
+            verifyGlobalPalette(client);
+            SelectiveRenderSettings.setBoundaryRainbow(false);
+            SelectiveRenderSettings.setBoundaryAppearance(0xFF0000, "minecraft:stone", 50);
             client.setScreen(new BoundaryAppearanceScreen(null));
+        } else if (ticks == 85) {
+            capturePalette(client, "sr-global-palette.png");
+        } else if (ticks == 90) {
+            var editor=new RegionEditorScreen(null);
+            client.setScreen(editor);
+            try {
+                var region=RegionEditorScreen.class.getDeclaredField("region"); region.setAccessible(true); region.set(editor,NAME);
+                var open=RegionEditorScreen.class.getDeclaredField("boundariesOpen"); open.setAccessible(true); open.setBoolean(editor,true);
+                editor.init();
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException("Palette screenshot setup failed",error); }
+        } else if (ticks == 95) {
+            capturePalette(client, "sr-regional-palette.png");
         } else if (ticks == 100) {
             if (Boolean.getBoolean("selectiverender.ctm.smoke")) {
                 if (BoundaryTextureResolver.nestedSmokeFaces() == 0) throw new IllegalStateException("CTM tile was not resolved from an active terrain render context");
@@ -130,6 +145,31 @@ final class BoundaryRuntimeSmoke {
         return id;
     }
 
+
+    private static void capturePalette(MinecraftClient client, String name) {
+        net.minecraft.client.util.ScreenshotRecorder.saveScreenshot(client.runDirectory, name, client.getFramebuffer(), message -> { });
+    }
+    /** Check the sprites used by terrain, not just the settings value or GUI preview. */
+    private static void verifyGlobalPalette(MinecraftClient client) {
+        var mode=SelectiveRenderSettings.BoundaryMode.COLOR;
+        var pos=client.player.getBlockPos();
+        BoundaryRenderContext.clear();
+        for (int percent : new int[]{0,1,25,50,75,99,100}) {
+            SelectiveRenderSettings.setBoundaryRainbow(false);
+            SelectiveRenderSettings.setBoundaryAppearance(0xFF0000,"minecraft:stone",percent);
+            var sprite=BoundaryColorTexture.sprite(mode);
+            assertBoundaryAlpha(mode,BoundaryStyle.alpha(percent));
+            if (BoundaryColorTexture.argb(mode,pos,net.minecraft.util.math.Direction.WEST,0,0,0)!=0xFFFF0000)
+                throw new IllegalStateException("Global RGB did not reach terrain vertices");
+            float u=BoundaryColorTexture.u(mode,pos,net.minecraft.util.math.Direction.WEST,0,0,0);
+            SelectiveRenderSettings.setBoundaryRainbow(true);
+            if (BoundaryColorTexture.sprite(mode)!=sprite || BoundaryColorTexture.u(mode,pos,net.minecraft.util.math.Direction.WEST,1,0,1)!=u)
+                throw new IllegalStateException("Rainbow changed color sprite or spanned the spectrum in UVs");
+            assertBoundaryAlpha(mode,BoundaryStyle.alpha(percent));
+        }
+        SelectiveRenderClient.LOGGER.info("[SR palette smoke] Global alpha 0/1/25/50/75/99/100 and stable rainbow UVs verified");
+    }
+
     private static void assertBoundaryAlpha(boolean textured, int expected) {
         assertBoundaryAlpha(textured ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR, expected);
     }
@@ -137,6 +177,21 @@ final class BoundaryRuntimeSmoke {
         var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(mode).getContents()).selectiverender$images()[0];
         if ((image.getColor(0, 0) >>> 24) != expected)
             throw new IllegalStateException("Boundary atlas alpha does not match requested opacity");
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR) {
+            var sprite=BoundaryColorTexture.sprite(mode);
+            int width=Math.round(image.getWidth()/(sprite.getMaxU()-sprite.getMinU()));
+            int height=Math.round(image.getHeight()/(sprite.getMaxV()-sprite.getMinV()));
+            var atlas=clientAtlas(); atlas.bindTexture();
+            try (var downloaded=new net.minecraft.client.texture.NativeImage(width,height,false)) {
+                downloaded.loadFromTextureImage(0,false);
+                if ((downloaded.getColor(sprite.getX()+image.getWidth()/2,sprite.getY()+image.getHeight()/2)>>>24)!=expected)
+                    throw new IllegalStateException("GPU boundary alpha does not match requested opacity");
+            }
+        }
+    }
+
+    private static net.minecraft.client.texture.SpriteAtlasTexture clientAtlas() {
+        return MinecraftClient.getInstance().getBakedModelManager().getAtlas(net.minecraft.client.texture.SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE);
     }
 
     private static void verifyRegionToggleTransition(MinecraftClient client) {

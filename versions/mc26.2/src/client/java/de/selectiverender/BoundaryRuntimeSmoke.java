@@ -64,7 +64,22 @@ final class BoundaryRuntimeSmoke {
             assertBoundaryAlpha(true, 255);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR 0% / TEXTURE unchanged");
         } else if (ticks == 80) {
+            verifyGlobalPalette(client);
+            SelectiveRenderSettings.setBoundaryRainbow(false);
+            SelectiveRenderSettings.setBoundaryAppearance(0xFF0000, "minecraft:stone", 50);
             client.gui.setScreen(new BoundaryAppearanceScreen(null));
+        } else if (ticks == 85) {
+            capturePalette(client, "sr-global-palette.png");
+        } else if (ticks == 90) {
+            var editor=new RegionEditorScreen(null);
+            client.gui.setScreen(editor);
+            try {
+                var region=RegionEditorScreen.class.getDeclaredField("region"); region.setAccessible(true); region.set(editor,NAME);
+                var open=RegionEditorScreen.class.getDeclaredField("boundariesOpen"); open.setAccessible(true); open.setBoolean(editor,true);
+                editor.init();
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException("Palette screenshot setup failed",error); }
+        } else if (ticks == 95) {
+            capturePalette(client, "sr-regional-palette.png");
         } else if (ticks == 100) {
             verifyFilterOnlyLightingAndEntities(client);
             verifyConfigValidationIsReadOnly();
@@ -78,6 +93,31 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderConfig.deleteRegion(client, NAME);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] PASS");
         }
+    }
+
+
+    private static void capturePalette(Minecraft client, String name) {
+        net.minecraft.client.Screenshot.grab(client.gameDirectory, name, client.gameRenderer.mainRenderTarget(), 1, message -> { });
+    }
+    /** Check the sprites used by terrain, not just the settings value or GUI preview. */
+    private static void verifyGlobalPalette(Minecraft client) {
+        var mode=SelectiveRenderSettings.BoundaryMode.COLOR;
+        var pos=client.player.blockPosition();
+        BoundaryRenderContext.clear();
+        for (int percent : new int[]{0,1,25,50,75,99,100}) {
+            SelectiveRenderSettings.setBoundaryRainbow(false);
+            SelectiveRenderSettings.setBoundaryAppearance(0xFF0000,"minecraft:stone",percent);
+            var sprite=BoundaryColorTexture.sprite(mode);
+            assertBoundaryAlpha(mode,BoundaryStyle.alpha(percent));
+            if (BoundaryColorTexture.argb(mode,pos,net.minecraft.core.Direction.WEST,0,0,0)!=0xFFFF0000)
+                throw new IllegalStateException("Global RGB did not reach terrain vertices");
+            float u=BoundaryColorTexture.u(mode,pos,net.minecraft.core.Direction.WEST,0,0,0);
+            SelectiveRenderSettings.setBoundaryRainbow(true);
+            if (BoundaryColorTexture.sprite(mode)!=sprite || BoundaryColorTexture.u(mode,pos,net.minecraft.core.Direction.WEST,1,0,1)!=u)
+                throw new IllegalStateException("Rainbow changed color sprite or spanned the spectrum in UVs");
+            assertBoundaryAlpha(mode,BoundaryStyle.alpha(percent));
+        }
+        SelectiveRenderClient.LOGGER.info("[SR palette smoke] Global alpha 0/1/25/50/75/99/100 and stable rainbow UVs verified");
     }
 
     private static void assertBoundaryAlpha(boolean textured, int expected) {

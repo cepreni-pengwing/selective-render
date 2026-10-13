@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.11
+
+- Corrected Minecraft 26.2 slider texture bounds in global and regional boundary palettes
+- Removed duplicate Minecraft 1.21.1 menu background/blur passes that blurred previews and captions
+- Used immutable opacity sprites and vertex RGB for global as well as regional Color, preserving partial alpha without live color-atlas rewrites
+- Rendered rainbow colors per vertex to avoid interpolating across the entire spectrum at the red seam
+- Added runtime checks for seven global opacity levels, actual GPU alpha on older targets, stable rainbow UVs, and palette screenshots
+
 ## 1.11.10
 
 - Applied virtual skylight to entities and older block-entity render paths when only block filters are active, and excluded filtered roof blocks from direct-sky occluder checks

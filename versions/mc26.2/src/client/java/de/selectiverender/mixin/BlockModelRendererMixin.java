@@ -97,7 +97,7 @@ abstract class BlockModelRendererMixin {
             try {
                 if (fullbright) quadInstance.setLightCoords(0x00F000F0);
                 quadInstance.setColor(BoundaryColorTexture.argb(layer));
-                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.regionalColor())
+                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR)
                     for(int i=0;i<4;i++) { var p=positions[i]; quadInstance.setColor(i,BoundaryColorTexture.argb(layer,pos,quad.direction(),p.x(),p.y(),p.z())); }
                 output.put(x, y, z, replacement, quadInstance);
             } finally {
