@@ -71,7 +71,7 @@ final class BoundaryRuntimeSmoke {
             client.setScreen(appearance);
             try {
                 var scroll=BoundaryAppearanceScreen.class.getDeclaredField("scroll"); scroll.setAccessible(true); scroll.setInt(appearance,Integer.MAX_VALUE);
-                appearance.init();
+                var rebuild=BoundaryAppearanceScreen.class.getDeclaredMethod("rebuild"); rebuild.setAccessible(true); rebuild.invoke(appearance);
             } catch (ReflectiveOperationException error) { throw new IllegalStateException("Global palette screenshot setup failed",error); }
         } else if (ticks == 85) {
             capturePalette(client, "sr-global-palette.png");
