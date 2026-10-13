@@ -72,7 +72,12 @@ final class BoundaryRuntimeSmoke {
             verifyGlobalPalette(client);
             SelectiveRenderSettings.setBoundaryRainbow(false);
             SelectiveRenderSettings.setBoundaryAppearance(0xFF0000, "minecraft:stone", 50);
-            client.setScreen(new BoundaryAppearanceScreen(null));
+            var appearance=new BoundaryAppearanceScreen(null);
+            client.setScreen(appearance);
+            try {
+                var scroll=BoundaryAppearanceScreen.class.getDeclaredField("scroll"); scroll.setAccessible(true); scroll.setInt(appearance,Integer.MAX_VALUE);
+                appearance.init();
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException("Global palette screenshot setup failed",error); }
         } else if (ticks == 85) {
             capturePalette(client, "sr-global-palette.png");
         } else if (ticks == 90) {
@@ -81,6 +86,7 @@ final class BoundaryRuntimeSmoke {
             try {
                 var region=RegionEditorScreen.class.getDeclaredField("region"); region.setAccessible(true); region.set(editor,NAME);
                 var open=RegionEditorScreen.class.getDeclaredField("boundariesOpen"); open.setAccessible(true); open.setBoolean(editor,true);
+                var scroll=RegionEditorScreen.class.getDeclaredField("scroll"); scroll.setAccessible(true); scroll.setInt(editor,Integer.MAX_VALUE);
                 editor.init();
             } catch (ReflectiveOperationException error) { throw new IllegalStateException("Palette screenshot setup failed",error); }
         } else if (ticks == 95) {
