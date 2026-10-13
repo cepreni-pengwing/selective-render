@@ -2,6 +2,17 @@ package de.selectiverender;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class BoundaryLayersTest {
+    @Test void normalUnderlayIsOnlyEmittedWhenColorHasNoReplacementTexture() {
+        var normal=SelectiveRenderSettings.BoundaryMode.NORMAL;
+        var color=SelectiveRenderSettings.BoundaryMode.COLOR;
+        var texture=SelectiveRenderSettings.BoundaryMode.TEXTURE;
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{normal,color},BoundaryStyle.renderLayers(color,true));
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{color},BoundaryStyle.renderLayers(color,false));
+        for(boolean underlay:new boolean[]{false,true}) {
+            assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{texture,color},BoundaryStyle.renderLayers(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE,underlay));
+            assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{texture},BoundaryStyle.renderLayers(texture,underlay));
+        }
+    }
     @Test void independentLayersCoverEveryCombination() {
         for (boolean color : new boolean[]{false, true}) for (boolean texture : new boolean[]{false, true}) {
             var mode = BoundaryStyle.layers(color, texture);
@@ -11,12 +22,18 @@ class BoundaryLayersTest {
     }
     @Test void colorOverTextureUsesStraightAlphaWithExactEndpoints() {
         var both = BoundaryStyle.layers(true, true);
-        assertEquals(0, BoundaryStyle.compose(0xFF0000FF, 0xFF0000, 0, both));
+        assertEquals(0xFF0000FF, BoundaryStyle.compose(0xFF0000FF, 0xFF0000, 0, both));
         assertEquals(0xFFFF0000, BoundaryStyle.compose(0xFF0000FF, 0xFF0000, 100, both));
-        assertEquals(0xC0AA0055, BoundaryStyle.compose(0xFF0000FF, 0xFF0000, 50, both));
+        assertEquals(0xFF80007F, BoundaryStyle.compose(0xFF0000FF, 0xFF0000, 50, both));
         assertEquals(0x80FF0000, BoundaryStyle.compose(0x000000FF, 0xFF0000, 50, both));
-        assertEquals(0x80123456, BoundaryStyle.compose(0xFF123456, 0, 50, BoundaryStyle.layers(false, true)));
+        assertEquals(0xFF123456, BoundaryStyle.compose(0xFF123456, 0, 50, BoundaryStyle.layers(false, true)));
         assertEquals(0xFF123456, BoundaryStyle.compose(0xFF123456, 0, 0, BoundaryStyle.layers(false, false)));
+    }
+    @Test void colorOverlayHasOnlyATinyOutwardDepthOffset() {
+        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)>0);
+        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)<0.001f);
+        assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.NORMAL));
+        assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.TEXTURE));
     }
     @Test void legacyNativeImageColorOrderIsReversible() {
         for (int color : new int[]{0, -1, 0x800000FF, 0xFF123456})

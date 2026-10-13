@@ -10,6 +10,10 @@ final class BoundaryEditorTarget {
     BoundaryEditorTarget(Supplier<RegionOptions> read, Consumer<RegionOptions> write) { this.read=read; this.write=write; }
     boolean regional() { return read!=null; }
     private RegionOptions options() { return regional()?read.get():RegionOptions.DEFAULT; }
+    boolean normalGlobal() { return options().inheritedNormal()==null; }
+    boolean normal() { return options().inheritedNormal()==null?SelectiveRenderSettings.boundaryNormal():options().inheritedNormal(); }
+    void inheritNormal() { if(regional()) write.accept(options().withNormal(null)); }
+    void setNormal(boolean value) { if(regional()) write.accept(options().withNormal(value)); else SelectiveRenderSettings.setBoundaryNormal(value); }
     boolean textureGlobal() { return options().inheritedTexture()==null; }
     boolean colorGlobal() { return options().inheritedColor()==null; }
     SelectiveRenderSettings.BoundaryMode mode() { return options().effectiveBoundary(SelectiveRenderSettings.boundaryMode()); }
@@ -26,11 +30,16 @@ final class BoundaryEditorTarget {
         else SelectiveRenderSettings.setBoundaryMode(BoundaryStyle.layers(BoundaryStyle.color(mode()),enabled));
     }
     void setColorEnabled(boolean enabled) {
-        if(regional()) write.accept(options().withColor(new RegionOptions.ColorLayer(enabled,color(),opacity(),lighting(),rainbow())));
+        if(regional()) write.accept(options().withColor(new RegionOptions.ColorLayer(enabled,options().inheritedColor()==null?null:options().inheritedColor().rgb(),options().inheritedColor()==null?null:options().inheritedColor().opacity(),options().inheritedColor()==null?null:options().inheritedColor().lighting(),options().inheritedColor()==null?null:options().inheritedColor().rainbow())));
         else SelectiveRenderSettings.setBoundaryMode(BoundaryStyle.layers(enabled,BoundaryStyle.texture(mode())));
     }
+    void inheritLighting() {
+        if(regional()) { var layer=options().inheritedColor();
+            if(layer!=null) write.accept(options().withColor(new RegionOptions.ColorLayer(layer.enabled(),layer.rgb(),layer.opacity(),null,layer.rainbow())));
+        }
+    }
     void setLighting(boolean value) {
-        if(regional()) write.accept(options().withColor(new RegionOptions.ColorLayer(BoundaryStyle.color(mode()),color(),opacity(),value,rainbow())));
+        if(regional()) write.accept(options().withColor(new RegionOptions.ColorLayer(BoundaryStyle.color(mode()),options().inheritedColor()==null?null:options().inheritedColor().rgb(),options().inheritedColor()==null?null:options().inheritedColor().opacity(),value,options().inheritedColor()==null?null:options().inheritedColor().rainbow())));
         else SelectiveRenderSettings.setBoundaryColorLighting(value);
     }
     void setCullFluids(boolean value) {
@@ -40,7 +49,7 @@ final class BoundaryEditorTarget {
         if(!regional()) { SelectiveRenderSettings.setBoundaryAppearance(rgb,id,opacity); SelectiveRenderSettings.setBoundaryRainbow(rainbow); return; }
         RegionOptions next=options();
         if(textureChanged) next=next.withTexture(new RegionOptions.TextureLayer(BoundaryStyle.texture(mode()),id));
-        if(colorChanged) next=next.withColor(new RegionOptions.ColorLayer(BoundaryStyle.color(mode()),rgb,opacity,lighting(),rainbow));
+        if(colorChanged) next=next.withColor(new RegionOptions.ColorLayer(BoundaryStyle.color(mode()),rgb,opacity,options().inheritedColor()==null?null:options().inheritedColor().lighting(),rainbow));
         if(!next.equals(options())) write.accept(next);
     }
 }

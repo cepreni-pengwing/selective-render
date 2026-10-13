@@ -53,7 +53,12 @@ abstract class BlockRendererMixin {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {
             for (int v = 0; v < 4; v++) selectiverender$quads.vertex(v, quad.getX(v), quad.getY(v), quad.getZ(v));
-            if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) { ci.cancel(); return; }
+            if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) {
+                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(selectiverender$currentPos)) {
+                    selectiverender$emitting=true; try { selectiverender$emit(quad); } finally { selectiverender$emitting=false; }
+                }
+                ci.cancel(); return;
+            }
             var source = new de.selectiverender.BoundaryQuadCopy().copyFrom(quad);
             boolean preserve = BoundaryColorTexture.preserveSourceTexture(selectiverender$currentState);
             selectiverender$emitting = true;
@@ -63,9 +68,13 @@ abstract class BlockRendererMixin {
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(selectiverender$currentPos, quad.getLightFace());
                 else de.selectiverender.BoundaryTextureResolver.clear();
                 quad.copyFrom(source);
+                if (layer == SelectiveRenderSettings.BoundaryMode.NORMAL) { de.selectiverender.BoundaryShaderContext.end(); selectiverender$emit(quad); continue; }
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && preserve && de.selectiverender.BoundaryTextureResolver.bound() == null) {
                     de.selectiverender.BoundaryShaderContext.begin(layer); selectiverender$emit(quad); continue;
                 }
+                float shift=de.selectiverender.BoundaryStyle.overlayOffset(layer);
+                for(int v=0;v<4;v++) quad.setPos(v,quad.getX(v)+quad.getLightFace().getStepX()*shift,
+                        quad.getY(v)+quad.getLightFace().getStepY()*shift,quad.getZ(v)+quad.getLightFace().getStepZ()*shift);
                 quad.setTintIndex(-1);
                 boolean fullbright = de.selectiverender.BoundaryStyle.fullbright(layer);
                 quad.setEmissive(fullbright); quad.setDiffuseShade(!fullbright);

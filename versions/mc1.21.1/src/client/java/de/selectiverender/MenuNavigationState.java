@@ -19,10 +19,22 @@ final class MenuNavigationState {
         if (regions == null) regions = new HashMap<>();
         scrolls.values().removeIf(java.util.Objects::isNull);
         regions.values().removeIf(java.util.Objects::isNull);
-        for (RegionView view : regions.values()) if (view.collapsed == null) view.collapsed = new HashSet<>();
+        for (RegionView view : regions.values()) {
+            if (view.collapsed == null) view.collapsed = new HashSet<>();
+            if (view.entries == null) view.entries = new HashMap<>();
+            view.entries.values().removeIf(java.util.Objects::isNull);
+        }
+    }
+    static final class RegionEntry {
+        int scroll;
+        boolean filtersOpen, boundariesOpen, interactionsOpen, boxesOpen;
     }
     static final class RegionView {
         String dimension, selected;
+        Map<String, RegionEntry> entries = new HashMap<>();
+        RegionEntry entry(String dimension, String name) {
+            return entries.computeIfAbsent(dimension + "\u0000" + name, key -> new RegionEntry());
+        }
         Set<String> collapsed = new HashSet<>();
         int scroll, navigationScroll;
         boolean filtersOpen, boundariesOpen, interactionsOpen, boxesOpen;

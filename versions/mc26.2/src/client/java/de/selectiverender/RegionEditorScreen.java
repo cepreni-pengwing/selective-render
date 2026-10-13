@@ -31,6 +31,8 @@ final class RegionEditorScreen extends Screen {
     private String context;
     private String error = "";
     private int paneLeft, paneWidth, navLeft, navWidth, navScroll, scroll, visibleRows;
+    private BoundaryColorControls colorControls;
+    private int previewY=-1;
     private boolean deletionArmed;
     private boolean navigationRestored;
     private String restoredDimension;
@@ -48,6 +50,7 @@ final class RegionEditorScreen extends Screen {
     public void removed() {
         var state = SelectiveRenderSettings.menuNavigation();
         state.tab = "REGIONS";
+        rememberRegion();
         var view = state.region(context == null ? "menu" : context);
         view.dimension = document == null ? null : document.dimension();
         view.selected = region;
@@ -55,11 +58,13 @@ final class RegionEditorScreen extends Screen {
         view.scroll = scroll; view.navigationScroll = navScroll;
         view.filtersOpen = filtersOpen; view.boxesOpen = boxesOpen; view.boundariesOpen=boundariesOpen; view.interactionsOpen=interactionsOpen;
         SelectiveRenderSettings.saveMenuNavigation();
+        if(colorControls!=null) { colorControls.close(); colorControls=null; }
         super.removed();
     }
 
     @Override
     protected void init() {
+        if(colorControls!=null) { colorControls.close(); colorControls=null; } previewY=-1;
         inputs.clear(); captions.clear(); rows.clear(); newFilterInput = null; filterEdits.clear();
         if (!documentsLoaded) {
             documents = SelectiveRenderConfig.editorDocuments(minecraft);
@@ -73,12 +78,18 @@ final class RegionEditorScreen extends Screen {
             restoredDimension = view.dimension;
             scroll = Math.max(0, view.scroll); navScroll = Math.max(0, view.navigationScroll);
             filtersOpen = view.filtersOpen; boxesOpen = view.boxesOpen; boundariesOpen=view.boundariesOpen; interactionsOpen=view.interactionsOpen;
+            if (view.dimension != null && view.selected != null && !view.entries.containsKey(view.dimension + "\u0000" + view.selected)) {
+                var old = view.entry(view.dimension, view.selected);
+                old.scroll=view.scroll; old.filtersOpen=view.filtersOpen; old.boxesOpen=view.boxesOpen;
+                old.boundariesOpen=view.boundariesOpen; old.interactionsOpen=view.interactionsOpen;
+            }
             navigationRestored = true;
         }
         String dimension = document == null ? restoredDimension : document.dimension();
         document = documents.stream().filter(value -> value.dimension().equals(dimension)).findFirst()
                 .orElse(documents.isEmpty() ? null : documents.get(0));
         if (document != null && !document.regions().containsKey(region)) region = document.regions().keySet().iterator().next();
+        if (document != null && restoredDimension != null) { restoreRegion(); restoredDimension=null; }
         SettingsViewport viewport = SettingsViewport.of(width, height, 0, 0);
         navLeft = viewport.paneLeft();
         navWidth = Math.min(120, Math.max(72, viewport.paneWidth() / 4));
@@ -107,8 +118,10 @@ final class RegionEditorScreen extends Screen {
                 if (entry.name() == null) {
                     if (!collapsed.add(entry.dimension())) collapsed.remove(entry.dimension());
                 } else {
+                    rememberRegion();
                     document = documents.stream().filter(value -> value.dimension().equals(entry.dimension())).findFirst().orElseThrow();
-                    region = entry.name(); deletionArmed = false; scroll = 0; boxesOpen = false; filtersOpen = false; boundariesOpen=false; interactionsOpen=false; addingFilter = false;
+                    region = entry.name(); deletionArmed = false; addingFilter = false;
+                    restoreRegion();
                 }
             })).bounds(navLeft, 36 + (i - navScroll) * 24, entry.name() == null ? navWidth : Math.min(Math.max(24, navWidth - 48), Math.max(24, font.width(label) + 16)), 20).build());
             button.active = entry.name() == null || document == null
@@ -132,7 +145,14 @@ final class RegionEditorScreen extends Screen {
         for (int i = scroll; i < Math.min(rows.size(), scroll + visibleRows); i++) {
             Row row = rows.get(i);
             int y = 36 + (i - scroll) * 24;
-            if (row.field() != null) {
+            if (row.label().startsWith("@color-")) {
+                int kind=Integer.parseInt(row.label().substring(7));
+                if(kind==4) previewY=y;
+                else {
+                    captions.add(new Caption(new String[]{"Hue","Saturation","Brightness","Opacity"}[kind],paneLeft,y,labelWidth()-12));
+                    colorControls.row(kind,paneLeft+labelWidth(),y,paneWidth-labelWidth(),this::addRenderableWidget);
+                }
+            } else if (row.field() != null) {
                 if (!row.label().isEmpty()) captions.add(new Caption(row.label(), paneLeft, y, row.labelWidth() - 12));
                 int controlsWidth = row.choices().stream().mapToInt(choice -> Math.max(20, font.width(choice.label()) + 12) + 4).sum();
                 int inputWidth = Math.max(20, paneWidth - row.labelWidth() - controlsWidth);
@@ -172,6 +192,17 @@ final class RegionEditorScreen extends Screen {
                 .bounds((width - Math.min(100, width - 24)) / 2, height - 26, Math.min(100, width - 24), 20).build());
     }
 
+    private void rememberRegion() {
+        if (document == null || region == null) return;
+        var entry = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context).entry(document.dimension(), region);
+        entry.scroll=scroll; entry.filtersOpen=filtersOpen; entry.boundariesOpen=boundariesOpen;
+        entry.interactionsOpen=interactionsOpen; entry.boxesOpen=boxesOpen;
+    }
+    private void restoreRegion() {
+        var entry = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context).entry(document.dimension(), region);
+        scroll=entry.scroll; filtersOpen=entry.filtersOpen; boundariesOpen=entry.boundariesOpen;
+        interactionsOpen=entry.interactionsOpen; boxesOpen=entry.boxesOpen;
+    }
     private void buildRows() {
         rows.add(new Row("", List.of(new Choice(deletionArmed ? "Confirm deletion" : "Delete region", false, () -> {
             if (!deletionArmed) { deletionArmed = true; return; }
@@ -183,8 +214,8 @@ final class RegionEditorScreen extends Screen {
             deletionArmed = false; scroll = 0; navScroll = 0; filtersOpen = false; boxesOpen = false;
         })), null, 0));
         field("Name", "name", region, false, value -> save(value, boxes(), hidden(), selected(), rules()));
-        options("Type", List.of(new Choice("Render", !hidden(), () -> save(region, boxes(), false, selected(), rules())),
-                new Choice("Hidden", hidden(), () -> save(region, boxes(), true, selected(), rules()))));
+        options("Type", List.of(new Choice("Render", !hidden(), () -> save(region, boxes(), false, true, rules())),
+                new Choice("Hidden", hidden(), () -> save(region, boxes(), true, true, rules()))));
         accordion("Filters", rules().size(), filtersOpen, () -> filtersOpen = !filtersOpen);
         if (filtersOpen) {
             RegionOptions currentOptions = document.options().getOrDefault(region, RegionOptions.DEFAULT);
@@ -220,18 +251,26 @@ final class RegionEditorScreen extends Screen {
         if (boundariesOpen) {
             var target=boundaryTarget();
             boolean colorOn=BoundaryStyle.color(target.mode()), textureOn=BoundaryStyle.texture(target.mode());
+            options("Normal", List.of(new Choice("Use global",target.normalGlobal(),target::inheritNormal),
+                    new Choice(target.normal()?"On":"Off",false,()->target.setNormal(!target.normal()))));
             options("Texture", List.of(new Choice("Use global",target.textureGlobal(),target::inheritTexture),
                     new Choice(textureOn?"On":"Off",false,()->target.setTextureEnabled(!textureOn))));
-            field("Block texture","boundary-texture",target.texture(),true,value-> {
+            options("Color",List.of(new Choice("Use global",target.colorGlobal(),target::inheritColor),
+                    new Choice(colorOn?"On":"Off",false,()->target.setColorEnabled(!colorOn))));
+            if(colorOn) options("Color lighting",List.of(
+                    new Choice("Use global",overrides.inheritedColor()==null || overrides.inheritedColor().lighting()==null,()->target.inheritLighting()),
+                    new Choice(target.lighting()?"On":"Off",false,()->target.setLighting(!target.lighting()))));
+            override("Cull fluid faces",2,overrides.cullFluids(),new Object[]{false,true},new String[]{"Off","On"});
+            if(textureOn) field("Block texture","boundary-texture",target.texture(),true,value-> {
                 var id=net.minecraft.resources.Identifier.tryParse(value.trim());
                 if(id==null || !net.minecraft.core.registries.BuiltInRegistries.BLOCK.containsKey(id))
                     throw new IllegalArgumentException("Unknown block ID");
                 target.commit(target.color(),id.toString(),target.opacity(),target.rainbow(),false,true);
             });
-            options("Color",List.of(new Choice("Use global",target.colorGlobal(),target::inheritColor),
-                    new Choice(colorOn?"On":"Off",false,()->target.setColorEnabled(!colorOn))));
-            options("Appearance",List.of(new Choice("Edit texture and color",false,()->minecraft.gui.setScreen(new BoundaryAppearanceScreen(this,target)))));
-            override("Cull fluid faces",2,overrides.cullFluids(),new Object[]{false,true},new String[]{"Off","On"});
+            if(colorOn) {
+                colorControls=new BoundaryColorControls(target,font,message->error=message);
+                for(int i=0;i<5;i++) info("@color-"+i);
+            }
         }
         accordion("Interactions",-1,interactionsOpen,()->interactionsOpen=!interactionsOpen);
         if(interactionsOpen) {
@@ -446,7 +485,11 @@ final class RegionEditorScreen extends Screen {
         }
     }
 
+    @Override public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) {
+        boolean handled=super.mouseReleased(event); if(colorControls!=null) colorControls.release(); return handled;
+    }
     private boolean commitInputs() {
+        if(colorControls!=null) colorControls.release();
         for (Input input : inputs) if (!input.commit()) { setFocused(input.widget); return false; }
         return true;
     }
@@ -464,7 +507,7 @@ final class RegionEditorScreen extends Screen {
             if (input.wasFocused && !input.widget.isFocused() && !input.commit()) setFocused(input.widget);
             input.wasFocused = input.widget.isFocused();
         }
-        if (refreshRequested && inputs.stream().noneMatch(input -> input.widget.isFocused())) rebuild();
+        if (refreshRequested && inputs.stream().noneMatch(input -> input.widget.isFocused()) && (colorControls==null || !colorControls.editing())) rebuild();
     }
 
     @Override
@@ -531,6 +574,7 @@ final class RegionEditorScreen extends Screen {
         draw.centeredText(font, title, width / 2, 12, 0xFFFFFF);
         super.extractRenderState(draw, mouseX, mouseY, delta);
         for (Caption caption : captions) drawCaption(draw, caption, 0xFFFFFF);
+        if(previewY>=0 && colorControls!=null) colorControls.preview(draw,paneLeft+labelWidth(),previewY,paneWidth-labelWidth());
         if (!error.isEmpty()) drawCaption(draw, new Caption(error, paneLeft, height - 45, paneWidth), UiStyle.ERROR);
         for (Input input : inputs) if (input.popup()) {
             var matches = input.matches();

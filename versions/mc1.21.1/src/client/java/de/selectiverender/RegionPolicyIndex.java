@@ -14,7 +14,7 @@ final class RegionPolicyIndex {
         blackOverride = policies.stream().anyMatch(policy -> BoundaryStyle.color(policy.options().boundary()) || policy.options().colorLayer()!=null && policy.options().colorLayer().enabled());
         textureOverride = policies.stream().anyMatch(policy -> BoundaryStyle.texture(policy.options().boundary()) || policy.options().textureLayer()!=null && policy.options().textureLayer().enabled());
         combinedOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
-        culledOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.CULLED);
+        culledOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.CULLED || Boolean.FALSE.equals(policy.options().normalFaces()));
     }
     static RegionPolicyIndex of(Map<String, List<BlockRegion>> regions, Map<String, RegionOptions> options) {
         List<Policy> policies = new ArrayList<>();
@@ -26,8 +26,8 @@ final class RegionPolicyIndex {
     }
     SelectiveRenderSettings.BoundaryMode boundaryOverrideAt(int x, int y, int z) {
         var options=optionsAt(x,y,z);
-        if(options.boundary()!=null && options.textureLayer()==null && options.colorLayer()==null) return options.boundary();
-        return options.boundary()==null && options.textureLayer()==null && options.colorLayer()==null ? null
+        if(options.boundary()!=null && options.textureLayer()==null && options.colorLayer()==null && options.normalFaces()==null) return options.boundary();
+        return options.boundary()==null && options.textureLayer()==null && options.colorLayer()==null && options.normalFaces()==null ? null
                 : options.effectiveBoundary(SelectiveRenderSettings.boundaryMode());
     }
     BlockRegion rainbowBoxAt(int x,int y,int z) {
@@ -44,6 +44,7 @@ final class RegionPolicyIndex {
         for (Policy policy : policies) if (policy.index().contains(x, y, z)) {
             RegionOptions value = policy.options();
             if (result == RegionOptions.DEFAULT) { result = value; continue; }
+            if (result.inheritedNormal()==null && value.inheritedNormal()!=null) result=result.withNormal(value.inheritedNormal());
             if (result.inheritedTexture()==null && value.inheritedTexture()!=null) result=result.withTexture(value.inheritedTexture());
             if (result.inheritedColor()==null && value.inheritedColor()!=null) result=result.withColor(value.inheritedColor());
             for (int field = 2; field <= 5; field++) {

@@ -61,11 +61,15 @@ abstract class BlockModelRendererMixin {
         if (BoundaryColorTexture.custom(mode)) {
             var vertices = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
             for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, vertices[v].x(), vertices[v].y(), vertices[v].z());
-            if (!selectiverender$quads.get().accept(quad.direction().ordinal())) { ci.cancel(); return; }
+            if (!selectiverender$quads.get().accept(quad.direction().ordinal())) {
+                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(pos)) output.put(x,y,z,quad,quadInstance);
+                ci.cancel(); return;
+            }
 
             de.selectiverender.BoundaryRenderContext.bind(pos);
             try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
             if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+            if (layer == SelectiveRenderSettings.BoundaryMode.NORMAL) { output.put(x, y, z, quad, quadInstance); continue; }
             if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(pos, quad.direction());
             else de.selectiverender.BoundaryTextureResolver.clear();
             if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && BoundaryColorTexture.preserveSourceTexture(state) && de.selectiverender.BoundaryTextureResolver.bound() == null) {
@@ -83,7 +87,9 @@ abstract class BlockModelRendererMixin {
                 uv[i] = UVPair.pack(BoundaryColorTexture.u(layer, pos, quad.direction(), p.x(), p.y(), p.z()),
                         BoundaryColorTexture.v(layer, pos, quad.direction(), p.x(), p.y(), p.z()));
             }
-            var replacement = new BakedQuad(quad.position0(), quad.position1(), quad.position2(), quad.position3(),
+            float shift=de.selectiverender.BoundaryStyle.overlayOffset(layer);
+            var delta=new org.joml.Vector3f(quad.direction().getStepX()*shift,quad.direction().getStepY()*shift,quad.direction().getStepZ()*shift);
+            var replacement = new BakedQuad(new org.joml.Vector3f(quad.position0()).add(delta), new org.joml.Vector3f(quad.position1()).add(delta), new org.joml.Vector3f(quad.position2()).add(delta), new org.joml.Vector3f(quad.position3()).add(delta),
                     uv[0], uv[1], uv[2], uv[3], quad.direction(), custom);
             int c0 = quadInstance.getColor(0), c1 = quadInstance.getColor(1);
             int c2 = quadInstance.getColor(2), c3 = quadInstance.getColor(3);

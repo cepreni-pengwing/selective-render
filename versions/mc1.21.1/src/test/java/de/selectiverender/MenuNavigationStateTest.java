@@ -5,6 +5,21 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MenuNavigationStateTest {
+    @Test void accordionAndScrollStateAreIndependentPerRegionDimensionAndWorld() {
+        var state=new MenuNavigationState();
+        var first=state.region("world-a").entry("minecraft:overworld","one");
+        first.boundariesOpen=true; first.filtersOpen=true; first.scroll=8;
+        var second=state.region("world-a").entry("minecraft:overworld","two");
+        second.boxesOpen=true; second.scroll=2;
+        var copy=new Gson().fromJson(new Gson().toJson(state),MenuNavigationState.class);
+        copy.normalize();
+        assertTrue(copy.region("world-a").entry("minecraft:overworld","one").boundariesOpen);
+        assertFalse(copy.region("world-a").entry("minecraft:overworld","two").boundariesOpen);
+        assertEquals(8,copy.region("world-a").entry("minecraft:overworld","one").scroll);
+        assertEquals(2,copy.region("world-a").entry("minecraft:overworld","two").scroll);
+        assertFalse(copy.region("world-a").entry("minecraft:the_nether","one").filtersOpen);
+        assertFalse(copy.region("world-b").entry("minecraft:overworld","one").filtersOpen);
+    }
     @Test void navigationSurvivesSerializationAndStaysSeparatePerWorld() {
         var state = new MenuNavigationState();
         state.tab = "REGIONS";

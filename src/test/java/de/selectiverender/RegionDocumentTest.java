@@ -7,6 +7,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RegionDocumentTest {
+    @Test void convertingAnInactiveHiddenRegionSelectsItOnlyInTheRenderGroup() {
+        var hidden=new RegionDocument("minecraft:overworld",Map.of("test",List.of(BOX)),
+                Set.of(),Set.of("test"),Set.of(),Map.of(),false,true);
+        var render=hidden.edit("test","test",List.of(BOX),false,true,List.of());
+        assertTrue(render.isSelected("test")); assertTrue(render.selected().contains("test"));
+        assertTrue(render.hidden().isEmpty()); assertTrue(render.selectedHidden().isEmpty());
+        var off=VisibilitySnapshot.create(render.regions().get("test"),false,List.of(),true,List.of(),List.of(),false,false,1);
+        var on=off.toggleConfiguredState(2);
+        assertFalse(off.enabled()); assertTrue(on.enabled());
+        assertTrue(on.toggleConfiguredState(3).configuredRegions().contains(BOX));
+    }
     @Test void removalClearsOnlyTheSelectedRegionAndPreservesTheOriginal() {
         var original = new RegionDocument("minecraft:the_nether", Map.of("test", List.of(BOX), "other", List.of(BOX)),
                 Set.of("other"), Set.of("test"), Set.of("test"), Map.of("test", List.of(RULE)),

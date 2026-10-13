@@ -66,6 +66,7 @@ final class BoundaryRuntimeSmoke {
         } else if (ticks == 80) {
             client.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {
+            verifyRegionToggleTransition(client);
             verifyRegionalBoundaries(client);
             verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryRainbow(false);
@@ -83,6 +84,30 @@ final class BoundaryRuntimeSmoke {
         var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(mode).getContents()).selectiverender$images()[0];
         if ((image.getColor(0, 0) >>> 24) != expected)
             throw new IllegalStateException("Boundary atlas alpha does not match requested opacity");
+    }
+
+    private static void verifyRegionToggleTransition(MinecraftClient client) {
+        String dimension=client.world.getRegistryKey().getValue().toString();
+        var saved=SelectiveRenderConfig.editorDocument(client,dimension);
+        var boxes=saved.regions().get(NAME);
+        SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,true,false,java.util.List.of(),RegionOptions.DEFAULT);
+        if(!SelectiveRenderConfig.toggleRegion(client,NAME)) throw new IllegalStateException("Named render toggle failed");
+        var changed=SelectiveRenderConfig.editorDocument(client,dimension);
+        if(changed.hidden().contains(NAME) || changed.selectedHidden().contains(NAME) || !changed.selected().contains(NAME))
+            throw new IllegalStateException("Hidden-to-render conversion left stale membership");
+        boolean enabled=SelectiveRenderConfig.groupEnabled();
+        if(!SelectiveRenderConfig.toggleCurrent(client) || SelectiveRenderConfig.groupEnabled()==enabled)
+            throw new IllegalStateException("Global render toggle did not affect converted region");
+        if(!SelectiveRenderConfig.toggleCurrent(client) || SelectiveRenderConfig.groupEnabled()!=enabled)
+            throw new IllegalStateException("Global render toggle did not restore converted region");
+        // The editor uses the same selected conversion, without a named toggle to repair it.
+        SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,true,false,java.util.List.of(),RegionOptions.DEFAULT);
+        SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,false,true,java.util.List.of(),RegionOptions.DEFAULT);
+        if(!SelectiveRenderConfig.toggleCurrent(client) || !SelectiveRenderConfig.toggleCurrent(client))
+            throw new IllegalStateException("Editor conversion lost the render selection");
+        SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,false,true,
+                saved.filters().getOrDefault(NAME,java.util.List.of()),saved.options().getOrDefault(NAME,RegionOptions.DEFAULT));
+        SelectiveRenderClient.LOGGER.info("[SR region smoke] Hidden-to-render selection survives global toggles");
     }
 
     private static void verifyRegionalBoundaries(MinecraftClient client) {

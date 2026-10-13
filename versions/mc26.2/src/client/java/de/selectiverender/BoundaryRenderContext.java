@@ -17,6 +17,9 @@ public final class BoundaryRenderContext {
     public static int rgb() { var value=options().inheritedColor(); return value==null || value.rgb()==null?SelectiveRenderSettings.boundaryColor():value.rgb(); }
     public static int opacity() { return opacity(options()); }
     private static int opacity(RegionOptions options) { var value=options.inheritedColor(); return value==null || value.opacity()==null?SelectiveRenderSettings.boundaryOpacity():value.opacity(); }
+    public static boolean normal() { return normal(options()); }
+    private static boolean normal(RegionOptions value) { return value.inheritedNormal()==null?SelectiveRenderSettings.boundaryNormal():value.inheritedNormal(); }
+    public static boolean normalAt(net.minecraft.core.BlockPos pos) { return normal(SelectiveRenderConfig.optionsAt(pos.getX(),pos.getY(),pos.getZ())); }
     public static int opacityAt(net.minecraft.core.BlockPos pos) { return opacity(SelectiveRenderConfig.optionsAt(pos.getX(),pos.getY(),pos.getZ())); }
     public static boolean lighting() { var value=options().inheritedColor(); return value==null || value.lighting()==null?SelectiveRenderSettings.boundaryColorLighting():value.lighting(); }
     public static boolean rainbow() { var value=options().inheritedColor(); return value==null || value.rainbow()==null?SelectiveRenderSettings.boundaryRainbow():value.rainbow(); }

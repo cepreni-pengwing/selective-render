@@ -14,7 +14,8 @@ final class BoundaryAppearanceScreen extends Screen {
     private final BoundaryEditorTarget target;
     private BoundarySliderTexture sliderTexture;
     private Button rainbowPreset;
-    private boolean shownRainbow;
+    private int colorTop=88, contentHeight=264;
+    private boolean colorVisible, textureVisible;
     private EditBox texture;
     private List<String> blocks, matches = List.of();
     private String draftTexture, completionBase;
@@ -36,7 +37,10 @@ final class BoundaryAppearanceScreen extends Screen {
         right = middle + size + 12; rightWidth = Math.max(52, layout.paneWidth() - size - 12);
         presetWidth = Math.min(80, Math.max(44, rightWidth / 4));
         sliderWidth = Math.max(32, rightWidth - presetWidth - 12); presetLeft = right + sliderWidth + 12;
-        scroll = Math.max(0, Math.min(scroll, Math.max(0, 264 - (height - 70))));
+        colorVisible=BoundaryStyle.color(target.mode()); textureVisible=BoundaryStyle.texture(target.mode());
+        colorTop=textureVisible?88:50;
+        contentHeight=Math.max(target.regional()?252:192,colorVisible?colorTop+174:textureVisible?70:36);
+        scroll = Math.max(0, Math.min(scroll, Math.max(0, contentHeight - (height - 34))));
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var b = addRenderableWidget(Button.builder(Component.literal(tab.label), button -> { commit(); minecraft.gui.setScreen(SelectiveRenderSettingsScreen.page(parent, tab)); })
                     .bounds(layout.left(), 36 + tab.ordinal() * 26, layout.navigationWidth(), 20).build());
@@ -44,6 +48,9 @@ final class BoundaryAppearanceScreen extends Screen {
         }
         boolean colorOn = BoundaryStyle.color(target.mode());
         boolean textureOn = BoundaryStyle.texture(target.mode());
+        var normal = addRenderableWidget(Button.builder(Component.literal("Normal: " + (target.normal()?"On":"Off")), b -> {
+            if(!commit()) return; target.setNormal(!target.normal()); rebuild();
+        }).bounds(middle,36-scroll,size,20).build()); clip(normal);
         for (int i = 0; i < 2; i++) {
             boolean colorButton = i == 1;
             String label = (colorButton ? "Color: " : "Texture: ") + ((colorButton ? colorOn : textureOn) ? "On" : "Off");
@@ -51,7 +58,7 @@ final class BoundaryAppearanceScreen extends Screen {
                 if(!commit()) return;
                 if(colorButton) target.setColorEnabled(!colorOn); else target.setTextureEnabled(!textureOn);
                 rebuild();
-            }).bounds(middle, 36 + i * (target.regional()?60:26) - scroll, size, 20).build()); clip(b);
+            }).bounds(middle, 62 + i * (target.regional()?60:26) - scroll, size, 20).build()); clip(b);
         }
         if(target.regional()) {
             for(int i=0;i<2;i++) {
@@ -59,33 +66,33 @@ final class BoundaryAppearanceScreen extends Screen {
                 var inherit=addRenderableWidget(Button.builder(Component.literal("Use global"), b-> {
                     if(color) target.inheritColor(); else target.inheritTexture();
                     reloadDraft(); rebuild();
-                }).bounds(middle,62+i*60-scroll,size,20).build());
+                }).bounds(middle,88+i*60-scroll,size,20).build());
                 inherit.active=color? !target.colorGlobal():!target.textureGlobal(); clip(inherit);
             }
         }
         var lighting = addRenderableWidget(Button.builder(Component.literal("Color lighting: " + (target.lighting() ? "On" : "Off")), button -> {
             if(!commit()) return; target.setLighting(!target.lighting()); rebuild();
-        }).bounds(middle, (target.regional()?160:104) - scroll, size, 20).build()); clip(lighting);
+        }).bounds(middle, (target.regional()?186:130) - scroll, size, 20).build()); clip(lighting); lighting.visible &= colorVisible;
         var fluids = addRenderableWidget(Button.builder(Component.literal("Cull fluids: " + (target.cullFluids() ? "On" : "Off")), button -> {
             if(!commit()) return; target.setCullFluids(!target.cullFluids()); rebuild();
-        }).bounds(middle, (target.regional()?206:146) - scroll, size, 20).build()); clip(fluids);
+        }).bounds(middle, (target.regional()?232:172) - scroll, size, 20).build()); clip(fluids);
         texture = new EditBox(font, right, 50 - scroll, rightWidth, 20, Component.literal("Block texture"));
         texture.setMaxLength(256); texture.setValue(draftTexture);
         texture.setResponder(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; textureChanged=true; });
-        addRenderableWidget(texture); clip(texture); updateMatches();
-        for (int i = 0; i < 4; i++) { var bar = addRenderableWidget(new Bar(i, right, 88 + i * 38 - scroll, sliderWidth)); clip(bar); }
-        String[] names = {"Rainbow", "White", "Black", "Red", "Green", "Blue"};
-        int[] colors = {0, 0xFFFFFF, 0, 0xFF0000, 0x00FF00, 0x0000FF};
-        for (int i = 0; i < names.length; i++) {
+        addRenderableWidget(texture); clip(texture); texture.visible &= textureVisible; if(!textureVisible) texture.setFocused(false); updateMatches();
+        if(colorVisible) for (int i = 0; i < 4; i++) { var bar = addRenderableWidget(new Bar(i, right, colorTop + i * 38 - scroll, sliderWidth)); clip(bar); }
+        String[] names = {"Rainbow", "White", "Black"};
+        int[] colors = {0, 0xFFFFFF, 0};
+        if(colorVisible) for (int i = 0; i < names.length; i++) {
             final int preset = i;
-            var button = addRenderableWidget(Button.builder(Component.literal(names[i] + (i == 0 && rainbow ? ": On" : "")), b -> {
+            var button = addRenderableWidget(Button.builder(Component.literal(names[i]), b -> {
                 if (preset == 0) { rainbow = true; saturation = brightness = 1; }
                 else { rainbow = false; var hsv = BoundaryStyle.hsv(colors[preset]); hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; }
                 draftChanged = true; colorChanged=true;
                 if (commit()) target.setColorEnabled(true);
                 rebuild();
-            }).bounds(presetLeft, 88 + i * 26 - scroll, presetWidth, 20).build()); clip(button);
-            if (i == 0) { rainbowPreset = button; shownRainbow = rainbow; }
+            }).bounds(presetLeft, colorTop + i * 26 - scroll, presetWidth, 20).build()); clip(button);
+            if (i == 0) rainbowPreset = button;
         }
         addRenderableWidget(Button.builder(Component.literal("Done"), button -> onClose()).bounds((width - 100) / 2, height - 26, 100, 20).build());
     }
@@ -104,7 +111,13 @@ final class BoundaryAppearanceScreen extends Screen {
     }
     private boolean commit() {
         Identifier id = Identifier.tryParse(texture.getValue().trim());
-        if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) { texture.setTextColor(0xFFFF6666); return false; }
+        if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) {
+            // Reject the draft, not navigation: keep the previously valid texture.
+            texture.setValue(target.texture()); draftTexture=target.texture();
+            textureChanged=false; id=Identifier.tryParse(target.texture());
+            texture.setTextColor(0xFFFF6666);
+            if(id==null) return false;
+        }
         try { target.commit(BoundaryStyle.hsv(hue,saturation,brightness),id.toString(),opacity,rainbow,colorChanged,textureChanged);
             draftChanged=false; colorChanged=false; textureChanged=false; texture.setTextColor(0xFFFFFFFF); return true;
         } catch(IllegalArgumentException error) { texture.setTextColor(0xFFFF6666); return false; }
@@ -116,7 +129,7 @@ final class BoundaryAppearanceScreen extends Screen {
         draftChanged=false; colorChanged=false; textureChanged=false;
     }
 
-    @Override public void tick() { super.tick(); if (rainbowPreset != null && shownRainbow != rainbow) { shownRainbow = rainbow; rainbowPreset.setMessage(Component.literal(rainbow ? "Rainbow: On" : "Rainbow")); } if (fieldFocused && !texture.isFocused()) commit(); fieldFocused = texture.isFocused(); }
+    @Override public void tick() { super.tick(); if (fieldFocused && !texture.isFocused()) commit(); fieldFocused = texture.isFocused(); }
     private int popupY() { int count = Math.min(6, matches.size()); return texture.getY() + 22 + count * 12 < height - 28 ? texture.getY() + 22 : Math.max(36, texture.getY() - count * 12 - 2); }
     @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
         double x = event.x(), y = event.y(); int button = event.button();
@@ -129,7 +142,7 @@ final class BoundaryAppearanceScreen extends Screen {
     @Override public boolean mouseReleased(net.minecraft.client.input.MouseButtonEvent event) { boolean handled = super.mouseReleased(event); if (draftChanged && !texture.isFocused()) commit(); return handled; }
     @Override public boolean mouseScrolled(double x, double y, double horizontal, double amount) {
         if (amount == 0 || x < SettingsViewport.of(width, height, 0, 0).paneLeft()) return false;
-        scroll = Math.max(0, Math.min(Math.max(0, 264 - (height - 70)), scroll + (amount > 0 ? -24 : 24))); rebuild(); return true;
+        scroll = Math.max(0, Math.min(Math.max(0, contentHeight - (height - 34)), scroll + (amount > 0 ? -24 : 24))); rebuild(); return true;
     }
     @Override public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
         int key = event.key(), modifiers = event.modifiers();
@@ -159,13 +172,15 @@ final class BoundaryAppearanceScreen extends Screen {
     }
     @Override public void extractRenderState(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
         draw.centeredText(font, title, width / 2, 12, 0xFFFFFFFF);
-        draw.enableScissor(right, 36, right + rightWidth, height - 34); draw.text(font, Component.literal("Block texture"), right, 36 - scroll, 0xFFFFFFFF);
-        draw.text(font, Component.literal("Presets"), presetLeft, 74 - scroll, 0xFFFFFFFF);
+        draw.enableScissor(right, 36, right + rightWidth, height - 34); if(textureVisible) draw.text(font, Component.literal("Block texture"), right, 36 - scroll, 0xFFFFFFFF);
+        if(colorVisible) {
+        draw.text(font, Component.literal("Presets"), presetLeft, colorTop - 14 - scroll, 0xFFFFFFFF);
         String[] labels = {"Hue", "Saturation", "Brightness", "Opacity"};
-        for (int i = 0; i < 4; i++) draw.text(font, Component.literal(labels[i]), right, 74 + i * 38 - scroll, 0xFFFFFFFF);
+        for (int i = 0; i < 4; i++) draw.text(font, Component.literal(labels[i]), right, colorTop - 14 + i * 38 - scroll, 0xFFFFFFFF);
         if (sliderTexture == null) sliderTexture = new BoundarySliderTexture();
         sliderTexture.update(hue, saturation, brightness, opacity, rainbow);
-        sliderTexture.draw(draw, 4, right, 242 - scroll, sliderWidth);
+        sliderTexture.draw(draw, 4, right, colorTop + 154 - scroll, sliderWidth);
+        }
         draw.disableScissor();
         super.extractRenderState(draw, mouseX, mouseY, delta);
         if (texture.visible && texture.isFocused() && !matches.isEmpty()) {

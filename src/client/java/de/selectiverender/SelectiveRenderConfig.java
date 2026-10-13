@@ -554,7 +554,8 @@ public final class SelectiveRenderConfig {
             if (SelectiveRenderState.filteringActive() && (before.boundary() != after.boundary()
                     || !java.util.Objects.equals(before.cullFluids(), after.cullFluids())
                     || !java.util.Objects.equals(before.textureLayer(), after.textureLayer())
-                    || !java.util.Objects.equals(before.colorLayer(), after.colorLayer()))) {
+                    || !java.util.Objects.equals(before.colorLayer(), after.colorLayer())
+                    || !java.util.Objects.equals(before.normalFaces(), after.normalFaces()))) {
                 SelectiveRenderState.refreshVisibilityRegions(boxes);
             }
         }

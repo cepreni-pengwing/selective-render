@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.11.7
+
+- Added a default-on Normal boundary layer beneath Color; Texture replaces the original surface, while Color opacity affects only its overlay
+- Embedded each region’s texture input, color sliders, presets and preview directly in its Boundaries section, showing appearance controls only for enabled layers
+- Kept Rainbow, White and Black presets with stable labels and removed Red, Green and Blue
+- Preserved accordion expansion and scroll position independently for each region, dimension and world/server
+- Kept global color-lighting inheritance when changing regional colors, with a separate regional lighting reset
+- Selected regions when switching their type in the menu, matching named render/hide commands and keeping global render toggles effective
+- Preserved original tint/CTM model overlays beneath Color and separated the color plane to avoid coplanar interference
+
 ## 1.11.6
 
 - Split player visibility into independent player-group and region-scope settings, preserving legacy choices; new installations default to the WorldEdit selection source with a single source toggle

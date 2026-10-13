@@ -41,11 +41,18 @@ abstract class AbstractBlockRenderContextMixin {
             if (SelectiveRenderState.isBoundaryFace(position, face)) mode = SelectiveRenderState.boundaryModeForFace(position, face);
         }
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED
-                || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.opacityAt(position) == 0)) ci.cancel();
+                || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.opacityAt(position) == 0 && !de.selectiverender.BoundaryRenderContext.normalAt(position))) ci.cancel();
         else if (BoundaryColorTexture.custom(mode)) {
             var tracker = IndiumRenderContext.boundaryQuads();
             for (int v = 0; v < 4; v++) tracker.vertex(v, quad.x(v), quad.y(v), quad.z(v));
-            if (!tracker.accept(quad.lightFace().ordinal())) { ci.cancel(); return; }
+            if (!tracker.accept(quad.lightFace().ordinal())) {
+                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(position)) {
+                    selectiverender$emitting=true;
+                    try { var emitter=((net.fabricmc.fabric.api.renderer.v1.render.RenderContext)(Object)this).getEmitter(); emitter.copyFrom(quad).emit(); }
+                    finally { selectiverender$emitting=false; }
+                }
+                ci.cancel(); return;
+            }
             // Snapshot before the context's reusable emitter mutates or resets its storage.
             var meshBuilder = net.fabricmc.fabric.api.renderer.v1.RendererAccess.INSTANCE.getRenderer().meshBuilder();
             meshBuilder.getEmitter().copyFrom(quad).emit();
@@ -58,11 +65,15 @@ abstract class AbstractBlockRenderContextMixin {
                 else de.selectiverender.BoundaryTextureResolver.clear();
                 var emitter = ((net.fabricmc.fabric.api.renderer.v1.render.RenderContext)(Object)this).getEmitter();
                 mesh.forEach(emitter::copyFrom);
+                if (layer == SelectiveRenderSettings.BoundaryMode.NORMAL) { de.selectiverender.BoundaryShaderContext.end(); emitter.emit(); continue; }
                 var world = net.minecraft.client.MinecraftClient.getInstance().world;
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && world != null
                         && BoundaryColorTexture.preserveSourceTexture(world.getBlockState(position)) && de.selectiverender.BoundaryTextureResolver.bound() == null) {
                     de.selectiverender.BoundaryShaderContext.begin(layer); emitter.emit(); continue;
                 }
+                float shift=de.selectiverender.BoundaryStyle.overlayOffset(layer);
+                for(int v=0;v<4;v++) emitter.pos(v,emitter.x(v)+emitter.lightFace().getOffsetX()*shift,
+                        emitter.y(v)+emitter.lightFace().getOffsetY()*shift,emitter.z(v)+emitter.lightFace().getOffsetZ()*shift);
                 emitter.material(de.selectiverender.BoundaryMaterial.get(layer));
                 selectiverender$makeBlack(emitter, layer, position);
                 de.selectiverender.BoundaryShaderContext.begin(layer); emitter.emit();

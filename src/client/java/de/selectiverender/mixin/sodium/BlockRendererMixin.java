@@ -56,13 +56,26 @@ abstract class BlockRendererMixin {
             original.call(renderer, context, builder, offset, material, quad, colors, light); return;
         }
         for (int v = 0; v < 4; v++) selectiverender$quads.vertex(v, quad.getX(v), quad.getY(v), quad.getZ(v));
-        if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) return;
+        if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) {
+            if(selectiverender$textured.get()==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(context.pos())) {
+                selectiverender$solidColor.set(false); builder.addSprite(quad.getSprite());
+                try { original.call(renderer,context,builder,offset,material,quad,selectiverender$nativeColors.get()==null?colors:selectiverender$nativeColors.get(),light); }
+                finally { selectiverender$solidColor.set(true); }
+            }
+            return;
+        }
         var mode = selectiverender$textured.get();
         float[] brightness = light.br.clone(); int[] lights = light.lm.clone();
         try {
             de.selectiverender.BoundaryRenderContext.bind(context.pos());
             for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
+                if (layer == SelectiveRenderSettings.BoundaryMode.NORMAL) {
+                    selectiverender$solidColor.set(false); builder.addSprite(quad.getSprite()); de.selectiverender.BoundaryShaderContext.end();
+                    original.call(renderer, context, builder, offset, material, quad,
+                            selectiverender$nativeColors.get() == null ? colors : selectiverender$nativeColors.get(), light);
+                    selectiverender$solidColor.set(true); continue;
+                }
                 System.arraycopy(brightness, 0, light.br, 0, 4); System.arraycopy(lights, 0, light.lm, 0, 4);
                 selectiverender$textured.set(layer);
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(context.pos(), quad.getLightFace());
@@ -81,7 +94,9 @@ abstract class BlockRendererMixin {
                     for(int i=0;i<4;i++) layerColors[i]=BoundaryColorTexture.abgr(layer,context.pos(),quad.getLightFace(),quad.getX(i),quad.getY(i),quad.getZ(i));
                 }
                 de.selectiverender.BoundaryShaderContext.begin(layer);
-                original.call(renderer, context, layerBuilder, offset, layerMaterial, quad, nativeTexture && selectiverender$nativeColors.get() != null ? selectiverender$nativeColors.get() : layerColors, light);
+                float shift=de.selectiverender.BoundaryStyle.overlayOffset(layer);
+                var shiftedOffset=offset.add(quad.getLightFace().getOffsetX()*shift,quad.getLightFace().getOffsetY()*shift,quad.getLightFace().getOffsetZ()*shift);
+                original.call(renderer, context, layerBuilder, shiftedOffset, layerMaterial, quad, nativeTexture && selectiverender$nativeColors.get() != null ? selectiverender$nativeColors.get() : layerColors, light);
             }
         } finally {
             selectiverender$textured.set(mode);

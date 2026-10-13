@@ -7,9 +7,18 @@ public final class BoundaryStyle {
         return mode == SelectiveRenderSettings.BoundaryMode.COLOR && !BoundaryRenderContext.lighting();
     }
     public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode) {
+        return renderLayers(mode, BoundaryRenderContext.normal());
+    }
+    public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode, boolean normal) {
         if (mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE)
             return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE, SelectiveRenderSettings.BoundaryMode.COLOR};
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && normal)
+            return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL, mode};
         return new SelectiveRenderSettings.BoundaryMode[]{mode};
+    }
+    /** Separate the overlay from coplanar vanilla tint/CTM quads without changing UVs. */
+    public static float overlayOffset(SelectiveRenderSettings.BoundaryMode layer) {
+        return layer==SelectiveRenderSettings.BoundaryMode.COLOR ? 0.0005f : 0f;
     }
     public static boolean visibleLayer(SelectiveRenderSettings.BoundaryMode mode) {
         return mode != SelectiveRenderSettings.BoundaryMode.COLOR || BoundaryRenderContext.opacity() > 0;
@@ -49,14 +58,14 @@ public final class BoundaryStyle {
         return color ? (texture ? SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR)
                 : (texture ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.NORMAL);
     }
-    /** Straight-alpha color-over-texture composition; each enabled layer uses the shared opacity. */
+    /** Straight-alpha color-over-texture composition; opacity affects Color only. */
     public static int compose(int source, int rgb, int percent, SelectiveRenderSettings.BoundaryMode mode) {
         if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) return source;
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) return 0;
         int a = alpha(percent);
-        int bottomAlpha = texture(mode) ? ((source >>> 24) * a + 127) / 255 : 0;
+        int bottomAlpha = texture(mode) ? source >>> 24 : 0;
         if (!color(mode)) return source & 0xFFFFFF | bottomAlpha << 24;
-        if (a == 0) return 0;
+        if (a == 0) return texture(mode) ? source : 0;
         double bottom = bottomAlpha / 255d * (1 - a / 255d), top = a / 255d, total = top + bottom;
         int result = (int)Math.round(total * 255) << 24;
         for (int shift = 0; shift <= 16; shift += 8) result |= (int)Math.round((((rgb >> shift) & 255) * top

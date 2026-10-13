@@ -33,6 +33,7 @@ public final class SelectiveRenderSettings {
     private static volatile int boundaryColor;
     private static volatile int boundaryOpacity = 100;
     private static volatile boolean boundaryColorLighting;
+    private static volatile boolean boundaryNormal = true;
     private static volatile boolean boundaryRainbow;
     private static volatile String boundaryTexture = "minecraft:stone";
     private static volatile boolean cullFluidBoundaryFaces;
@@ -76,10 +77,11 @@ public final class SelectiveRenderSettings {
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
         boundaryColor = stored.boundaryColor == null ? 0 : stored.boundaryColor & 0xFFFFFF;
         boundaryColorLighting = stored.boundaryColorLighting;
+        boundaryNormal = stored.boundaryNormal == null || stored.boundaryNormal;
         boundaryRainbow = stored.boundaryRainbow;
         boundaryOpacity = stored.boundaryOpacity == null ? 100 : BoundaryStyle.opacity(stored.boundaryOpacity);
         boundaryTexture = stored.boundaryTexture == null ? "minecraft:stone" : stored.boundaryTexture;
-        if (boundaryMode == BoundaryMode.CULLED) { boundaryMode = BoundaryMode.COLOR; boundaryOpacity = 0; }
+        if (boundaryMode == BoundaryMode.CULLED) { boundaryMode = BoundaryMode.COLOR; boundaryOpacity = 0; boundaryNormal=false; }
         BoundaryColorTexture.invalidate();
         cullFluidBoundaryFaces = stored.cullFluidBoundaryFaces;
         worldEditSelection = stored.worldEditSelection == null || stored.worldEditSelection;
@@ -109,13 +111,19 @@ public final class SelectiveRenderSettings {
         return switch(playerGroup) { case SELF->PlayerVisibility.OWN_ONLY; case OTHERS->PlayerVisibility.EXCEPT_OWN; default->PlayerVisibility.EVERYWHERE; };
     }
     public static InteractionMode interactionMode() { return interactionMode; }
-    public static BoundaryMode boundaryMode() { return boundaryMode; }
+    public static BoundaryMode boundaryMode() { return boundaryMode == BoundaryMode.NORMAL && !boundaryNormal ? BoundaryMode.CULLED : boundaryMode; }
     public static int boundaryColor() { return boundaryColor; }
     public static boolean boundaryRainbow() { return boundaryRainbow; }
     public static void setBoundaryRainbow(boolean value) {
         if (boundaryRainbow == value) return;
         boundaryRainbow = value; BoundaryColorTexture.invalidate(); BoundaryColorTexture.prepare(); save();
         if (SelectiveRenderState.filteringActive()) SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
+    }
+    public static boolean boundaryNormal() { return boundaryNormal; }
+    public static void setBoundaryNormal(boolean value) {
+        if(boundaryNormal==value) return;
+        boundaryNormal=value; save();
+        if(SelectiveRenderState.filteringActive()) SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
     }
     public static boolean boundaryColorLighting() { return boundaryColorLighting; }
     public static void setBoundaryColorLighting(boolean value) {
@@ -272,6 +280,7 @@ public final class SelectiveRenderSettings {
             stored.boundaryColor = boundaryColor;
             stored.boundaryOpacity = boundaryOpacity;
             stored.boundaryColorLighting = boundaryColorLighting;
+            stored.boundaryNormal = boundaryNormal;
             stored.boundaryRainbow = boundaryRainbow;
             stored.boundaryTexture = boundaryTexture;
             stored.cullFluidBoundaryFaces = cullFluidBoundaryFaces;
@@ -396,6 +405,7 @@ public final class SelectiveRenderSettings {
         Integer boundaryColor;
         Integer boundaryOpacity;
         boolean boundaryColorLighting;
+        Boolean boundaryNormal;
         boolean boundaryRainbow;
         String boundaryTexture;
         @SerializedName(value = "cullFluidBoundaryFaces", alternate = {"cullWaterBoundaryFaces"})
