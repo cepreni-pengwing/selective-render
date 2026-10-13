@@ -11,6 +11,7 @@ import net.minecraft.core.registries.BuiltInRegistries;
 /** Inline boundary controls. Sliders commit once on release, not per drag pixel. */
 final class BoundaryAppearanceScreen extends Screen {
     private final Screen parent;
+    private final BoundaryEditorTarget target;
     private BoundarySliderTexture sliderTexture;
     private Button rainbowPreset;
     private boolean shownRainbow;
@@ -19,14 +20,15 @@ final class BoundaryAppearanceScreen extends Screen {
     private String draftTexture, completionBase;
     private int completionIndex = -1, opacity, right, rightWidth, sliderWidth, presetLeft, presetWidth, scroll;
     private float hue, saturation, brightness;
-    private boolean rainbow, initialized, draftChanged, fieldFocused;
-    BoundaryAppearanceScreen(Screen parent) { super(Component.literal("Selective Render")); this.parent = parent; }
+    private boolean rainbow, initialized, draftChanged, colorChanged, textureChanged, fieldFocused;
+    BoundaryAppearanceScreen(Screen parent) { this(parent,new BoundaryEditorTarget()); }
+    BoundaryAppearanceScreen(Screen parent,BoundaryEditorTarget target) { super(Component.literal(target.regional()?"Region boundaries":"Selective Render")); this.parent=parent; this.target=target; }
     @Override protected void init() {
         if (!initialized) {
-            float[] hsv = BoundaryStyle.hsv(SelectiveRenderSettings.boundaryColor());
-            hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; opacity = SelectiveRenderSettings.boundaryOpacity();
-            rainbow = SelectiveRenderSettings.boundaryRainbow();
-            draftTexture = SelectiveRenderSettings.boundaryTexture(); scroll = SelectiveRenderSettings.menuNavigation().scroll("BOUNDARIES"); initialized = true;
+            float[] hsv = BoundaryStyle.hsv(target.color());
+            hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; opacity = target.opacity();
+            rainbow = target.rainbow();
+            draftTexture = target.texture(); scroll = target.regional()?0:SelectiveRenderSettings.menuNavigation().scroll("BOUNDARIES"); initialized = true;
         } else if (texture != null) draftTexture = texture.getValue();
         blocks = BuiltInRegistries.BLOCK.keySet().stream().map(Object::toString).sorted().toList();
         var layout = SettingsViewport.of(width, height, 0, 0);
@@ -40,25 +42,36 @@ final class BoundaryAppearanceScreen extends Screen {
                     .bounds(layout.left(), 36 + tab.ordinal() * 26, layout.navigationWidth(), 20).build());
             b.active = tab != SelectiveRenderSettingsScreen.Tab.BOUNDARIES;
         }
-        boolean colorOn = BoundaryStyle.color(SelectiveRenderSettings.boundaryMode());
-        boolean textureOn = BoundaryStyle.texture(SelectiveRenderSettings.boundaryMode());
+        boolean colorOn = BoundaryStyle.color(target.mode());
+        boolean textureOn = BoundaryStyle.texture(target.mode());
         for (int i = 0; i < 2; i++) {
             boolean colorButton = i == 1;
             String label = (colorButton ? "Color: " : "Texture: ") + ((colorButton ? colorOn : textureOn) ? "On" : "Off");
             var b = addRenderableWidget(Button.builder(Component.literal(label), button -> {
-                commit(); SelectiveRenderSettings.setBoundaryMode(BoundaryStyle.layers(colorButton ? !colorOn : colorOn,
-                        colorButton ? textureOn : !textureOn)); rebuild();
-            }).bounds(middle, 36 + i * 26 - scroll, size, 20).build()); clip(b);
+                if(!commit()) return;
+                if(colorButton) target.setColorEnabled(!colorOn); else target.setTextureEnabled(!textureOn);
+                rebuild();
+            }).bounds(middle, 36 + i * (target.regional()?60:26) - scroll, size, 20).build()); clip(b);
         }
-        var lighting = addRenderableWidget(Button.builder(Component.literal("Color lighting: " + (SelectiveRenderSettings.boundaryColorLighting() ? "On" : "Off")), button -> {
-            commit(); SelectiveRenderSettings.setBoundaryColorLighting(!SelectiveRenderSettings.boundaryColorLighting()); rebuild();
-        }).bounds(middle, 104 - scroll, size, 20).build()); clip(lighting);
-        var fluids = addRenderableWidget(Button.builder(Component.literal("Cull fluids: " + (SelectiveRenderSettings.cullFluidBoundaryFaces() ? "On" : "Off")), button -> {
-            commit(); SelectiveRenderSettings.setCullFluidBoundaryFaces(!SelectiveRenderSettings.cullFluidBoundaryFaces()); rebuild();
-        }).bounds(middle, 146 - scroll, size, 20).build()); clip(fluids);
+        if(target.regional()) {
+            for(int i=0;i<2;i++) {
+                final boolean color=i==1;
+                var inherit=addRenderableWidget(Button.builder(Component.literal("Use global"), b-> {
+                    if(color) target.inheritColor(); else target.inheritTexture();
+                    reloadDraft(); rebuild();
+                }).bounds(middle,62+i*60-scroll,size,20).build());
+                inherit.active=color? !target.colorGlobal():!target.textureGlobal(); clip(inherit);
+            }
+        }
+        var lighting = addRenderableWidget(Button.builder(Component.literal("Color lighting: " + (target.lighting() ? "On" : "Off")), button -> {
+            if(!commit()) return; target.setLighting(!target.lighting()); rebuild();
+        }).bounds(middle, (target.regional()?160:104) - scroll, size, 20).build()); clip(lighting);
+        var fluids = addRenderableWidget(Button.builder(Component.literal("Cull fluids: " + (target.cullFluids() ? "On" : "Off")), button -> {
+            if(!commit()) return; target.setCullFluids(!target.cullFluids()); rebuild();
+        }).bounds(middle, (target.regional()?206:146) - scroll, size, 20).build()); clip(fluids);
         texture = new EditBox(font, right, 50 - scroll, rightWidth, 20, Component.literal("Block texture"));
         texture.setMaxLength(256); texture.setValue(draftTexture);
-        texture.setResponder(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; });
+        texture.setResponder(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; textureChanged=true; });
         addRenderableWidget(texture); clip(texture); updateMatches();
         for (int i = 0; i < 4; i++) { var bar = addRenderableWidget(new Bar(i, right, 88 + i * 38 - scroll, sliderWidth)); clip(bar); }
         String[] names = {"Rainbow", "White", "Black", "Red", "Green", "Blue"};
@@ -68,8 +81,8 @@ final class BoundaryAppearanceScreen extends Screen {
             var button = addRenderableWidget(Button.builder(Component.literal(names[i] + (i == 0 && rainbow ? ": On" : "")), b -> {
                 if (preset == 0) { rainbow = true; saturation = brightness = 1; }
                 else { rainbow = false; var hsv = BoundaryStyle.hsv(colors[preset]); hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; }
-                draftChanged = true;
-                if (commit()) SelectiveRenderSettings.setBoundaryMode(BoundaryStyle.layers(true, BoundaryStyle.texture(SelectiveRenderSettings.boundaryMode())));
+                draftChanged = true; colorChanged=true;
+                if (commit()) target.setColorEnabled(true);
                 rebuild();
             }).bounds(presetLeft, 88 + i * 26 - scroll, presetWidth, 20).build()); clip(button);
             if (i == 0) { rainbowPreset = button; shownRainbow = rainbow; }
@@ -92,10 +105,17 @@ final class BoundaryAppearanceScreen extends Screen {
     private boolean commit() {
         Identifier id = Identifier.tryParse(texture.getValue().trim());
         if (id == null || !BuiltInRegistries.BLOCK.containsKey(id)) { texture.setTextColor(0xFFFF6666); return false; }
-        if (draftChanged || !id.toString().equals(SelectiveRenderSettings.boundaryTexture())) SelectiveRenderSettings.setBoundaryAppearance(BoundaryStyle.hsv(hue, saturation, brightness), id.toString(), opacity);
-        SelectiveRenderSettings.setBoundaryRainbow(rainbow);
-        draftChanged = false; texture.setTextColor(0xFFFFFFFF); return true;
+        try { target.commit(BoundaryStyle.hsv(hue,saturation,brightness),id.toString(),opacity,rainbow,colorChanged,textureChanged);
+            draftChanged=false; colorChanged=false; textureChanged=false; texture.setTextColor(0xFFFFFFFF); return true;
+        } catch(IllegalArgumentException error) { texture.setTextColor(0xFFFF6666); return false; }
     }
+    private void reloadDraft() {
+        var hsv=BoundaryStyle.hsv(target.color()); hue=hsv[0]; saturation=hsv[1]; brightness=hsv[2];
+        opacity=target.opacity(); rainbow=target.rainbow(); draftTexture=target.texture();
+        if(texture!=null) texture.setValue(draftTexture);
+        draftChanged=false; colorChanged=false; textureChanged=false;
+    }
+
     @Override public void tick() { super.tick(); if (rainbowPreset != null && shownRainbow != rainbow) { shownRainbow = rainbow; rainbowPreset.setMessage(Component.literal(rainbow ? "Rainbow: On" : "Rainbow")); } if (fieldFocused && !texture.isFocused()) commit(); fieldFocused = texture.isFocused(); }
     private int popupY() { int count = Math.min(6, matches.size()); return texture.getY() + 22 + count * 12 < height - 28 ? texture.getY() + 22 : Math.max(36, texture.getY() - count * 12 - 2); }
     @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
@@ -119,16 +139,16 @@ final class BoundaryAppearanceScreen extends Screen {
         boolean handled = super.keyPressed(event); if (draftChanged && !texture.isFocused()) commit(); return handled;
     }
     @Override public void onClose() { commit(); minecraft.gui.setScreen(parent); }
-    @Override public void removed() { if (sliderTexture != null) { sliderTexture.close(); sliderTexture = null; } var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); super.removed(); }
+    @Override public void removed() { if (sliderTexture != null) { sliderTexture.close(); sliderTexture = null; } if(!target.regional()) { var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); } super.removed(); }
     private final class Bar extends AbstractSliderButton {
         private final int kind;
         Bar(int kind, int x, int y, int size) { super(x, y, size, 20, Component.empty(), kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d); this.kind = kind; updateMessage(); }
         @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event, boolean doubleClick) {
-            if (kind == 0 && visible && isMouseOver(event.x(), event.y())) { rainbow = false; draftChanged = true; }
+            if (kind == 0 && visible && isMouseOver(event.x(), event.y())) { rainbow = false; draftChanged = true; colorChanged=true; }
             return super.mouseClicked(event, doubleClick);
         }
         @Override protected void updateMessage() { setMessage(Component.literal(Math.round(value * (kind == 0 ? 360 : 100)) + (kind == 0 ? "°" : "%"))); }
-        @Override protected void applyValue() { if (kind == 0) { hue = (float)value; rainbow = false; } else if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); draftChanged = true; }
+        @Override protected void applyValue() { if (kind == 0) { hue = (float)value; rainbow = false; } else if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); draftChanged = true; colorChanged=true; }
         @Override public void extractWidgetRenderState(GuiGraphicsExtractor draw, int mouseX, int mouseY, float delta) {
             if (sliderTexture == null) sliderTexture = new BoundarySliderTexture();
             sliderTexture.update(hue, saturation, brightness, opacity, rainbow);

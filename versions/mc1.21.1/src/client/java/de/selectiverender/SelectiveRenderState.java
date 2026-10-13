@@ -323,27 +323,16 @@ public final class SelectiveRenderState {
 
     public static boolean shouldRender(Entity entity) {
         if (!(entity instanceof PlayerEntity) && !filteringActive()) return true;
-        SelectiveRenderSettings.PlayerVisibility playerVisibility =
-                SelectiveRenderSettings.playerVisibility();
         if (entity instanceof PlayerEntity) {
-            boolean ownPlayer = entity == MinecraftClient.getInstance().player;
-            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.OWN_ONLY) return ownPlayer;
-            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.EXCEPT_OWN) return !ownPlayer;
-            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.EVERYWHERE) return true;
-            if (playerVisibility == SelectiveRenderSettings.PlayerVisibility.NONE) return false;
+            var scope = SelectiveRenderSettings.playerScope();
+            boolean inside = scope == PlayerRenderPolicy.Scope.EVERYWHERE || scope == PlayerRenderPolicy.Scope.NOWHERE
+                    || shouldRender(entity.getX(), entity.getY(), entity.getZ());
+            return PlayerRenderPolicy.allows(SelectiveRenderSettings.playerGroup(), scope, entity == MinecraftClient.getInstance().player, inside);
         }
-        if (!(entity instanceof PlayerEntity)) {
-            for (FilteredRegion filtered : visibility.filteredRegions()) {
-                if (filtered.excludesEntities((int)Math.floor(entity.getX()), (int)Math.floor(entity.getY()), (int)Math.floor(entity.getZ()))) return false;
-            }
+        for (FilteredRegion filtered : visibility.filteredRegions()) {
+            if (filtered.excludesEntities((int)Math.floor(entity.getX()), (int)Math.floor(entity.getY()), (int)Math.floor(entity.getZ()))) return false;
         }
-        boolean inside = shouldRender(entity.getX(), entity.getY(), entity.getZ());
-        if (!(entity instanceof PlayerEntity)) return inside;
-        return switch (playerVisibility) {
-            case INSIDE -> inside;
-            case OUTSIDE -> !inside;
-            default -> true;
-        };
+        return shouldRender(entity.getX(), entity.getY(), entity.getZ());
     }
 
     public static SelectiveRenderSettings.BoundaryMode boundaryModeAt(int x, int y, int z) {

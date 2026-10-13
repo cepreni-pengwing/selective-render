@@ -66,7 +66,8 @@ abstract class BlockRendererMixin {
             var source = new de.selectiverender.BoundaryQuadCopy().copyFrom(quad);
             boolean preserve = BoundaryColorTexture.preserveSourceTexture(selectiverender$currentState);
             selectiverender$emitting = true;
-            try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
+            try { de.selectiverender.BoundaryRenderContext.bind(selectiverender$currentPos);
+            for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(selectiverender$currentPos, quad.lightFace());
                 else de.selectiverender.BoundaryTextureResolver.clear();
@@ -77,12 +78,12 @@ abstract class BlockRendererMixin {
                 quad.colorIndex(-1); quad.material(de.selectiverender.BoundaryMaterial.get(layer));
                 quad.cachedSprite(BoundaryColorTexture.sprite(layer));
                 for (int vertex = 0; vertex < 4; vertex++) {
-                    quad.color(vertex, BoundaryColorTexture.argb(layer));
+                    quad.color(vertex, BoundaryColorTexture.argb(layer, selectiverender$currentPos, quad.lightFace(), quad.x(vertex), quad.y(vertex), quad.z(vertex)));
                     quad.uv(vertex, BoundaryColorTexture.u(layer, selectiverender$currentPos, quad.lightFace(), quad.x(vertex), quad.y(vertex), quad.z(vertex)),
                             BoundaryColorTexture.v(layer, selectiverender$currentPos, quad.lightFace(), quad.x(vertex), quad.y(vertex), quad.z(vertex)));
                 }
                 de.selectiverender.BoundaryShaderContext.begin(layer); selectiverender$emit(quad);
-            } } finally { selectiverender$emitting = false; de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryShaderContext.end(); }
+            } } finally { selectiverender$emitting = false; de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryShaderContext.end(); de.selectiverender.BoundaryRenderContext.clear(); }
             ci.cancel();
         }
     }

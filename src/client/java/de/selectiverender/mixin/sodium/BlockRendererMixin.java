@@ -60,6 +60,7 @@ abstract class BlockRendererMixin {
         var mode = selectiverender$textured.get();
         float[] brightness = light.br.clone(); int[] lights = light.lm.clone();
         try {
+            de.selectiverender.BoundaryRenderContext.bind(context.pos());
             for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
                 System.arraycopy(brightness, 0, light.br, 0, 4); System.arraycopy(lights, 0, light.lm, 0, 4);
@@ -75,6 +76,10 @@ abstract class BlockRendererMixin {
                 layerBuilder.addSprite(nativeTexture ? quad.getSprite() : BoundaryColorTexture.sprite(layer));
                 int[] layerColors = colors;
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && !nativeTexture) { layerColors = colors.clone(); Arrays.fill(layerColors, BoundaryColorTexture.abgr(layer)); }
+                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.regionalColor()) {
+                    layerColors=colors.clone();
+                    for(int i=0;i<4;i++) layerColors[i]=BoundaryColorTexture.abgr(layer,context.pos(),quad.getLightFace(),quad.getX(i),quad.getY(i),quad.getZ(i));
+                }
                 de.selectiverender.BoundaryShaderContext.begin(layer);
                 original.call(renderer, context, layerBuilder, offset, layerMaterial, quad, nativeTexture && selectiverender$nativeColors.get() != null ? selectiverender$nativeColors.get() : layerColors, light);
             }
@@ -82,7 +87,7 @@ abstract class BlockRendererMixin {
             selectiverender$textured.set(mode);
             selectiverender$nativeTexture.set(false);
             de.selectiverender.BoundaryTextureResolver.clear();
-            de.selectiverender.BoundaryShaderContext.end();
+            de.selectiverender.BoundaryShaderContext.end(); de.selectiverender.BoundaryRenderContext.clear();
             System.arraycopy(brightness, 0, light.br, 0, 4); System.arraycopy(lights, 0, light.lm, 0, 4);
         }
     }

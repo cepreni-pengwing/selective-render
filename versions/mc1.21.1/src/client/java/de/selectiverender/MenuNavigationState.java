@@ -25,6 +25,6 @@ final class MenuNavigationState {
         String dimension, selected;
         Set<String> collapsed = new HashSet<>();
         int scroll, navigationScroll;
-        boolean filtersOpen, boxesOpen;
+        boolean filtersOpen, boundariesOpen, interactionsOpen, boxesOpen;
     }
 }

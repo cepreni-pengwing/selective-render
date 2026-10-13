@@ -15,7 +15,7 @@ import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.StandardCopyOption;
 
 public final class SelectiveRenderSettings {
-    private static final int SETTINGS_FORMAT_VERSION = 4;
+    private static final int SETTINGS_FORMAT_VERSION = 5;
     static final int DEFAULT_FULL_RELOAD_THRESHOLD = 8192;
     static final int MIN_FULL_RELOAD_THRESHOLD = 256;
     static final int MAX_FULL_RELOAD_THRESHOLD = 65536;
@@ -26,6 +26,8 @@ public final class SelectiveRenderSettings {
                 .resolve("selectiverender").resolve("settings.json");
     }
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
+    private static volatile PlayerRenderPolicy.Group playerGroup = PlayerRenderPolicy.Group.EVERYONE;
+    private static volatile PlayerRenderPolicy.Scope playerScope = PlayerRenderPolicy.Scope.EVERYWHERE;
     private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile int boundaryColor;
@@ -34,7 +36,7 @@ public final class SelectiveRenderSettings {
     private static volatile boolean boundaryRainbow;
     private static volatile String boundaryTexture = "minecraft:stone";
     private static volatile boolean cullFluidBoundaryFaces;
-    private static volatile boolean worldEditSelection;
+    private static volatile boolean worldEditSelection = true;
     private static volatile boolean debugBoxes;
     private static volatile boolean filterInteractionsWhenInactive;
     private static volatile boolean blockFiltersEnabled = true;
@@ -66,6 +68,9 @@ public final class SelectiveRenderSettings {
         menuNavigation.normalize();
         playerVisibility = stored.playerVisibility == null
                 ? PlayerVisibility.EVERYWHERE : stored.playerVisibility;
+        var migratedPlayers = PlayerRenderPolicy.migrate(playerVisibility);
+        playerGroup = stored.playerGroup == null ? migratedPlayers.group() : stored.playerGroup;
+        playerScope = stored.playerScope == null ? migratedPlayers.scope() : stored.playerScope;
         interactionMode = stored.interactionMode == null
                 ? InteractionMode.EVERYWHERE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
@@ -77,7 +82,7 @@ public final class SelectiveRenderSettings {
         if (boundaryMode == BoundaryMode.CULLED) { boundaryMode = BoundaryMode.COLOR; boundaryOpacity = 0; }
         BoundaryColorTexture.invalidate();
         cullFluidBoundaryFaces = stored.cullFluidBoundaryFaces;
-        worldEditSelection = stored.worldEditSelection;
+        worldEditSelection = stored.worldEditSelection == null || stored.worldEditSelection;
         debugBoxes = stored.debugBoxes;
         filterInteractionsWhenInactive = stored.filterInteractionsWhenInactive;
         blockFiltersEnabled = stored.blockFiltersEnabled == null || stored.blockFiltersEnabled;
@@ -85,7 +90,7 @@ public final class SelectiveRenderSettings {
         virtualLightMode = commonVirtualLightMode(stored.virtualLightMode, stored.hiddenVirtualLightMode);
         fullReloadThreshold = clampReloadThreshold(stored.fullReloadThreshold == 0
                 ? DEFAULT_FULL_RELOAD_THRESHOLD : stored.fullReloadThreshold);
-        boolean migrateLegacyPlotMinimum = stored.formatVersion < SETTINGS_FORMAT_VERSION
+        boolean migrateLegacyPlotMinimum = stored.formatVersion < 4
                 && stored.defaultPlotMinY != null && stored.defaultPlotMinY == -100;
         defaultPlotMaxY = stored.defaultPlotMaxY == null ? 319 : stored.defaultPlotMaxY;
         defaultPlotMinY = stored.defaultPlotMinY == null || migrateLegacyPlotMinimum
@@ -93,7 +98,16 @@ public final class SelectiveRenderSettings {
         if (recovery.recoveredFromBackup() || stored.formatVersion < SETTINGS_FORMAT_VERSION) save(false);
     }
 
-    public static PlayerVisibility playerVisibility() { return playerVisibility; }
+    public static PlayerRenderPolicy.Group playerGroup() { return playerGroup; }
+    public static PlayerRenderPolicy.Scope playerScope() { return playerScope; }
+    public static void setPlayerGroup(PlayerRenderPolicy.Group value) { playerGroup = value; save(); SelectiveRenderState.refreshOptionalVisuals(); }
+    public static void setPlayerScope(PlayerRenderPolicy.Scope value) { playerScope = value; save(); SelectiveRenderState.refreshOptionalVisuals(); }
+    public static PlayerVisibility playerVisibility() {
+        if(playerGroup==PlayerRenderPolicy.Group.NOBODY || playerScope==PlayerRenderPolicy.Scope.NOWHERE) return PlayerVisibility.NONE;
+        if(playerScope==PlayerRenderPolicy.Scope.INSIDE) return PlayerVisibility.INSIDE;
+        if(playerScope==PlayerRenderPolicy.Scope.OUTSIDE) return PlayerVisibility.OUTSIDE;
+        return switch(playerGroup) { case SELF->PlayerVisibility.OWN_ONLY; case OTHERS->PlayerVisibility.EXCEPT_OWN; default->PlayerVisibility.EVERYWHERE; };
+    }
     public static InteractionMode interactionMode() { return interactionMode; }
     public static BoundaryMode boundaryMode() { return boundaryMode; }
     public static int boundaryColor() { return boundaryColor; }
@@ -145,8 +159,9 @@ public final class SelectiveRenderSettings {
     public static int defaultPlotMinY() { return defaultPlotMinY; }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
-        if (playerVisibility == value) return;
-        playerVisibility = value;
+        var migrated = PlayerRenderPolicy.migrate(value);
+        if (playerGroup == migrated.group() && playerScope == migrated.scope()) return;
+        playerVisibility = value; playerGroup = migrated.group(); playerScope = migrated.scope();
         save();
         SelectiveRenderState.refreshOptionalVisuals();
     }
@@ -161,7 +176,7 @@ public final class SelectiveRenderSettings {
         boundaryMode = value;
         BoundaryColorTexture.prepare();
         save();
-        if (SelectiveRenderState.enabled()) {
+        if (SelectiveRenderState.filteringActive()) {
             SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
         }
     }
@@ -184,9 +199,7 @@ public final class SelectiveRenderSettings {
         if (filterInteractionsWhenInactive == value) return;
         filterInteractionsWhenInactive = value;
         save();
-        SelectiveRenderConfig.refreshBlockFilters();
-        VirtualSkyLightSampler.invalidate();
-        if (SelectiveRenderState.filteringActive()) SelectiveRenderState.refreshRenderer();
+
     }
 
     public static void setBlockFiltersEnabled(boolean value) {
@@ -252,7 +265,8 @@ public final class SelectiveRenderSettings {
             StoredSettings stored = new StoredSettings();
             stored.formatVersion = SETTINGS_FORMAT_VERSION;
             stored.menuNavigation = menuNavigation;
-            stored.playerVisibility = playerVisibility;
+            stored.playerVisibility = playerVisibility(); // Legacy readers cannot represent both dimensions simultaneously.
+            stored.playerGroup = playerGroup; stored.playerScope = playerScope;
             stored.interactionMode = interactionMode;
             stored.boundaryMode = boundaryMode;
             stored.boundaryColor = boundaryColor;
@@ -375,6 +389,8 @@ public final class SelectiveRenderSettings {
         int formatVersion;
         MenuNavigationState menuNavigation;
         PlayerVisibility playerVisibility;
+        PlayerRenderPolicy.Group playerGroup;
+        PlayerRenderPolicy.Scope playerScope;
         InteractionMode interactionMode;
         BoundaryMode boundaryMode;
         Integer boundaryColor;
@@ -384,7 +400,7 @@ public final class SelectiveRenderSettings {
         String boundaryTexture;
         @SerializedName(value = "cullFluidBoundaryFaces", alternate = {"cullWaterBoundaryFaces"})
         boolean cullFluidBoundaryFaces;
-        boolean worldEditSelection;
+        Boolean worldEditSelection;
         boolean debugBoxes;
         boolean filterInteractionsWhenInactive;
         Boolean blockFiltersEnabled;

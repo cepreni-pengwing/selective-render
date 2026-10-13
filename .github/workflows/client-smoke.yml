@@ -165,6 +165,10 @@ jobs:
             echo "Only-filter placement runtime smoke did not complete." >&2
             exit 1
           fi
+          if ! grep -q '\[SR region smoke\] Independent texture/color persisted without changing global defaults' run/logs/latest.log; then
+            echo "Regional boundary appearance persistence/rendering smoke did not complete." >&2
+            exit 1
+          fi
           if [[ '${{ matrix.profile }}' == 'connected-textures' ]] && ! grep -q '\[SR CTM smoke\] Loaded resourcepack connected tile resolved' run/logs/latest.log; then
             echo "Connected-texture resourcepack runtime smoke did not complete." >&2
             exit 1

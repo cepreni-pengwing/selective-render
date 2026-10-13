@@ -6,13 +6,13 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class VirtualSkyActivationTest {
     @Test
-    void remainsNoOpOnFreshInstallAndInVanillaInactiveMode() {
+    void remainsNoOpOnFreshInstallWithNoActiveFilters() {
         assertFalse(VirtualSkyActivation.isActive(false, false, false, 0));
-        assertFalse(VirtualSkyActivation.isActive(false, false, false, 3));
+        assertTrue(VirtualSkyActivation.isActive(false, false, false, 3));
     }
 
     @Test
-    void filtersKeepVirtualLightingOnlyInFilteredInactiveMode() {
+    void activeFiltersKeepVirtualLightingIndependentlyOfInteractionPolicy() {
         assertTrue(VirtualSkyActivation.isActive(false, false, true, 1));
         assertFalse(VirtualSkyActivation.isActive(false, false, true, 0));
     }

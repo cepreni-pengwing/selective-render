@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class SettingsDefaultsTest {
     @Test void defaultsAreUnrestrictedWithNormalBoundariesAndNoDebugBoxes() {
+        assertEquals(PlayerRenderPolicy.Group.EVERYONE, SelectiveRenderSettings.playerGroup());
+        assertEquals(PlayerRenderPolicy.Scope.EVERYWHERE, SelectiveRenderSettings.playerScope());
+        assertTrue(SelectiveRenderSettings.worldEditSelection());
         assertEquals(SelectiveRenderSettings.PlayerVisibility.EVERYWHERE,
                 SelectiveRenderSettings.playerVisibility());
         assertEquals(SelectiveRenderSettings.InteractionMode.EVERYWHERE,

@@ -66,6 +66,7 @@ final class BoundaryRuntimeSmoke {
         } else if (ticks == 80) {
             client.gui.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {
+            verifyRegionalBoundaries(client);
             verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryRainbow(false);
             SelectiveRenderSettings.setBoundaryAppearance(0, "minecraft:stone", 100);
@@ -82,6 +83,37 @@ final class BoundaryRuntimeSmoke {
         var image = ((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(mode).contents()).selectiverender$images()[0];
         if ((image.getPixel(0, 0) >>> 24) != expected)
             throw new IllegalStateException("Boundary atlas alpha does not match requested opacity");
+    }
+
+    private static void verifyRegionalBoundaries(Minecraft client) {
+        String dimension=client.level.dimension().identifier().toString();
+        var document=SelectiveRenderConfig.editorDocument(client,dimension);
+        var original=document.options().getOrDefault(NAME,RegionOptions.DEFAULT);
+        int color=SelectiveRenderSettings.boundaryColor(),opacity=SelectiveRenderSettings.boundaryOpacity();
+        String texture=SelectiveRenderSettings.boundaryTexture();
+        var regional=original.withTexture(new RegionOptions.TextureLayer(true,"minecraft:dirt"))
+                .withColor(new RegionOptions.ColorLayer(true,0x123456,35,false,false));
+        try {
+            SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,document.regions().get(NAME),false,true,
+                    document.filters().getOrDefault(NAME,java.util.List.of()),regional);
+            var saved=SelectiveRenderConfig.editorDocument(client,dimension);
+            if(!regional.equals(saved.options().get(NAME))) throw new IllegalStateException("Regional boundary appearance did not persist");
+            BoundaryRenderContext.bind(client.player.blockPosition());
+            if(BoundaryRenderContext.rgb()!=0x123456 || BoundaryRenderContext.opacity()!=35 || !BoundaryRenderContext.texture().equals("minecraft:dirt"))
+                throw new IllegalStateException("Regional renderer did not resolve its independent style");
+            var mode=SelectiveRenderSettings.BoundaryMode.COLOR;
+            var image=((de.selectiverender.mixin.BoundarySpriteImagesAccess)(Object)BoundaryColorTexture.sprite(mode).contents()).selectiverender$images()[0];
+            if((image.getPixel(0,0)>>>24)!=BoundaryStyle.alpha(35) || BoundaryColorTexture.argb(mode)!=0xFF123456)
+                throw new IllegalStateException("Regional alpha/color did not reach the terrain material");
+            if(!BoundaryStyle.fullbright(mode)) throw new IllegalStateException("Regional color lighting did not override global defaults");
+            if(color!=SelectiveRenderSettings.boundaryColor() || opacity!=SelectiveRenderSettings.boundaryOpacity() || !texture.equals(SelectiveRenderSettings.boundaryTexture()))
+                throw new IllegalStateException("Regional editor changed global boundary defaults");
+            SelectiveRenderClient.LOGGER.info("[SR region smoke] Independent texture/color persisted without changing global defaults");
+        } finally {
+            BoundaryRenderContext.clear(); BoundaryTextureResolver.clear();
+            SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,document.regions().get(NAME),false,true,
+                    document.filters().getOrDefault(NAME,java.util.List.of()),original);
+        }
     }
 
     private static void verifyInvalidAppearanceEscape(net.minecraft.client.Minecraft client) {

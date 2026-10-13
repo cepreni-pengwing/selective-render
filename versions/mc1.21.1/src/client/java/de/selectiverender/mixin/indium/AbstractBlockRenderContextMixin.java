@@ -42,7 +42,7 @@ abstract class AbstractBlockRenderContextMixin {
             if (SelectiveRenderState.isBoundaryFace(position, face)) mode = SelectiveRenderState.boundaryModeForFace(position, face);
         }
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED
-                || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && SelectiveRenderSettings.boundaryOpacity() == 0)) ci.cancel();
+                || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.opacityAt(position) == 0)) ci.cancel();
         else if (BoundaryColorTexture.custom(mode)) {
             var tracker = IndiumRenderContext.boundaryQuads();
             for (int v = 0; v < 4; v++) tracker.vertex(v, quad.x(v), quad.y(v), quad.z(v));
@@ -52,7 +52,8 @@ abstract class AbstractBlockRenderContextMixin {
             meshBuilder.getEmitter().copyFrom(quad).emit();
             var mesh = meshBuilder.build();
             selectiverender$emitting = true;
-            try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
+            try { de.selectiverender.BoundaryRenderContext.bind(position);
+            for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
                 if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(position, quad.lightFace());
                 else de.selectiverender.BoundaryTextureResolver.clear();
@@ -66,7 +67,7 @@ abstract class AbstractBlockRenderContextMixin {
                 emitter.material(de.selectiverender.BoundaryMaterial.get(layer));
                 selectiverender$makeBlack(emitter, layer, position);
                 de.selectiverender.BoundaryShaderContext.begin(layer); emitter.emit();
-            } } finally { selectiverender$emitting = false; de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryShaderContext.end(); }
+            } } finally { selectiverender$emitting = false; de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryShaderContext.end(); de.selectiverender.BoundaryRenderContext.clear(); }
             ci.cancel();
         }
     }
@@ -112,9 +113,12 @@ abstract class AbstractBlockRenderContextMixin {
         int color = BoundaryColorTexture.argb(mode);
         quad.color(color, color, color, color); quad.colorIndex(-1);
         Direction face = quad.nominalFace() == null ? Direction.UP : quad.nominalFace();
-        for (int vertex = 0; vertex < 4; vertex++) quad.uv(vertex,
+        for (int vertex = 0; vertex < 4; vertex++) {
+            quad.color(vertex,BoundaryColorTexture.argb(mode,position,face,quad.x(vertex),quad.y(vertex),quad.z(vertex)));
+            quad.uv(vertex,
                 BoundaryColorTexture.u(mode, position, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)),
                 BoundaryColorTexture.v(mode, position, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)));
+        }
     }
 
     private static boolean selectiverender$isOnBlockFace(MutableQuadView quad,

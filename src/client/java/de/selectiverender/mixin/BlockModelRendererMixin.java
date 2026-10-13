@@ -64,7 +64,7 @@ abstract class BlockModelRendererMixin {
             ci.cancel();
             return;
         }
-        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && SelectiveRenderSettings.boundaryOpacity() == 0) { ci.cancel(); return; }
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.opacityAt(pos) == 0) { ci.cancel(); return; }
         if (BoundaryColorTexture.custom(mode)) {
             int[] vertices = quad.getVertexData(); int stride = vertices.length / 4;
             for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, Float.intBitsToFloat(vertices[v * stride]),
@@ -91,7 +91,8 @@ abstract class BlockModelRendererMixin {
         var normal = new org.joml.Vector3f(quad.getFace().getOffsetX(), quad.getFace().getOffsetY(), quad.getFace().getOffsetZ());
         entry.getNormalMatrix().transform(normal);
         var position = new org.joml.Vector3f();
-        for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
+        de.selectiverender.BoundaryRenderContext.bind(selectiverender$position.get());
+            try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
             if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
             if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(selectiverender$position.get(), quad.getFace());
             else de.selectiverender.BoundaryTextureResolver.clear();
@@ -106,13 +107,13 @@ abstract class BlockModelRendererMixin {
                 float x = Float.intBitsToFloat(data[offset]), y = Float.intBitsToFloat(data[offset + 1]), z = Float.intBitsToFloat(data[offset + 2]);
                 position.set(x, y, z); entry.getPositionMatrix().transformPosition(position);
                 float shade = fullbright ? 1 : brightness[i];
-                int color = BoundaryColorTexture.argb(layer);
+                int color = BoundaryColorTexture.argb(layer, selectiverender$position.get(), quad.getFace(), x, y, z);
                 consumer.vertex(position.x(), position.y(), position.z(), (color >> 16 & 255) / 255f * shade, (color >> 8 & 255) / 255f * shade, (color & 255) / 255f * shade, 1,
                         BoundaryColorTexture.u(layer, selectiverender$position.get(), quad.getFace(), x, y, z), BoundaryColorTexture.v(layer, selectiverender$position.get(), quad.getFace(), x, y, z),
                         overlay, fullbright ? 0x00F000F0 : light[i], normal.x(), normal.y(), normal.z());
             }
-        }
-        de.selectiverender.BoundaryTextureResolver.clear();
+        } } finally { de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryRenderContext.clear(); }
+
     }
 
     @Inject(method = "renderQuad", at = @At("RETURN"))

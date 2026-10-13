@@ -148,13 +148,16 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private void buildRows() {
         switch (tab) {
             case GENERAL -> {
-                options("Selection source", new String[]{"SR positions", "WorldEdit"},
-                        SelectiveRenderSettings.worldEditSelection() ? 1 : 0,
-                        i -> SelectiveRenderSettings.setWorldEditSelection(i == 1));
-                var players = SelectiveRenderSettings.PlayerVisibility.values();
-                options("Players", new String[]{"None", "Inside regions", "Outside regions", "Everyone", "Own player", "Everyone else"},
-                        SelectiveRenderSettings.playerVisibility().ordinal(),
-                        i -> SelectiveRenderSettings.setPlayerVisibility(players[i]));
+                rows.add(new Row("Selection source", List.of(new Choice(SelectiveRenderSettings.worldEditSelection() ? "WorldEdit" : "SR positions", false, () -> {
+                    SelectiveRenderSettings.setWorldEditSelection(!SelectiveRenderSettings.worldEditSelection());
+                    navigate(tab, regionName, scroll);
+                }, "Choose WorldEdit or SR positions for region creation and redefining")), 0, optionLabelWidth()));
+                options("Player visibility", new String[]{"Everyone","Nobody","Only you","Other players"},
+                        SelectiveRenderSettings.playerGroup().ordinal(),
+                        i -> SelectiveRenderSettings.setPlayerGroup(PlayerRenderPolicy.Group.values()[i]));
+                options("Region scope", new String[]{"Everywhere","Inside regions","Outside regions","Nowhere"},
+                        SelectiveRenderSettings.playerScope().ordinal(),
+                        i -> SelectiveRenderSettings.setPlayerScope(PlayerRenderPolicy.Scope.values()[i]));
                 var lighting = SelectiveRenderSettings.VirtualLightMode.values();
                 String[] lights = java.util.Arrays.stream(lighting).map(value -> value.label()).toArray(String[]::new);
                 options("Virtual skylight", lights, SelectiveRenderSettings.virtualLightMode().ordinal(),
@@ -168,7 +171,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 options("Interactions", java.util.Arrays.stream(interactions).map(value -> value.label()).toArray(String[]::new),
                         SelectiveRenderSettings.interactionMode().ordinal(),
                         i -> SelectiveRenderSettings.setInteractionMode(interactions[i]));
-                options("When rendering is off", new String[]{"Vanilla", "Filtered"},
+                options("Interactions while rendering is off", new String[]{"Unrestricted", "Follow region rules"},
                         SelectiveRenderSettings.filterInteractionsWhenInactive() ? 1 : 0,
                         i -> SelectiveRenderSettings.setFilterInteractionsWhenInactive(i == 1));
                 options("Hidden interactions", new String[]{"Off", "On"},
@@ -220,7 +223,8 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     private static String optionHelp(String label) {
         return switch (label) {
-            case "When rendering is off" -> "Vanilla leaves normal interaction unchanged. Filtered applies the interaction mode to all saved regions, including unselected regions, even while rendering is off.";
+            case "Interactions while rendering is off" -> "Choose whether region interaction rules still apply when rendering is disabled. Active block filters keep their own interaction rules.";
+            case "Region scope" -> "Applies the player selection to the currently rendered area, not to inactive saved regions.";
             case "Hidden interactions" -> "Allow targeting and interacting with hidden regions and blocks removed by filters.";
             case "Virtual skylight" -> "Let skylight enter through removed blocks from above, from the sides, both, or neither. Applies to render regions, hidden regions and block filters.";
             case "Full reload (sections)" -> "Changes affecting more sections than this threshold rebuild the whole renderer; smaller changes rebuild affected sections.";

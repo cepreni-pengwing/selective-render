@@ -2,6 +2,9 @@
 
 ## 1.11.6
 
+- Split player visibility into independent player-group and region-scope settings, preserving legacy choices; new installations default to the WorldEdit selection source with a single source toggle
+- Organized the region editor into Filters, Boundaries, Interactions and Bounding boxes, including independent regional texture/color appearance and global inheritance
+- Renamed inactive interaction choices to Unrestricted / Follow region rules and decoupled virtual skylight from those choices; active filters retain lighting while empty installations remain no-op
 - Isolated nested boundary-model CTM processing from Continuity's active terrain context, preserving the outer renderer state and resourcepack feature switches
 - Preserved model UV rotation, mirroring and cropped-tile scale instead of rebuilding texture mapping from min/max coordinates
 - Added distinct 8x8 repeat-pattern, nested-context restoration and actual terrain CTM checks, plus UV regression tests

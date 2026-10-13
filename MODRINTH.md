@@ -2,7 +2,7 @@
 
 Selective Render is a client-side Fabric mod that lets you create block-accurate regions anywhere in a Minecraft world and choose what stays visible. Render selected areas, hide regions you do not want to see, or filter individual block types by their IDs or tags. Hiding large parts of the world can also improve FPS, depending on what is hidden and your setup. An optional setting can also hide water along region edges, including waterlogged blocks. It changes what you see and target, not the world itself.
 
-Boundary faces can combine a lit block texture with a custom color. Color has adjustable opacity, optional lighting and presets, including a rainbow around the region.
+Boundary faces can combine a lit block texture with a custom color. Color has adjustable opacity, optional lighting and presets, including a rainbow around the region. Each region can use its own appearance or follow your global settings.
 
 ## Requirements
 

@@ -36,6 +36,7 @@ public final class SelectiveRenderConfig {
     private static final Map<String, RegionOptions> OPTIONS = new LinkedHashMap<>();
     private static volatile RegionPolicyIndex policyIndex = RegionPolicyIndex.of(Map.of(), Map.of());
     public static RegionOptions optionsAt(int x, int y, int z) { return policyIndex.optionsAt(x, y, z); }
+    public static BlockRegion rainbowBoxAt(int x,int y,int z) { return policyIndex.rainbowBoxAt(x,y,z); }
     public static SelectiveRenderSettings.BoundaryMode boundaryOverrideAt(int x, int y, int z) { return policyIndex.boundaryOverrideAt(x, y, z); }
     public static Boolean fluidOverrideAt(int x, int y, int z) { return policyIndex.fluidOverrideAt(x, y, z); }
     public static boolean hasBoundaryMode(SelectiveRenderSettings.BoundaryMode mode) {
@@ -551,7 +552,9 @@ public final class SelectiveRenderConfig {
             RegionOptions before = current.options().getOrDefault(oldName, RegionOptions.DEFAULT);
             RegionOptions after = stored.regionOptions.getOrDefault(newName.trim().toLowerCase(java.util.Locale.ROOT), RegionOptions.DEFAULT);
             if (SelectiveRenderState.filteringActive() && (before.boundary() != after.boundary()
-                    || !java.util.Objects.equals(before.cullFluids(), after.cullFluids()))) {
+                    || !java.util.Objects.equals(before.cullFluids(), after.cullFluids())
+                    || !java.util.Objects.equals(before.textureLayer(), after.textureLayer())
+                    || !java.util.Objects.equals(before.colorLayer(), after.colorLayer()))) {
                 SelectiveRenderState.refreshVisibilityRegions(boxes);
             }
         }

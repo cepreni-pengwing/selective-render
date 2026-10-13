@@ -34,7 +34,7 @@ final class RegionEditorScreen extends Screen {
     private boolean deletionArmed;
     private boolean navigationRestored;
     private String restoredDimension;
-    private boolean boxesOpen, filtersOpen, refreshRequested, documentsLoaded;
+    private boolean boxesOpen, filtersOpen, boundariesOpen, interactionsOpen, refreshRequested, documentsLoaded;
     private BlockFilterRule.Mode newFilterMode = BlockFilterRule.Mode.HIDE;
     private Input newFilterInput;
     private boolean addingFilter;
@@ -53,7 +53,7 @@ final class RegionEditorScreen extends Screen {
         view.selected = region;
         view.collapsed = new HashSet<>(collapsed);
         view.scroll = scroll; view.navigationScroll = navScroll;
-        view.filtersOpen = filtersOpen; view.boxesOpen = boxesOpen;
+        view.filtersOpen = filtersOpen; view.boxesOpen = boxesOpen; view.boundariesOpen=boundariesOpen; view.interactionsOpen=interactionsOpen;
         SelectiveRenderSettings.saveMenuNavigation();
         super.removed();
     }
@@ -72,7 +72,7 @@ final class RegionEditorScreen extends Screen {
             region = view.selected;
             restoredDimension = view.dimension;
             scroll = Math.max(0, view.scroll); navScroll = Math.max(0, view.navigationScroll);
-            filtersOpen = view.filtersOpen; boxesOpen = view.boxesOpen;
+            filtersOpen = view.filtersOpen; boxesOpen = view.boxesOpen; boundariesOpen=view.boundariesOpen; interactionsOpen=view.interactionsOpen;
             navigationRestored = true;
         }
         String dimension = document == null ? restoredDimension : document.dimension();
@@ -108,7 +108,7 @@ final class RegionEditorScreen extends Screen {
                     if (!collapsed.add(entry.dimension())) collapsed.remove(entry.dimension());
                 } else {
                     document = documents.stream().filter(value -> value.dimension().equals(entry.dimension())).findFirst().orElseThrow();
-                    region = entry.name(); deletionArmed = false; scroll = 0; boxesOpen = false; filtersOpen = false; addingFilter = false;
+                    region = entry.name(); deletionArmed = false; scroll = 0; boxesOpen = false; filtersOpen = false; boundariesOpen=false; interactionsOpen=false; addingFilter = false;
                 }
             })).bounds(navLeft, 36 + (i - navScroll) * 24, entry.name() == null ? navWidth : Math.min(Math.max(24, navWidth - 48), Math.max(24, font.width(label) + 16)), 20).build());
             button.active = entry.name() == null || document == null
@@ -148,6 +148,8 @@ final class RegionEditorScreen extends Screen {
                     if (choice.label().equals("×")) {
                         input.removeX = controlX; input.removeWidth = size; input.removeAction = choice.action();
                     }
+                    if(row.label().equals("Interactions while rendering is off") || choice.label().equals("Unrestricted") || choice.label().equals("Follow region rules"))
+                        button.setTooltip(net.minecraft.client.gui.components.Tooltip.create(net.minecraft.network.chat.Component.literal("Choose whether region interaction rules still apply when rendering is disabled. Active block filters keep their own interaction rules.")));
                     button.active = !choice.selected(); controlX += size + 4;
                 }
                 inputs.add(input); addRenderableWidget(input.widget);
@@ -160,6 +162,8 @@ final class RegionEditorScreen extends Screen {
                             : Math.min(paneWidth - row.labelWidth(), Math.max(36, font.width(choice.label()) + 16));
                     var button = addRenderableWidget(Button.builder(Component.literal(choice.label()), b -> runAction(choice.action()))
                             .bounds(x, y, size, 20).build());
+                    if(row.label().equals("Interactions while rendering is off") || choice.label().equals("Unrestricted") || choice.label().equals("Follow region rules"))
+                        button.setTooltip(net.minecraft.client.gui.components.Tooltip.create(net.minecraft.network.chat.Component.literal("Choose whether region interaction rules still apply when rendering is disabled. Active block filters keep their own interaction rules.")));
                     button.active = !choice.selected(); x += size + 6;
                 }
             } else captions.add(new Caption(row.label(), paneLeft, y, paneWidth));
@@ -211,6 +215,30 @@ final class RegionEditorScreen extends Screen {
                     new Choice("×", false, () -> addingFilter = false)));
             rows.add(new Row("", List.of(new Choice("+", addingFilter, () -> addingFilter = true)), null, 0));
         }
+        RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
+        accordion("Boundaries", -1, boundariesOpen, () -> boundariesOpen=!boundariesOpen);
+        if (boundariesOpen) {
+            var target=boundaryTarget();
+            boolean colorOn=BoundaryStyle.color(target.mode()), textureOn=BoundaryStyle.texture(target.mode());
+            options("Texture", List.of(new Choice("Use global",target.textureGlobal(),target::inheritTexture),
+                    new Choice(textureOn?"On":"Off",false,()->target.setTextureEnabled(!textureOn))));
+            field("Block texture","boundary-texture",target.texture(),true,value-> {
+                var id=net.minecraft.resources.Identifier.tryParse(value.trim());
+                if(id==null || !net.minecraft.core.registries.BuiltInRegistries.BLOCK.containsKey(id))
+                    throw new IllegalArgumentException("Unknown block ID");
+                target.commit(target.color(),id.toString(),target.opacity(),target.rainbow(),false,true);
+            });
+            options("Color",List.of(new Choice("Use global",target.colorGlobal(),target::inheritColor),
+                    new Choice(colorOn?"On":"Off",false,()->target.setColorEnabled(!colorOn))));
+            options("Appearance",List.of(new Choice("Edit texture and color",false,()->minecraft.gui.setScreen(new BoundaryAppearanceScreen(this,target)))));
+            override("Cull fluid faces",2,overrides.cullFluids(),new Object[]{false,true},new String[]{"Off","On"});
+        }
+        accordion("Interactions",-1,interactionsOpen,()->interactionsOpen=!interactionsOpen);
+        if(interactionsOpen) {
+            override("Interactions", 3, overrides.interactions(), new Object[]{SelectiveRenderSettings.InteractionMode.NONE, SelectiveRenderSettings.InteractionMode.EVERYWHERE}, new String[]{"Off", "On"});
+            override("Interactions while rendering is off", 4, overrides.inactiveInteractions(), new Object[]{false, true}, new String[]{"Unrestricted", "Follow region rules"});
+            override("Hidden interactions", 5, overrides.hiddenInteractions(), new Object[]{false, true}, new String[]{"Off", "On"});
+        }
         accordion("Bounding boxes", boxes().size(), boxesOpen, () -> boxesOpen = !boxesOpen);
         if (boxesOpen) {
             if (boxes().size() == 1) {
@@ -230,22 +258,19 @@ final class RegionEditorScreen extends Screen {
                 }
             }
         }
-        RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
-        var boundary = overrides.boundary() == null ? SelectiveRenderSettings.boundaryMode() : overrides.boundary();
-        boolean colorOn = BoundaryStyle.color(boundary) || boundary == SelectiveRenderSettings.BoundaryMode.CULLED;
-        boolean textureOn = BoundaryStyle.texture(boundary);
-        options("Boundary layers", List.of(
-                new Choice("Use global", overrides.boundary() == null, () -> setOption(1, null)),
-                new Choice(boundary == SelectiveRenderSettings.BoundaryMode.CULLED ? "Color: On (0%)" : "Color: " + (colorOn ? "On" : "Off"),
-                        false, () -> setOption(1, BoundaryStyle.layers(!colorOn, textureOn))),
-                new Choice("Texture: " + (textureOn ? "On" : "Off"), false,
-                        () -> setOption(1, BoundaryStyle.layers(colorOn, !textureOn)))));
-        override("Cull fluid faces", 2, overrides.cullFluids(), new Object[]{false, true}, new String[]{"Off", "On"});
-        override("Interactions", 3, overrides.interactions(), new Object[]{SelectiveRenderSettings.InteractionMode.NONE, SelectiveRenderSettings.InteractionMode.EVERYWHERE}, new String[]{"Off", "On"});
-        override("When rendering is off", 4, overrides.inactiveInteractions(), new Object[]{false, true}, new String[]{"Vanilla", "Filtered"});
-        override("Hidden interactions", 5, overrides.hiddenInteractions(), new Object[]{false, true}, new String[]{"Off", "On"});
     }
 
+    private BoundaryEditorTarget boundaryTarget() {
+        return new BoundaryEditorTarget(()->document.options().getOrDefault(region,RegionOptions.DEFAULT),this::setBoundaryOptions);
+    }
+    private void setBoundaryOptions(RegionOptions value) {
+        if (minecraft.level==null || !SelectiveRenderConfig.contextIdentity(minecraft,minecraft.level).equals(context))
+            throw new IllegalArgumentException("The world changed; reopen the region editor");
+        SelectiveRenderConfig.editRegion(minecraft,document.dimension(),region,region,boxes(),hidden(),selected(),rules(),value);
+        document=SelectiveRenderConfig.editorDocument(minecraft,document.dimension());
+        documents=documents.stream().map(d->d.dimension().equals(document.dimension())?document:d).toList();
+        refreshRequested=true;
+    }
     private void setOption(int field, Object value) {
         RegionOptions next = document.options().getOrDefault(region, RegionOptions.DEFAULT).with(field, value);
         SelectiveRenderConfig.editRegion(minecraft, document.dimension(), region, region, boxes(), hidden(), selected(), rules(), next);
@@ -317,7 +342,7 @@ final class RegionEditorScreen extends Screen {
     }
     private void info(String value) { rows.add(new Row(value, List.of(), null, 0)); }
     private void accordion(String title, int count, boolean open, Runnable action) {
-        rows.add(new Row("", List.of(new Choice((open ? "- " : "+ ") + title + " (" + count + ")", false, action)), null, 0));
+        rows.add(new Row("", List.of(new Choice((open ? "- " : "+ ") + title + (count < 0 ? "" : " (" + count + ")"), false, action)), null, 0));
     }
     private void options(String label, List<Choice> values) {
         // Binary values remain clickable: one button shows the current value and flips it.
@@ -361,7 +386,8 @@ final class RegionEditorScreen extends Screen {
             String query = completionBase == null ? widget.getValue() : completionBase;
             if (!query.equals(matchQuery)) {
                 if (selectors == null) selectors = SelectiveRenderClient.blockFilterSuggestions("");
-                matchValues = FilterCompletion.matches(query, selectors); matchQuery = query;
+                matchValues = FilterCompletion.matches(query, selectors);
+                if(definition.key().startsWith("boundary-")) matchValues=matchValues.stream().filter(v->!v.startsWith("#")).toList(); matchQuery = query;
                 popupOffset = 0;
             }
             return matchValues;

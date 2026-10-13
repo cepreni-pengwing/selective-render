@@ -25,7 +25,7 @@ public final class BoundaryTextureResolver {
     public static Face bound() { return BOUND.get(); }
     public static void clear() { BOUND.remove(); }
     public static BlockState selectedState() {
-        var id = Identifier.tryParse(SelectiveRenderSettings.boundaryTexture());
+        var id = Identifier.tryParse(BoundaryRenderContext.texture());
         return id == null ? net.minecraft.world.level.block.Blocks.STONE.defaultBlockState() : BuiltInRegistries.BLOCK.getValue(id).defaultBlockState();
     }
     public static void bind(BlockPos pos, Direction face) {
@@ -42,8 +42,8 @@ public final class BoundaryTextureResolver {
             try (var scope = BoundaryModelScope.open()) {
                 cache.faces[index] = resolve(pos, face, selectedState()); scope.complete();
             }
-            catch (Exception error) { if (WARNED.add(SelectiveRenderSettings.boundaryTexture()))
-                SelectiveRenderClient.LOGGER.warn("Could not resolve boundary model {}: {}; using representative texture", SelectiveRenderSettings.boundaryTexture(), error.toString()); }
+            catch (Exception error) { if (WARNED.add(BoundaryRenderContext.texture()))
+                SelectiveRenderClient.LOGGER.warn("Could not resolve boundary model {}: {}; using representative texture", BoundaryRenderContext.texture(), error.toString()); }
         }
         BOUND.set(cache.faces[index]);
     }
@@ -74,7 +74,7 @@ public final class BoundaryTextureResolver {
             int tint = source == null ? -1 : source.colorInWorld(state, world, pos);
             color = 0xFF000000 | ((color >> 16 & 255)*(tint >> 16 & 255)/255)<<16 | ((color >> 8 & 255)*(tint >> 8 & 255)/255)<<8 | (color & 255)*(tint & 255)/255;
         }
-        return new Face(sprite, minU, maxU, minV, maxV, color | 0xFF000000, quad.chunkLayer() == net.minecraft.client.renderer.chunk.ChunkSectionLayer.TRANSLUCENT, area, mapping(quad, face));
+        return new Face(sprite, minU, maxU, minV, maxV, color | 0xFF000000, quad.chunkLayer() != net.minecraft.client.renderer.chunk.ChunkSectionLayer.SOLID, area, mapping(quad, face));
     }
     private static BoundaryUv.Mapping mapping(QuadView quad, Direction face) {
         float[] s=new float[4], t=new float[4], u=new float[4], v=new float[4];

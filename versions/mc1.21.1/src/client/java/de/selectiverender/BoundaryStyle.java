@@ -4,7 +4,7 @@ package de.selectiverender;
 public final class BoundaryStyle {
     private BoundaryStyle() { }
     public static boolean fullbright(SelectiveRenderSettings.BoundaryMode mode) {
-        return mode == SelectiveRenderSettings.BoundaryMode.COLOR && !SelectiveRenderSettings.boundaryColorLighting();
+        return mode == SelectiveRenderSettings.BoundaryMode.COLOR && !BoundaryRenderContext.lighting();
     }
     public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode) {
         if (mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE)
@@ -12,7 +12,7 @@ public final class BoundaryStyle {
         return new SelectiveRenderSettings.BoundaryMode[]{mode};
     }
     public static boolean visibleLayer(SelectiveRenderSettings.BoundaryMode mode) {
-        return mode != SelectiveRenderSettings.BoundaryMode.COLOR || SelectiveRenderSettings.boundaryOpacity() > 0;
+        return mode != SelectiveRenderSettings.BoundaryMode.COLOR || BoundaryRenderContext.opacity() > 0;
     }
     /** Every slider pixel is opaque, including its checkerboard-composited opacity preview. */
     public static int sliderPixel(int kind, int x, int y, float hue, float saturation, float brightness) {

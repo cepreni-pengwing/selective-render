@@ -76,6 +76,14 @@ java {
 // Reserved slots allow texture alpha without changing Sodium's vertex-light channel.
 tasks.named('processClientResources', ProcessResources) {
     doLast {
+        (0..100).each { opacity ->
+            def pixel = new File(destinationDir, "assets/selectiverender/textures/block/boundary_alpha_${opacity}.png")
+            pixel.parentFile.mkdirs()
+            def bitmap = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            int argb = (Math.round(opacity * 2.55f) << 24) | 0xFFFFFF
+            for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) bitmap.setRGB(x, y, argb)
+            javax.imageio.ImageIO.write(bitmap, 'png', pixel)
+        }
         ['boundary_white': 16, 'boundary_rainbow': 256, 'boundary_texture': 128, 'boundary_combined': 128].each { name, size ->
             def pixel = new File(destinationDir, "assets/selectiverender/textures/block/${name}.png")
             pixel.parentFile.mkdirs()

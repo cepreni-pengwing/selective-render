@@ -1,11 +1,11 @@
 package de.selectiverender;
 
-/** Keeps filtered-region lighting opt-in while preserving the fresh-install no-op path. */
+/** Active filters have lighting independently of interaction restrictions; empty fresh installs stay no-op. */
 public final class VirtualSkyActivation {
     private VirtualSkyActivation() { }
 
     public static boolean isActive(boolean renderEnabled, boolean hideEnabled,
                                    boolean filteredMode, int filteredRegionCount) {
-        return renderEnabled || hideEnabled || (filteredMode && filteredRegionCount > 0);
+        return renderEnabled || hideEnabled || filteredRegionCount > 0;
     }
 }

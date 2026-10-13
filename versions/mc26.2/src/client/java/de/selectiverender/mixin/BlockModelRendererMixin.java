@@ -63,7 +63,8 @@ abstract class BlockModelRendererMixin {
             for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, vertices[v].x(), vertices[v].y(), vertices[v].z());
             if (!selectiverender$quads.get().accept(quad.direction().ordinal())) { ci.cancel(); return; }
 
-            for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
+            de.selectiverender.BoundaryRenderContext.bind(pos);
+            try { for (var layer : de.selectiverender.BoundaryStyle.renderLayers(mode)) {
             if (!de.selectiverender.BoundaryStyle.visibleLayer(layer)) continue;
             if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE) de.selectiverender.BoundaryTextureResolver.bind(pos, quad.direction());
             else de.selectiverender.BoundaryTextureResolver.clear();
@@ -90,15 +91,17 @@ abstract class BlockModelRendererMixin {
             try {
                 if (fullbright) quadInstance.setLightCoords(0x00F000F0);
                 quadInstance.setColor(BoundaryColorTexture.argb(layer));
+                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.regionalColor())
+                    for(int i=0;i<4;i++) { var p=positions[i]; quadInstance.setColor(i,BoundaryColorTexture.argb(layer,pos,quad.direction(),p.x(),p.y(),p.z())); }
                 output.put(x, y, z, replacement, quadInstance);
             } finally {
                 quadInstance.setLightCoords(0, l0); quadInstance.setLightCoords(1, l1); quadInstance.setLightCoords(2, l2); quadInstance.setLightCoords(3, l3);
                 quadInstance.setColor(0, c0); quadInstance.setColor(1, c1);
                 quadInstance.setColor(2, c2); quadInstance.setColor(3, c3);
             }
-            }
+            } } finally { de.selectiverender.BoundaryTextureResolver.clear(); de.selectiverender.BoundaryRenderContext.clear(); }
         }
-        de.selectiverender.BoundaryTextureResolver.clear();
+
         ci.cancel();
     }
 }
