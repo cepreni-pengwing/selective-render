@@ -96,10 +96,13 @@ final class BoundaryRuntimeSmoke {
                 if (BoundaryTextureResolver.nestedSmokeFaces() == 0) throw new IllegalStateException("CTM tile was not resolved from an active terrain render context");
                 SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Nested terrain faces resolved: {}", BoundaryTextureResolver.nestedSmokeFaces());
             }
+            if (!BoundaryRainbow.smokeColorsVary()) throw new IllegalStateException("Rainbow terrain vertices stayed uniformly colored");
+            SelectiveRenderClient.LOGGER.info("[SR rainbow smoke] Terrain received distinct rainbow vertex colors");
             verifyFilterOnlyLightingAndEntities(client);
             verifyConfigValidationIsReadOnly();
             verifyRegionToggleTransition(client);
             verifyRegionalBoundaries(client);
+            verifyRegionReset(client);
             verifyRegionalControlVisibility(client);
             verifyInvalidAppearanceEscape(client);
             SelectiveRenderSettings.setBoundaryRainbow(false);
@@ -222,6 +225,47 @@ final class BoundaryRuntimeSmoke {
         SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,false,true,
                 saved.filters().getOrDefault(NAME,java.util.List.of()),saved.options().getOrDefault(NAME,RegionOptions.DEFAULT));
         SelectiveRenderClient.LOGGER.info("[SR region smoke] Hidden-to-render selection survives global toggles");
+    }
+
+
+    private static void verifyRegionReset(MinecraftClient client) {
+        String dimension=client.world.getRegistryKey().getValue().toString();
+        var saved=SelectiveRenderConfig.editorDocument(client,dimension);
+        var boxes=saved.regions().get(NAME);
+        var filters=java.util.List.of(new BlockFilterRule(BlockFilterRule.Mode.HIDE,BlockFilterRule.Kind.ID,"minecraft:stone"));
+        var options=new RegionOptions(false,SelectiveRenderSettings.BoundaryMode.COLOR,false,
+                SelectiveRenderSettings.InteractionMode.NONE,true,true,
+                new RegionOptions.TextureLayer(true,"minecraft:dirt"),new RegionOptions.ColorLayer(true,0x123456,35,true,true),false);
+        try {
+            for (boolean hidden : new boolean[]{false,true}) {
+                SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,hidden,!hidden,filters,options);
+                var before=SelectiveRenderConfig.editorDocument(client,dimension);
+                var editor=new RegionEditorScreen(null); client.setScreen(editor);
+                var region=RegionEditorScreen.class.getDeclaredField("region"); region.setAccessible(true); region.set(editor,NAME);
+                var reset=RegionEditorScreen.class.getDeclaredMethod("resetRegion"); reset.setAccessible(true);
+                reset.invoke(editor);
+                var armed=SelectiveRenderConfig.editorDocument(client,dimension);
+                if (!before.options().equals(armed.options()) || !before.filters().equals(armed.filters()) || !before.regions().equals(armed.regions()))
+                    throw new IllegalStateException("First reset click modified region values");
+                editor.init(); reset.invoke(editor);
+                var after=SelectiveRenderConfig.editorDocument(client,dimension);
+                if (!after.options().getOrDefault(NAME,RegionOptions.DEFAULT).equals(RegionOptions.DEFAULT.with(0,options.filtersEnabled()))
+                        || !after.filters().getOrDefault(NAME,java.util.List.of()).isEmpty()
+                        || !before.regions().equals(after.regions()) || !before.hidden().equals(after.hidden())
+                        || before.isSelected(NAME)!=after.isSelected(NAME))
+                    throw new IllegalStateException("Reset failed to inherit all options, clear filters or preserve geometry/type/activation");
+                editor.init(); reset.invoke(editor);
+                var flag=RegionEditorScreen.class.getDeclaredField("resetArmed"); flag.setAccessible(true);
+                if (!flag.getBoolean(editor)) throw new IllegalStateException("Reset confirmation stayed armed after reset");
+                client.setScreen(null);
+            }
+            SelectiveRenderClient.LOGGER.info("[SR reset smoke] Two clicks clear overrides/filters and preserve region geometry/type/activation");
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Region reset smoke failed",error); }
+        finally {
+            client.setScreen(null);
+            SelectiveRenderConfig.editRegion(client,dimension,NAME,NAME,boxes,saved.hidden().contains(NAME),saved.isSelected(NAME),
+                    saved.filters().getOrDefault(NAME,java.util.List.of()),saved.options().getOrDefault(NAME,RegionOptions.DEFAULT));
+        }
     }
 
     private static void verifyRegionalBoundaries(MinecraftClient client) {

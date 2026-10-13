@@ -1,6 +1,14 @@
 package de.selectiverender;
 /** One hue cycle clockwise around each cuboid's X/Z perimeter, continuous at corners. */
 public final class BoundaryRainbow {
+    private static final boolean SMOKE = Boolean.getBoolean("selectiverender.boundary.smoke");
+    private static volatile boolean smokeColorsVary;
+    /** Opt-in verification of the colors actually sent to terrain geometry. */
+    public static void recordSmokeColors(int a, int b, int c, int d) {
+        if (SMOKE && BoundaryRenderContext.rainbow() && ((a & 0xFFFFFF)!=(b & 0xFFFFFF)
+                || (a & 0xFFFFFF)!=(c & 0xFFFFFF) || (a & 0xFFFFFF)!=(d & 0xFFFFFF))) smokeColorsVary=true;
+    }
+    public static boolean smokeColorsVary() { return smokeColorsVary; }
     private BoundaryRainbow() { }
     public static float hue(BlockRegion box, double worldX, double worldZ) {
         double width = (double)box.maxX() + 1 - box.minX(), depth = (double)box.maxZ() + 1 - box.minZ();

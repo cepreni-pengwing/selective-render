@@ -118,6 +118,8 @@ abstract class AbstractBlockRenderContextMixin {
                 BoundaryColorTexture.u(mode, position, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)),
                 BoundaryColorTexture.v(mode, position, face, quad.x(vertex), quad.y(vertex), quad.z(vertex)));
         }
+        if (mode==SelectiveRenderSettings.BoundaryMode.COLOR)
+            de.selectiverender.BoundaryRainbow.recordSmokeColors(quad.color(0),quad.color(1),quad.color(2),quad.color(3));
     }
 
     private static boolean selectiverender$isOnBlockFace(MutableQuadView quad,

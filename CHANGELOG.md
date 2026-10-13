@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.12
+
+- Added a two-click Reset region button beside Delete region, restoring regional options offering Use global and clearing filters while preserving bounding boxes, name, type and activation
+- Restored global Rainbow vertex colors in Minecraft 1.20.1 Sodium rendering
+- Added runtime reset confirmation/persistence checks and verification of actual terrain rainbow vertex colors
+
 ## 1.11.11
 
 - Corrected Minecraft 26.2 slider texture bounds in global and regional boundary palettes

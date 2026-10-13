@@ -89,10 +89,11 @@ abstract class BlockRendererMixin {
                 layerBuilder.addSprite(nativeTexture ? quad.getSprite() : BoundaryColorTexture.sprite(layer));
                 int[] layerColors = colors;
                 if (layer == SelectiveRenderSettings.BoundaryMode.TEXTURE && !nativeTexture) { layerColors = colors.clone(); Arrays.fill(layerColors, BoundaryColorTexture.abgr(layer)); }
-                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.regionalColor()) {
+                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR) {
                     layerColors=colors.clone();
                     for(int i=0;i<4;i++) layerColors[i]=BoundaryColorTexture.abgr(layer,context.pos(),quad.getLightFace(),quad.getX(i),quad.getY(i),quad.getZ(i));
                 }
+                if (layer==SelectiveRenderSettings.BoundaryMode.COLOR) de.selectiverender.BoundaryRainbow.recordSmokeColors(layerColors[0],layerColors[1],layerColors[2],layerColors[3]);
                 de.selectiverender.BoundaryShaderContext.begin(layer);
                 float shift=de.selectiverender.BoundaryStyle.overlayOffset(layer);
                 var shiftedOffset=offset.add(quad.getLightFace().getOffsetX()*shift,quad.getLightFace().getOffsetY()*shift,quad.getLightFace().getOffsetZ()*shift);
