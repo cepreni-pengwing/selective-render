@@ -17,7 +17,7 @@ abstract class EntityRendererMixin<T extends Entity> {
     @Inject(method = "getSkyLight", at = @At("RETURN"), cancellable = true)
     private void selectiverender$applyVirtualEntitySkyLight(T entity, BlockPos pos,
                                                             CallbackInfoReturnable<Integer> cir) {
-        if ((!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())
+        if (!SelectiveRenderState.virtualSkyLightActive()
                 || cir.getReturnValueI() >= 15) {
             return;
         }
@@ -26,7 +26,7 @@ abstract class EntityRendererMixin<T extends Entity> {
             long started = PerformanceDiagnostics.startTimer();
             int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);
             int centerVirtual = virtualLight;
-            boolean directSky = SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
+            boolean directSky = de.selectiverender.VirtualSkyActivation.canUseDirectSky(virtualLight, SelectiveRenderState.shouldSeedVirtualSkyColumn(true))
                     && SelectiveRenderState.highestVisibleOccluder(
                     clientWorld, pos.getX(), pos.getZ()) <= pos.getY();
             if (directSky) {

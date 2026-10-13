@@ -14,7 +14,7 @@ abstract class LocalPlayerTargetMixin {
     @ModifyExpressionValue(method = {"pick", "raycastHitResult"}, at = @At(value = "FIELD",
             target = "Lnet/minecraft/world/entity/EntitySelector;CAN_BE_PICKED:Ljava/util/function/Predicate;"))
     private static Predicate<Entity> selectiverender$interactionTargets(Predicate<Entity> original) {
-        if (SelectiveRenderSettings.interactionMode() == SelectiveRenderSettings.InteractionMode.EVERYWHERE)
+        if (SelectiveRenderState.interactionsUnrestricted())
             return original;
         return entity -> original.test(entity) && SelectiveRenderState.shouldInteract(entity);
     }

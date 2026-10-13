@@ -5,6 +5,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class VirtualSkyActivationTest {
+    @Test void missingSkylightSamplesCannotTurnIntoFullbright() {
+        assertFalse(VirtualSkyActivation.canUseDirectSky(-1,true));
+        assertFalse(VirtualSkyActivation.canUseDirectSky(15,false));
+        assertTrue(VirtualSkyActivation.canUseDirectSky(0,true));
+        assertTrue(VirtualSkyActivation.canUseDirectSky(15,true));
+    }
+
     @Test
     void remainsNoOpOnFreshInstallWithNoActiveFilters() {
         assertFalse(VirtualSkyActivation.isActive(false, false, false, 0));

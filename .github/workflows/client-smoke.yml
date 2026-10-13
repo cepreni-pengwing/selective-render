@@ -169,6 +169,10 @@ jobs:
             echo "Regional boundary appearance persistence/rendering smoke did not complete." >&2
             exit 1
           fi
+          if ! grep -q '\[SR filter smoke\] Filter-only roofs admit skylight and entity targeting respects hidden interactions' run/logs/latest.log; then
+            echo "Filter-only lighting/entity interaction runtime smoke did not complete." >&2
+            exit 1
+          fi
           if ! grep -q '\[SR region smoke\] Config validation never changes live region options' run/logs/latest.log; then
             echo "Region config isolation runtime smoke did not complete." >&2
             exit 1

@@ -27,3 +27,5 @@ For 1.9.x, preserve the inactive fast paths and the configurable rebuild thresho
 changes. Test first/last-region transitions, plot clear, and hidden-only changes. Do not present
 deferred Conquest extension-boundary support or unmeasured performance gains as verified fixes.
 Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
+
+Shared pure logic and matching tests listed in `.github/scripts/source-parity.json` must stay in sync across their version roots. Run `python .github/scripts/check-source-parity.py` before publishing; mappings and renderer APIs remain version-specific. Update the manifest explicitly if a listed file needs an intentional version difference.

@@ -32,7 +32,7 @@ abstract class WorldRendererMixin {
         int light = cir.getReturnValueI();
         if (LightmapTextureManager.getSkyLightCoordinates(light) >= 15
                 || !(world instanceof ClientWorld clientWorld)
-                || (!SelectiveRenderState.enabled() && !SelectiveRenderState.hideEnabled())
+                || !SelectiveRenderState.virtualSkyLightActive()
                 || !SelectiveRenderState.shouldRender(pos)) return;
         long started = PerformanceDiagnostics.startTimer();
         int virtualLight = VirtualSkyLightSampler.sample(clientWorld, pos);

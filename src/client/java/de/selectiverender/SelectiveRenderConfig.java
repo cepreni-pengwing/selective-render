@@ -36,6 +36,7 @@ public final class SelectiveRenderConfig {
     private static final Map<String, RegionOptions> OPTIONS = new LinkedHashMap<>();
     private static volatile RegionPolicyIndex policyIndex = RegionPolicyIndex.of(Map.of(), Map.of());
     public static RegionOptions optionsAt(int x, int y, int z) { return policyIndex.optionsAt(x, y, z); }
+    public static boolean hasInteractionOverrides() { return policyIndex.interactionOverrides; }
     public static BlockRegion rainbowBoxAt(int x,int y,int z) { return policyIndex.rainbowBoxAt(x,y,z); }
     public static SelectiveRenderSettings.BoundaryMode boundaryOverrideAt(int x, int y, int z) { return policyIndex.boundaryOverrideAt(x, y, z); }
     public static Boolean fluidOverrideAt(int x, int y, int z) { return policyIndex.fluidOverrideAt(x, y, z); }

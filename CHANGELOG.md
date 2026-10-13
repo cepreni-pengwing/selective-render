@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.10
+
+- Applied virtual skylight to entities and older block-entity render paths when only block filters are active, and excluded filtered roof blocks from direct-sky occluder checks
+- Kept missing skylight samples from making entities or particles fullbright in dimensions without skylight
+- Made entity target selection respect regional interaction overrides and made Only-filtered entities follow Hidden interactions
+- Cached repeated policy queries per thread and immutable snapshot, with weak ownership to avoid retaining obsolete region indexes
+- Added active plot-geometry, boundary inheritance and cache-isolation regressions, plus filter-only lighting/entity runtime checks
+- Added CI parity checks for intentionally shared source and test files across version ports
+
 ## 1.11.9
 
 - Restored identical vertex positions for boundary layers instead of using a distance-dependent world-space offset, and omitted covered underlays for fully opaque Color

@@ -8,9 +8,18 @@ import java.util.Map;
 final class RegionPolicyIndex {
     private record Policy(RegionIndex index, List<BlockRegion> boxes, RegionOptions options) { }
     private final List<Policy> policies;
+    private static final ThreadLocal<QueryCache> LAST_QUERY = ThreadLocal.withInitial(QueryCache::new);
+    private static final class QueryCache {
+        java.lang.ref.WeakReference<RegionPolicyIndex> owner;
+        int x, y, z;
+        RegionOptions options;
+    }
+    final boolean interactionOverrides;
     final boolean blackOverride, textureOverride, combinedOverride, culledOverride;
     private RegionPolicyIndex(List<Policy> policies) {
         this.policies = List.copyOf(policies);
+        interactionOverrides = policies.stream().anyMatch(policy -> policy.options().interactions()!=null
+                || policy.options().inactiveInteractions()!=null || policy.options().hiddenInteractions()!=null);
         blackOverride = policies.stream().anyMatch(policy -> BoundaryStyle.color(policy.options().boundary()) || policy.options().colorLayer()!=null && policy.options().colorLayer().enabled());
         textureOverride = policies.stream().anyMatch(policy -> BoundaryStyle.texture(policy.options().boundary()) || policy.options().textureLayer()!=null && policy.options().textureLayer().enabled());
         combinedOverride = policies.stream().anyMatch(policy -> policy.options().boundary() == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE);
@@ -36,10 +45,12 @@ final class RegionPolicyIndex {
         return null;
     }
     Boolean fluidOverrideAt(int x, int y, int z) {
-        for (Policy policy : policies) if (policy.options().cullFluids() != null && policy.index().contains(x, y, z)) return policy.options().cullFluids();
-        return null;
+        return optionsAt(x,y,z).cullFluids();
     }
     RegionOptions optionsAt(int x, int y, int z) {
+        if (policies.isEmpty()) return RegionOptions.DEFAULT;
+        QueryCache cache = LAST_QUERY.get();
+        if (cache.owner != null && cache.owner.get() == this && cache.x == x && cache.y == y && cache.z == z) return cache.options;
         RegionOptions result = RegionOptions.DEFAULT;
         for (Policy policy : policies) if (policy.index().contains(x, y, z)) {
             RegionOptions value = policy.options();
@@ -59,6 +70,8 @@ final class RegionPolicyIndex {
                 if (previous == null && setting != null) result = result.with(field, setting);
             }
         }
+        if (cache.owner == null || cache.owner.get() != this) cache.owner=new java.lang.ref.WeakReference<>(this);
+        cache.x=x; cache.y=y; cache.z=z; cache.options=result;
         return result;
     }
 }

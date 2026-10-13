@@ -66,6 +66,7 @@ final class BoundaryRuntimeSmoke {
         } else if (ticks == 80) {
             client.setScreen(new BoundaryAppearanceScreen(null));
         } else if (ticks == 100) {
+            verifyFilterOnlyLightingAndEntities(client);
             verifyConfigValidationIsReadOnly();
             verifyRegionToggleTransition(client);
             verifyRegionalBoundaries(client);
@@ -143,6 +144,32 @@ final class BoundaryRuntimeSmoke {
         }
     }
 
+
+    private static void verifyFilterOnlyLightingAndEntities(MinecraftClient client) {
+        var previous=SelectiveRenderState.snapshot();
+        var light=SelectiveRenderSettings.virtualLightMode();
+        boolean hidden=SelectiveRenderSettings.interactWithHiddenRegions();
+        var pos=client.player.getBlockPos();
+        var column=new BlockRegion(pos.getX()-4,pos.getX()+4,client.world.getBottomY(),client.world.getTopY()-1,pos.getZ()-4,pos.getZ()+4);
+        var filtered=new FilteredRegion(column,java.util.Set.of(new BlockFilterRule(BlockFilterRule.Mode.ONLY,BlockFilterRule.Kind.ID,"minecraft:air")));
+        try {
+            SelectiveRenderSettings.setVirtualLightMode(SelectiveRenderSettings.VirtualLightMode.BOTH);
+            SelectiveRenderSettings.setInteractWithHiddenRegions(false);
+            SelectiveRenderState.setSavedState(java.util.List.of(),false,java.util.List.of(),false,java.util.List.of(),java.util.List.of(filtered));
+            if(!SelectiveRenderState.virtualSkyLightActive() || SelectiveRenderState.highestVisibleOccluder(client.world,pos.getX(),pos.getZ())!=Integer.MIN_VALUE)
+                throw new IllegalStateException("Only-filtered roof still blocked direct skylight");
+            if(VirtualSkyLightSampler.sample(client.world,pos)!=15) throw new IllegalStateException("Filter-only sampler did not provide direct sky");
+            var stand=new net.minecraft.entity.decoration.ArmorStandEntity(client.world,pos.getX()+.5,pos.getY(),pos.getZ()+.5);
+            if(SelectiveRenderState.shouldRender(stand) || SelectiveRenderState.shouldInteract(stand))
+                throw new IllegalStateException("Only-filtered entity remained visible or targetable");
+            SelectiveRenderSettings.setInteractWithHiddenRegions(true);
+            if(!SelectiveRenderState.shouldInteract(stand)) throw new IllegalStateException("Hidden interactions did not permit the filtered entity");
+            SelectiveRenderClient.LOGGER.info("[SR filter smoke] Filter-only roofs admit skylight and entity targeting respects hidden interactions");
+        } finally {
+            SelectiveRenderState.setSavedState(previous.configuredRegions(),previous.enabled(),previous.hiddenRegions(),previous.hideEnabled(),previous.visibleOverrides(),previous.filteredRegions());
+            SelectiveRenderSettings.setVirtualLightMode(light); SelectiveRenderSettings.setInteractWithHiddenRegions(hidden);
+        }
+    }
 
     private static void verifyConfigValidationIsReadOnly() {
         try {

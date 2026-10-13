@@ -12,6 +12,17 @@ class VisibilityRefreshPlanTest {
         return VisibilitySnapshot.create(regions, enabled, hidden, true, List.of(), List.of(), false, false, 1);
     }
 
+    @Test void activePlotGeometryChangesRefreshEvenWhenTheToggleStaysOn() {
+        var second=new BlockRegion(32,47,0,15,0,15);
+        var first=VisibilitySnapshot.EMPTY.withPlotState(List.of(REGION),true,true,2);
+        var added=first.withPlotState(List.of(REGION,second),true,true,3);
+        assertTrue(PlotSelectionPolicy.needsMeshUpdate(true,true));
+        assertEquals(List.of(second),VisibilityRefreshPlan.between(first,added).changedRegions());
+        assertFalse(VisibilityRefreshPlan.between(first,added).scanComplement());
+        assertEquals(List.of(second),VisibilityRefreshPlan.between(added,first).changedRegions());
+        var disabled=first.withPlotState(List.of(REGION),true,false,4);
+        assertTrue(VisibilityRefreshPlan.between(disabled,disabled.withPlotState(List.of(REGION,second),true,false,5)).isEmpty());
+    }
     @Test void removingLastWhitelistRegionAlsoRefreshesTheComplement() {
         var plan = VisibilityRefreshPlan.between(state(true, List.of(REGION), List.of()),
                 state(true, List.of(), List.of()));

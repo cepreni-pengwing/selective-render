@@ -31,8 +31,7 @@ abstract class GameRendererMixin {
                     + "Ljava/util/function/Predicate;D)Lnet/minecraft/util/hit/EntityHitResult;"),
             index = 4)
     private Predicate<Entity> selectiverender$filterEntityTargets(Predicate<Entity> original) {
-        if (SelectiveRenderSettings.interactionMode()
-                == SelectiveRenderSettings.InteractionMode.EVERYWHERE) return original;
+        if (SelectiveRenderState.interactionsUnrestricted()) return original;
         return entity -> original.test(entity) && SelectiveRenderState.shouldInteract(entity);
     }
 

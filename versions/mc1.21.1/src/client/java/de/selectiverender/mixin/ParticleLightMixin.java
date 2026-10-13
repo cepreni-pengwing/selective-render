@@ -37,7 +37,7 @@ abstract class ParticleLightMixin {
         int sky = LightmapTextureManager.getSkyLightCoordinates(packed);
         int virtual = VirtualSkyLightSampler.sample(world, pos);
         int centerVirtual = virtual;
-        boolean directSky = SelectiveRenderState.shouldSeedVirtualSkyColumn(true)
+        boolean directSky = de.selectiverender.VirtualSkyActivation.canUseDirectSky(virtual, SelectiveRenderState.shouldSeedVirtualSkyColumn(true))
                 && SelectiveRenderState.highestVisibleOccluder(
                 world, pos.getX(), pos.getZ()) <= pos.getY();
         if (directSky) {

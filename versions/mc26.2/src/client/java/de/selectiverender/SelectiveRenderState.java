@@ -397,12 +397,22 @@ public final class SelectiveRenderState {
         return !matchesBlockFilters(snapshot, world.getBlockState(position), x, y, z);
     }
 
+    public static boolean interactionsUnrestricted() {
+        return SelectiveRenderSettings.interactionMode() == SelectiveRenderSettings.InteractionMode.EVERYWHERE
+                && !filteringActive() && !SelectiveRenderConfig.hasInteractionOverrides();
+    }
+
     public static boolean shouldInteract(Entity entity) {
         int x = Mth.floor(entity.getX()), y = Mth.floor(entity.getY()), z = Mth.floor(entity.getZ());
         RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
         boolean hiddenAllowed = options.hiddenInteractions() == null
                 ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
-        if (isActivelyHidden(x, y, z) && !hiddenAllowed) return false;
+        if (!hiddenAllowed) {
+            if (isActivelyHidden(x,y,z)) return false;
+            if (!(entity instanceof Player)) for (FilteredRegion filtered : visibility.filteredRegions()) {
+                if (filtered.excludesEntities(x,y,z)) return false;
+            }
+        }
         return allowsInteractionAt(options, x, y, z, hiddenAllowed);
     }
 
@@ -468,7 +478,7 @@ public final class SelectiveRenderState {
 
     public static int highestVisibleOccluder(ClientLevel world, int blockX, int blockZ) {
         VisibilitySnapshot snapshot = visibility;
-        if (!snapshot.enabled() && !snapshot.hideEnabled()) return world.getMaxY();
+        if (!snapshot.enabled() && !snapshot.hideEnabled() && snapshot.filteredRegions().isEmpty()) return world.getMaxY();
         long started = PerformanceDiagnostics.startTimer();
         int result = visibleOccluderCache.get(snapshot.generation(), blockX, blockZ, (x, z) -> {
             int worldSurface = world.getHeight(Heightmap.Types.WORLD_SURFACE, x, z) - 1;
@@ -483,6 +493,7 @@ public final class SelectiveRenderState {
                 cursor.setY(y);
                 if (!shouldRender(snapshot, x, y, z)) continue;
                 BlockState state = world.getBlockState(cursor);
+                if (!matchesBlockFilters(snapshot,state,x,y,z)) continue;
                 if (state.getLightDampening() > 0) return y;
             }
             return Integer.MIN_VALUE;
