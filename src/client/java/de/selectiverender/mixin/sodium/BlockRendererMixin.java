@@ -147,17 +147,8 @@ abstract class BlockRendererMixin {
             Arrays.fill(cir.getReturnValue(), BoundaryColorTexture.abgr(selectiverender$textured.get()));
             return;
         }
-        Direction direction = selectiverender$quadDirection.get();
-        if (direction == null) {
-            direction = quad.getLightFace();
-            if (!selectiverender$isOnBlockFace(quad, direction)) return;
-        }
-        var mode = SelectiveRenderState.boundaryModeForFace(context.pos(), direction);
-        if (!BoundaryColorTexture.custom(mode)) return;
-        if (!SelectiveRenderState.isBoundaryFace(context.pos(), direction)) return;
-        selectiverender$solidColor.set(true);
-        selectiverender$textured.set(mode);
-        Arrays.fill(cir.getReturnValue(), BoundaryColorTexture.abgr(selectiverender$textured.get()));
+        // Geometry classification above is authoritative, including the face extents.
+
     }
 
     @Inject(method = "writeGeometry", at = @At("HEAD"), cancellable = true)

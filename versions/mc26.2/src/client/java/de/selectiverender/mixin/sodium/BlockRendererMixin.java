@@ -45,10 +45,6 @@ abstract class BlockRendererMixin {
         if (!SelectiveRenderState.filteringActive()
                 || !((de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.CULLED))) return;
         var mode = selectiverender$boundaryMode(quad);
-        var cullFace = quad.getCullFace();
-        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL && cullFace != null
-                && SelectiveRenderState.isBoundaryFace(selectiverender$currentPos, cullFace))
-            mode = SelectiveRenderState.boundaryModeForFace(selectiverender$currentPos, cullFace);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {

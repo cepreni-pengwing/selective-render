@@ -27,12 +27,17 @@ public final class BoundaryGeometry {
     public static SelectiveRenderSettings.BoundaryMode boundaryModeForQuad(
             BlockPos position, float minX, float maxX, float minY, float maxY,
             float minZ, float maxZ) {
-        SelectiveRenderSettings.BoundaryMode mode = boundaryModeAtPlane(position,
-                Direction.WEST, Direction.EAST, minX, maxX);
+        SelectiveRenderSettings.BoundaryMode mode = BoundaryPlane.faceExtent(minY,maxY,minZ,maxZ)
+                ? boundaryModeAtPlane(position, Direction.WEST, Direction.EAST, minX, maxX)
+                : SelectiveRenderSettings.BoundaryMode.NORMAL;
         if (mode != SelectiveRenderSettings.BoundaryMode.NORMAL) return mode;
-        mode = boundaryModeAtPlane(position, Direction.DOWN, Direction.UP, minY, maxY);
+        mode = BoundaryPlane.faceExtent(minX,maxX,minZ,maxZ)
+                ? boundaryModeAtPlane(position, Direction.DOWN, Direction.UP, minY, maxY)
+                : SelectiveRenderSettings.BoundaryMode.NORMAL;
         if (mode != SelectiveRenderSettings.BoundaryMode.NORMAL) return mode;
-        return boundaryModeAtPlane(position, Direction.NORTH, Direction.SOUTH, minZ, maxZ);
+        return BoundaryPlane.faceExtent(minX,maxX,minY,maxY)
+                ? boundaryModeAtPlane(position, Direction.NORTH, Direction.SOUTH, minZ, maxZ)
+                : SelectiveRenderSettings.BoundaryMode.NORMAL;
     }
 
     private static SelectiveRenderSettings.BoundaryMode boundaryModeAtPlane(

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.11.9
+
+- Restored identical vertex positions for boundary layers instead of using a distance-dependent world-space offset, and omitted covered underlays for fully opaque Color
+- Restricted custom boundary appearance to actual geometric cut planes; nominal and cull directions no longer retexture protruding or rotated decorations
+- Removed a Minecraft 1.20.1 region-validation side effect that could overwrite live options when reading another dimension with matching region names
+- Applied renderer corrections across all three Minecraft targets and added region-isolation regression coverage
+
 ## 1.11.8
 
 - Separated Color boundaries from native model decals and deduplicated nearby overlay planes while preserving original Normal faces and tint

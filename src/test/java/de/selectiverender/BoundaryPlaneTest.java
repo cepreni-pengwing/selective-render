@@ -5,6 +5,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class BoundaryPlaneTest {
+    @Test void acceptsBlockFacesButRejectsProtrudingDecorationsAndDegenerateSheets() {
+        org.junit.jupiter.api.Assertions.assertTrue(BoundaryPlane.faceExtent(0,1,0,1));
+        org.junit.jupiter.api.Assertions.assertTrue(BoundaryPlane.faceExtent(0,.5f,0,1));
+        org.junit.jupiter.api.Assertions.assertFalse(BoundaryPlane.faceExtent(0,1,1,1.5f));
+        org.junit.jupiter.api.Assertions.assertFalse(BoundaryPlane.faceExtent(-.25f,1.25f,0,1));
+        org.junit.jupiter.api.Assertions.assertFalse(BoundaryPlane.faceExtent(0,0,0,1));
+    }
     @Test void rejectsNonFiniteCoordinates() {
         assertEquals(BoundaryPlane.NO_PLANE, BoundaryPlane.integralPlane(Float.NaN, Float.NaN));
         assertEquals(BoundaryPlane.NO_PLANE, BoundaryPlane.integralPlane(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY));

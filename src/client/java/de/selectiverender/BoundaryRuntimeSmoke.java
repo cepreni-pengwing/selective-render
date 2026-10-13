@@ -75,6 +75,7 @@ final class BoundaryRuntimeSmoke {
                 if (BoundaryTextureResolver.nestedSmokeFaces() == 0) throw new IllegalStateException("CTM tile was not resolved from an active terrain render context");
                 SelectiveRenderClient.LOGGER.info("[SR CTM smoke] Nested terrain faces resolved: {}", BoundaryTextureResolver.nestedSmokeFaces());
             }
+            verifyConfigValidationIsReadOnly();
             verifyRegionToggleTransition(client);
             verifyRegionalBoundaries(client);
             verifyRegionalControlVisibility(client);
@@ -192,6 +193,24 @@ final class BoundaryRuntimeSmoke {
         }
     }
 
+
+    private static void verifyConfigValidationIsReadOnly() {
+        try {
+            var optionsField=SelectiveRenderConfig.class.getDeclaredField("OPTIONS"); optionsField.setAccessible(true);
+            var options=(java.util.Map<String,RegionOptions>)optionsField.get(null);
+            boolean present=options.containsKey(NAME); var previous=options.get(NAME);
+            var original=RegionOptions.DEFAULT.withNormal(false);
+            try {
+                options.put(NAME,original);
+                var type=Class.forName("de.selectiverender.SelectiveRenderConfig$StoredConfig");
+                var other=new com.google.gson.Gson().fromJson("{\"formatVersion\":8,\"regionOptions\":{\""+NAME+"\":{\"normalFaces\":true}}}",type);
+                var validate=SelectiveRenderConfig.class.getDeclaredMethod("validateStoredConfig",type); validate.setAccessible(true);
+                validate.invoke(null,other);
+                if(!original.equals(options.get(NAME))) throw new IllegalStateException("Reading another region file modified live options");
+            } finally { if(present) options.put(NAME,previous); else options.remove(NAME); }
+            SelectiveRenderClient.LOGGER.info("[SR region smoke] Config validation never changes live region options");
+        } catch (ReflectiveOperationException error) { throw new IllegalStateException("Config isolation smoke failed",error); }
+    }
 
     private static void verifyRegionalControlVisibility(MinecraftClient client) {
         var originalMode=SelectiveRenderSettings.boundaryMode();

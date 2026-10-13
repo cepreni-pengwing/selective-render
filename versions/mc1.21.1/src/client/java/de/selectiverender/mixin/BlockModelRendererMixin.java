@@ -50,14 +50,11 @@ abstract class BlockModelRendererMixin {
         }
         SelectiveRenderSettings.BoundaryMode extensionMode =
                 BoundaryGeometry.boundaryModeForQuad(pos, quad);
-        boolean standardBoundary = SelectiveRenderState.isBoundaryFace(pos, quad.getFace());
-        if (extensionMode == SelectiveRenderSettings.BoundaryMode.NORMAL && !standardBoundary) {
+        SelectiveRenderSettings.BoundaryMode mode = extensionMode;
+        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) {
             selectiverender$coloredBoundary.set(false);
             return;
         }
-        SelectiveRenderSettings.BoundaryMode mode =
-                extensionMode != SelectiveRenderSettings.BoundaryMode.NORMAL ? extensionMode
-                        : SelectiveRenderState.boundaryModeForFace(pos, quad.getFace());
         if (extensionMode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             selectiverender$coloredBoundary.set(false);
             ci.cancel();

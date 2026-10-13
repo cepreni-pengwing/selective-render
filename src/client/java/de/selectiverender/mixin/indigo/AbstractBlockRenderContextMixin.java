@@ -36,11 +36,6 @@ abstract class AbstractBlockRenderContextMixin {
         BlockPos position = IndiumRenderContext.position();
         if (position == null) return;
         var mode = selectiverender$boundaryMode(position, quad);
-        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) {
-            Direction face = quad.cullFace();
-            if (face == null) { face = quad.nominalFace(); if (face == null || !selectiverender$isOnBlockFace(quad, face)) return; }
-            if (SelectiveRenderState.isBoundaryFace(position, face)) mode = SelectiveRenderState.boundaryModeForFace(position, face);
-        }
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED
                 || (mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.opacityAt(position) == 0 && !de.selectiverender.BoundaryRenderContext.normalAt(position))) ci.cancel();
         else if (BoundaryColorTexture.custom(mode)) {
@@ -96,15 +91,8 @@ abstract class AbstractBlockRenderContextMixin {
             selectiverender$makeBlack(quad, mode, position);
             return;
         }
-        Direction direction = quad.cullFace();
-        if (direction == null) {
-            direction = quad.nominalFace();
-            if (direction == null || !selectiverender$isOnBlockFace(quad, direction)) return;
-        }
-        mode = SelectiveRenderState.boundaryModeForFace(position, direction);
-        if (!BoundaryColorTexture.custom(mode)) return;
-        if (!SelectiveRenderState.isBoundaryFace(position, direction)) return;
-        selectiverender$makeBlack(quad, mode, position);
+        // A nominal/cull direction does not prove that decorative geometry is a cut face.
+        return;
     }
 
     private static SelectiveRenderSettings.BoundaryMode selectiverender$boundaryMode(

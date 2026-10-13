@@ -748,9 +748,6 @@ public final class SelectiveRenderConfig {
                 && stored.minZ != null && stored.maxZ != null) {
             StoredRegion.fromLegacyChunks(stored.minX, stored.maxX, stored.minZ, stored.maxZ);
         }
-        if (stored.regionOptions != null) stored.regionOptions.forEach((name, options) -> {
-            if (name != null && options != null && REGIONS.containsKey(normalize(name))) OPTIONS.put(normalize(name), options);
-        });
         if (stored.formatVersion >= 8 && stored.blockFilters != null) {
             stored.blockFilters.forEach((name, rules) -> {
                 if (name == null || rules == null) throw new IllegalArgumentException("Invalid block filters");

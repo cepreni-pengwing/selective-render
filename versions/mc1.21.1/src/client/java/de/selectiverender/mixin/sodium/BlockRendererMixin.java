@@ -54,10 +54,6 @@ abstract class BlockRendererMixin {
         }
         SelectiveRenderSettings.BoundaryMode mode = BoundaryGeometry.boundaryModeForQuad(
                 selectiverender$currentPos, minX, maxX, minY, maxY, minZ, maxZ);
-        var cullFace = quad.cullFace();
-        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL && cullFace != null
-                && SelectiveRenderState.isBoundaryFace(selectiverender$currentPos, cullFace))
-            mode = SelectiveRenderState.boundaryModeForFace(selectiverender$currentPos, cullFace);
         if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) {
             ci.cancel();
         } else if (BoundaryColorTexture.custom(mode)) {

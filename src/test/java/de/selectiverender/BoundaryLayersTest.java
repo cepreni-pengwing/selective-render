@@ -2,6 +2,18 @@ package de.selectiverender;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class BoundaryLayersTest {
+    @Test void opaqueColorDoesNotEmitAnInvisibleCompetingUnderlay() {
+        var color=SelectiveRenderSettings.BoundaryMode.COLOR;
+        var texture=SelectiveRenderSettings.BoundaryMode.TEXTURE;
+        var normal=SelectiveRenderSettings.BoundaryMode.NORMAL;
+        var both=SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE;
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{color},BoundaryStyle.renderLayers(both,true,100));
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{color},BoundaryStyle.renderLayers(color,true,100));
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{texture},BoundaryStyle.renderLayers(both,true,0));
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{normal},BoundaryStyle.renderLayers(color,true,0));
+        assertEquals(0,BoundaryStyle.renderLayers(color,false,0).length);
+        assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{texture,color},BoundaryStyle.renderLayers(both,true,50));
+    }
     @Test void normalUnderlayIsOnlyEmittedWhenColorHasNoReplacementTexture() {
         var normal=SelectiveRenderSettings.BoundaryMode.NORMAL;
         var color=SelectiveRenderSettings.BoundaryMode.COLOR;
@@ -29,9 +41,9 @@ class BoundaryLayersTest {
         assertEquals(0xFF123456, BoundaryStyle.compose(0xFF123456, 0, 50, BoundaryStyle.layers(false, true)));
         assertEquals(0xFF123456, BoundaryStyle.compose(0xFF123456, 0, 0, BoundaryStyle.layers(false, false)));
     }
-    @Test void colorOverlayHasOnlyATinyOutwardDepthOffset() {
-        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)>0);
-        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR)<=1f / 256f);
+    @Test void layersKeepIdenticalPositionsAtEveryViewingDistance() {
+        assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR));
+
         assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.NORMAL));
         assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.TEXTURE));
     }
@@ -60,7 +72,7 @@ class BoundaryLayersTest {
     }
     @Test void textureAndColorAreSeparateDrawLayersInStableOrder() {
         assertArrayEquals(new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE,
-                SelectiveRenderSettings.BoundaryMode.COLOR}, BoundaryStyle.renderLayers(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE));
+                SelectiveRenderSettings.BoundaryMode.COLOR}, BoundaryStyle.renderLayers(SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE,true,50));
         assertFalse(BoundaryStyle.fullbright(SelectiveRenderSettings.BoundaryMode.TEXTURE));
     }
     private static void face(BoundaryQuadTracker tracker, float z, boolean reverse) {
@@ -73,12 +85,12 @@ class BoundaryLayersTest {
         assertTrue(tracker.accept(3)); face(tracker, 1, false); assertTrue(tracker.accept(2));
         tracker.reset(); face(tracker, 0, false); assertTrue(tracker.accept(2));
     }
-    @Test void nativeDecalPlanesShareOneColorOverlayWithoutMergingSeparateFaces() {
+    @Test void distinctPlanesAreNeverMergedByAnArbitraryDistanceTolerance() {
         var tracker = new BoundaryQuadTracker();
         face(tracker, 1, false); assertTrue(tracker.accept(2));
-        face(tracker, 1.001f, false); assertFalse(tracker.accept(2));
+        face(tracker, 1.001f, false); assertTrue(tracker.accept(2));
         face(tracker, 1.01f, false); assertTrue(tracker.accept(2));
-        assertTrue(BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR) > .001f);
+        assertEquals(0,BoundaryStyle.overlayOffset(SelectiveRenderSettings.BoundaryMode.COLOR));
     }
     @Test void differentAndNonFlatGeometryIsPreserved() {
         var tracker = new BoundaryQuadTracker(); face(tracker, 0, false); assertTrue(tracker.accept(2));

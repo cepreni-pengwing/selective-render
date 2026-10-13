@@ -7,7 +7,7 @@ public final class BoundaryStyle {
         return mode == SelectiveRenderSettings.BoundaryMode.COLOR && !BoundaryRenderContext.lighting();
     }
     public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode) {
-        return renderLayers(mode, BoundaryRenderContext.normal());
+        return renderLayers(mode, BoundaryRenderContext.normal(), BoundaryRenderContext.opacity());
     }
     public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode, boolean normal) {
         if (mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE)
@@ -16,9 +16,18 @@ public final class BoundaryStyle {
             return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL, mode};
         return new SelectiveRenderSettings.BoundaryMode[]{mode};
     }
-    /** Clear native model overlays and retain a representable separation in chunk-local vertices. */
+    public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode, boolean normal, int opacity) {
+        if (color(mode) && opacity >= 100) return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.COLOR};
+        if (color(mode) && opacity <= 0) {
+            if (texture(mode)) return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE};
+            return normal ? new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL}
+                    : new SelectiveRenderSettings.BoundaryMode[0];
+        }
+        return renderLayers(mode, normal);
+    }
+    /** Layers share exactly the same encoded geometry; world-space separation loses depth precision at distance. */
     public static float overlayOffset(SelectiveRenderSettings.BoundaryMode layer) {
-        return layer==SelectiveRenderSettings.BoundaryMode.COLOR ? 1f / 256f : 0f;
+        return 0f;
     }
     public static boolean visibleLayer(SelectiveRenderSettings.BoundaryMode mode) {
         return mode != SelectiveRenderSettings.BoundaryMode.COLOR || BoundaryRenderContext.opacity() > 0;
