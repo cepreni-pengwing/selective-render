@@ -16,6 +16,7 @@ final class VisualRegressionSmoke {
     private static java.util.concurrent.CompletableFuture<Void> ready;
     private static net.minecraft.world.entity.Entity originalCamera;
     private static RegionEditorScreen editor;
+    private static boolean originalHud;
     private VisualRegressionSmoke() { }
     static void tick(Minecraft client) {
         if (!ENABLED || client.level==null || client.player==null || finishing<0) return;
@@ -28,6 +29,7 @@ final class VisualRegressionSmoke {
         if (finishing>0) {
             if (--finishing==0) {
                 client.setCameraEntity(originalCamera);
+                if (client.gui.hud.isHidden()!=originalHud) client.gui.hud.toggle();
                 SelectiveRenderConfig.deleteRegion(client,LEFT); SelectiveRenderConfig.deleteRegion(client,NAME);
                 client.gui.setScreen(null); finishing=-1;
                 SelectiveRenderClient.LOGGER.info("[SR visual smoke] PASS: {} screenshots and widget/policy assertions", VisualScenarioPlan.CASES.length);
@@ -50,6 +52,7 @@ final class VisualRegressionSmoke {
         origin=new BlockPos(p.getX(),p.getY()+12,p.getZ());
         box=new BlockRegion(origin.getX()-4,origin.getX()+4,origin.getY(),origin.getY()+5,origin.getZ()+1,origin.getZ()+3);
         originalCamera=client.getCameraEntity();
+        originalHud=client.gui.hud.isHidden(); if (!originalHud) client.gui.hud.toggle();
         client.gui.setScreen(new SceneScreen("Preparing fixed boundary fixture"));
         ready=new java.util.concurrent.CompletableFuture<>();
         var dimension=client.level.dimension();
@@ -85,7 +88,7 @@ final class VisualRegressionSmoke {
         if (!scenario.ui()) {
             if (id.equals("11-only-stone")) SelectiveRenderConfig.setBlockFilter(client,NAME,new BlockFilterRule(BlockFilterRule.Mode.ONLY,BlockFilterRule.Kind.ID,"minecraft:stone"));
             if (id.equals("12-region-split")) {
-                var left=new BlockRegion(box.minX(),origin.getX()-1,box.minY(),box.maxY(),box.minZ(),box.maxZ());
+                var left=new BlockRegion(origin.getX()+1,box.maxX(),box.minY(),box.maxY(),box.minZ(),box.maxZ());
                 SelectiveRenderConfig.saveRegion(client,LEFT,left,false);
                 SelectiveRenderConfig.editRegion(client,client.level.dimension().identifier().toString(),LEFT,LEFT,java.util.List.of(left),false,true,java.util.List.of(),RegionOptions.DEFAULT.withColor(new RegionOptions.ColorLayer(true,0x0000FF,100,false,false)));
             }

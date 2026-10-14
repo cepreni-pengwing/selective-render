@@ -23,6 +23,7 @@ class VisualReportTest(unittest.TestCase):
             rgb=tuple(round(c*255) for c in report.colorsys.hsv_to_rgb(x/120,1,1))
             for y in range(80): rainbow.putpixel((x,y),rgb)
         images['09-rainbow']=rainbow
+        images['06-color-100'].paste((50,100,30),(30,12,90,20))
         split=Image.new('RGB',(120,80),(255,0,0))
         split.paste((0,0,255),(0,0,60,80))
         images['12-region-split']=split
@@ -43,6 +44,10 @@ class VisualReportTest(unittest.TestCase):
     def test_uniform_rainbow_is_detected(self):
         images=self.fixtures(); images['09-rainbow']=images['06-color-100'].copy()
         self.assertIn('Rainbow renders several hues',self.failed(images))
+
+    def test_retextured_grass_is_detected(self):
+        images=self.fixtures(); images['06-color-100']=Image.new('RGB',(120,80),(255,0,0))
+        self.assertIn('Grass decoration keeps its native material',self.failed(images))
 
     def test_region_color_leak_is_detected(self):
         images=self.fixtures(); images['12-region-split']=images['06-color-100'].copy()

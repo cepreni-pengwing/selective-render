@@ -144,6 +144,7 @@ jobs:
           overrideWidth:1280
           overrideHeight:720
           guiScale:2
+          tutorialStep:none
           EOF
 
       - name: Start client and join a singleplayer world
@@ -176,9 +177,6 @@ jobs:
             exit 1
           fi
           grep -q '\[SR reset smoke\] Two clicks clear overrides/filters and preserve region geometry/type/activation' run/logs/latest.log
-          if [[ '${{ matrix.minecraft }}' == '1.20.1' ]]; then
-            grep -q '\[SR rainbow smoke\] Terrain received distinct rainbow vertex colors' run/logs/latest.log
-          fi
           if ! grep -q '\[SR placement smoke\] Only-filtered air permits placement' run/logs/latest.log; then
             echo "Only-filter placement runtime smoke did not complete." >&2
             exit 1

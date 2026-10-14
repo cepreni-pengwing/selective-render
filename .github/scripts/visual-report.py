@@ -15,6 +15,14 @@ def mean(image, area=(.45,.45,.55,.55)):
     return ImageStat.Stat(image.convert("RGB").crop(tuple(round(v*n) for v,n in zip(area,(w,h,w,h))))).mean
 
 
+def foliage_pixels(image):
+    w,h=image.size
+    crop=image.convert("RGB").crop((round(w*.2),round(h*.1),round(w*.8),round(h*.45)))
+    # Native grass can be green or dry yellow/brown, depending on the biome.
+    # Red overlay and blue sky fail this band; both native grass tints pass.
+    return sum(g>35 and b<min(r,g)*.85 for r,g,b in crop.getdata())
+
+
 def check_world(images):
     checks=[]
     def check(name, passed, detail):
@@ -27,6 +35,10 @@ def check_world(images):
     check("Opacity changes the rendered image at every quarter",all(b[0]>a[0]+8 and b[1]<a[1]-4 for a,b in zip(levels,levels[1:])),str([[round(v,1) for v in value] for value in levels]))
     red=rgb["06-color-100"]
     check("100% Color is opaque red",red[0]>180 and red[1]<35 and red[2]<35,str([round(v,1) for v in red]))
+    foliage=foliage_pixels(images["06-color-100"])
+    only_foliage=foliage_pixels(images["11-only-stone"])
+    check("Grass decoration keeps its native material",foliage>150,f"Native foliage pixels: {foliage}")
+    check("Only stone removes grass decoration",only_foliage<10,f"Remaining foliage pixels: {only_foliage}")
     texture=rgb["07-texture"]; combined=rgb["08-texture-color"]
     check("Texture selects a cyan diamond-block face",texture[1]>texture[0]+15 and texture[2]>texture[0]+15,str([round(v,1) for v in texture]))
     check("Texture + Color blends both layers",texture[0]+8<combined[0]<red[0]-8 and red[1]+4<combined[1]<texture[1]-4,str([round(v,1) for v in combined]))
