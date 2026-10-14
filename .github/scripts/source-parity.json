@@ -8,7 +8,6 @@
     "BoundaryStyle.java",
     "BoundaryUv.java",
     "BuiltInBlockTags.java",
-    "compat/SelectiveRenderModMenu.java",
     "ConfigMigration.java",
     "ConfigRecovery.java",
     "FilterCompletion.java",
@@ -17,8 +16,6 @@
     "LightRebuildRange.java",
     "LightVolumeInfluence.java",
     "MenuNavigationState.java",
-    "mixin/ParticlePositionView.java",
-    "mixin/worldedit/CuiEventDispatcherMixin.java",
     "OptionRowLayout.java",
     "PerformanceDiagnostics.java",
     "PlayerRenderPolicy.java",
@@ -42,9 +39,13 @@
     "VirtualSkyActivation.java",
     "VisibilityRefreshPlan.java",
     "VisibleOccluderCache.java",
+    "VisualScenarioPlan.java",
     "WorldEditCuiBridge.java",
     "WorldEditSelection.java",
-    "WorldSessionLifecycle.java"
+    "WorldSessionLifecycle.java",
+    "compat/SelectiveRenderModMenu.java",
+    "mixin/ParticlePositionView.java",
+    "mixin/worldedit/CuiEventDispatcherMixin.java"
   ],
   "tests": [
     "de/selectiverender/BlockFilterRuleTest.java",

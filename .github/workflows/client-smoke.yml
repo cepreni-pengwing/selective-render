@@ -104,7 +104,7 @@ jobs:
           test -n "$jar"
           cp "$jar" run/mods/
           if [[ -n '${{ matrix.sodium }}' ]]; then
-            curl --fail --location --retry 3 \
+            curl --fail --location --retry 3 --retry-all-errors \
               --output "run/mods/sodium-${{ matrix.sodium }}.jar" \
               "https://api.modrinth.com/maven/maven/modrinth/sodium/${{ matrix.sodium }}/sodium-${{ matrix.sodium }}.jar"
           fi
@@ -116,10 +116,10 @@ jobs:
           WORLDEDIT_URL: ${{ matrix.worldedit_url }}
           WORLDEDIT_SHA: ${{ matrix.worldedit_sha }}
         run: |
-          curl --fail --location --retry 3 --output run/mods/worldedit.jar "$WORLDEDIT_URL"
+          curl --fail --location --retry 3 --retry-all-errors --output run/mods/worldedit.jar "$WORLDEDIT_URL"
           echo "$WORLDEDIT_SHA  run/mods/worldedit.jar" | sha512sum --check
           if [[ '${{ matrix.profile }}' == 'worldedit-cui' ]]; then
-            curl --fail --location --retry 3 --output run/mods/worldeditcui.jar \
+            curl --fail --location --retry 3 --retry-all-errors --output run/mods/worldeditcui.jar \
               'https://cdn.modrinth.com/data/NSLJJooQ/versions/2tNTyKzy/WorldEditCUI-1.20%2B01.jar'
             echo '69bc3930d79b440ce39e135739970ce9e94fa0aea9fb10b0a4b136b0983f5e8a691d926c9d693c905a6f1822a32564bfd5127056acb14a7d9082862e840cd88c  run/mods/worldeditcui.jar' | sha512sum --check
           fi
@@ -128,17 +128,27 @@ jobs:
         if: matrix.profile == 'connected-textures'
         shell: bash
         run: |
-          curl --fail --location --retry 3 --output run/mods/continuity.jar 'https://cdn.modrinth.com/data/1IjD5062/versions/qGTDcjHM/continuity-3.0.0%2B1.20.1.jar'
+          curl --fail --location --retry 3 --retry-all-errors --output run/mods/continuity.jar 'https://cdn.modrinth.com/data/1IjD5062/versions/qGTDcjHM/continuity-3.0.0%2B1.20.1.jar'
           echo '7205cae3c534fd5d5328a9659146911381c06e54da995aabd11745ad72def5bd5120b7cb792fab2e8dcaa4670c23bdba21079b8f6da94152cfc6ea4b415edcbf  run/mods/continuity.jar' | sha512sum --check
-          curl --fail --location --retry 3 --output run/mods/indium.jar 'https://cdn.modrinth.com/data/Orvt0mRa/versions/nQHYSjxO/indium-1.0.36%2Bmc1.20.1.jar'
+          curl --fail --location --retry 3 --retry-all-errors --output run/mods/indium.jar 'https://cdn.modrinth.com/data/Orvt0mRa/versions/nQHYSjxO/indium-1.0.36%2Bmc1.20.1.jar'
           echo '7c5a1851f1fc08ae69318e151d07151fabba6cda2a24616c9251e1a4e5b969453e88b97d60f926271d60e3511bfc6fa05a64a108466efb7f29bec4519547e0c9  run/mods/indium.jar' | sha512sum --check
-          curl --fail --location --retry 3 --output run/mods/iris.jar 'https://cdn.modrinth.com/data/YL57xq9U/versions/s5eFLITc/iris-1.7.6%2Bmc1.20.1.jar'
+          curl --fail --location --retry 3 --retry-all-errors --output run/mods/iris.jar 'https://cdn.modrinth.com/data/YL57xq9U/versions/s5eFLITc/iris-1.7.6%2Bmc1.20.1.jar'
           echo 'f1337b0441c31269bd3bfcb28647d521326a83e73128c1ac8d065615f8a5a4ca1e8c96a468b356584236ece5b164ec8d8a52b1878064f4e391ecf4f32885e301  run/mods/iris.jar' | sha512sum --check
           python3 .github/scripts/prepare-boundary-smoke-pack.py run
 
+      - name: Set visual test viewport
+        shell: bash
+        run: |
+          mkdir -p run
+          cat <<EOF >> run/options.txt
+          overrideWidth:1280
+          overrideHeight:720
+          guiScale:2
+          EOF
+
       - name: Start client and join a singleplayer world
         env:
-          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
+          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.visual.smoke=${{ matrix.profile == 'baseline' }} -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
         with:
           mc: ${{ matrix.minecraft }}
@@ -203,13 +213,41 @@ jobs:
             exit 1
           fi
 
+      - uses: actions/setup-python@v5
+        if: always()
+        with:
+          python-version: '3.12'
+
+      - name: Build offline gallery and check rendered pixels
+        if: always()
+        shell: bash
+        run: |
+          python3 -m pip install --disable-pip-version-check Pillow==11.3.0
+          PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-visual-report.py
+          extra=()
+          if [[ '${{ matrix.profile }}' == 'baseline' ]]; then
+            extra+=(--require-visual)
+          fi
+          python3 .github/scripts/visual-report.py run --version '${{ matrix.minecraft }}' --profile '${{ matrix.profile }}' "${extra[@]}"
+
       - name: Upload client logs and screenshots
+        id: evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: client-smoke-${{ matrix.minecraft }}-${{ matrix.profile }}
           if-no-files-found: ignore
+          retention-days: 7
           path: |
             run/logs/
             run/crash-reports/
             run/screenshots/
+            run/index.html
+            run/visual-results.json
+
+      - name: Link screenshot review package
+        if: always()
+        shell: bash
+        run: |
+          echo '### Minecraft ${{ matrix.minecraft }} / ${{ matrix.profile }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '[Download test pictures and report](${{ steps.evidence.outputs.artifact-url }}) — extract the ZIP and open index.html. Automatically expires after seven days.' >> "$GITHUB_STEP_SUMMARY"

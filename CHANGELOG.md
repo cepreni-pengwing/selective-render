@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.11.13
+
+- Added 21 opt-in in-game visual cases per baseline version with deterministic boundary fixtures and UI screenshots
+- Checked actual framebuffer colors, opacity progression, Texture + Color, Rainbow, regional/global color isolation and cut-face removal automatically
+- Added in-game widget bounds/overlap and palette visibility assertions, plus an offline HTML review gallery
+- Kept images outside Git and releases, with seven-day Actions artifact retention and download links in job summaries
+- Made dependency download retries cover transient connection errors and reduced random-spawn placement-test failures
+
 ## 1.11.12
 
 - Added a two-click Reset region button beside Delete region, restoring regional options offering Use global and clearing filters while preserving bounding boxes, name, type and activation

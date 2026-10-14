@@ -21,6 +21,7 @@ final class BoundaryRuntimeSmoke {
             assertBoundaryAlpha(false, 128);
             SelectiveRenderClient.LOGGER.info("[SR boundary smoke] COLOR 50%");
             BlockPos air = pos.up(2);
+            for (int dy=2;dy<=8 && !client.world.getBlockState(air).isAir();dy++) air=new BlockPos(pos.getX(),pos.getY()+dy,pos.getZ());
             if (client.world.getBlockState(air).isAir()) {
                 SelectiveRenderConfig.setBlockFilter(client, NAME, new BlockFilterRule(BlockFilterRule.Mode.ONLY, BlockFilterRule.Kind.ID, "minecraft:stone"));
                 SelectiveRenderSettings.setInteractWithHiddenRegions(false);
