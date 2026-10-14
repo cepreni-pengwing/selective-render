@@ -250,4 +250,4 @@ jobs:
         shell: bash
         run: |
           echo '### Minecraft ${{ matrix.minecraft }} / ${{ matrix.profile }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '[Download test pictures and report](${{ steps.evidence.outputs.artifact-url }}) — extract the ZIP and open index.html. Automatically expires after seven days.' >> "$GITHUB_STEP_SUMMARY"
+          echo '[Download test pictures and report](${{ steps.evidence.outputs.artifact-url }}) â€” extract the ZIP and open index.html. Automatically expires after seven days.' >> "$GITHUB_STEP_SUMMARY"
