@@ -103,7 +103,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             if (row.numeric() >= 4) {
                 int labelWidth = optionLabelWidth();
                 captions.add(new Caption(row.label(),y,labelWidth-12));
-                var field = new TextFieldWidget(textRenderer,paneLeft+labelWidth,y,Math.max(32,paneWidth-labelWidth),20,Text.literal(row.label()));
+                var field = new TextFieldWidget(textRenderer,paneLeft+labelWidth,y,Math.max(8,paneWidth-labelWidth),20,Text.literal(row.label()));
                 field.setMaxLength(32);
                 var grid = PlotGridClient.current();
                 String value = grid == null ? "" : row.numeric()==4 ? grid.x1()+" "+grid.z1()
@@ -284,7 +284,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             return true;
         } catch(IllegalArgumentException error) {
             gridError="Enter two X/Z coordinates and a nonnegative road width.";
-            for(var field:gridFields.values()) field.setEditableColor(UiStyle.ERROR);
+            for(var field:gridFields.values()) { field.setEditableColor(UiStyle.ERROR); field.setTooltip(Tooltip.of(Text.literal(gridError))); }
             return false;
         }
     }
@@ -353,6 +353,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         if ((reloadField != null && reloadField.isFocused())
                 || (plotHeightField != null && plotHeightField.isFocused())
                 || (plotMaximumField != null && plotMaximumField.isFocused())) return false;
+        if(gridFields.values().stream().anyMatch(field -> field.isFocused())) return false;
         int maximum = Math.max(0, rows.size() - visibleRows);
         int next = key == 268 ? 0 : key == 269 ? maximum
                 : Math.max(0, Math.min(maximum, scroll + (key == 266 ? -visibleRows : visibleRows)));
@@ -362,6 +363,14 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        for(var entry:gridFields.entrySet()) if(entry.getValue().isFocused()) {
+            if(keyCode==257 || keyCode==335) { if(commitGrid()) setFocused(null); return true; }
+            if(keyCode==256) {
+                var grid=PlotGridClient.current();
+                if(grid!=null) entry.getValue().setText(entry.getKey()==4?grid.x1()+" "+grid.z1():entry.getKey()==5?grid.x2()+" "+grid.z2():grid.roadWidth()==null?"":grid.roadWidth().toString());
+                entry.getValue().setEditableColor(0xFFFFFF); setFocused(null); return true;
+            }
+        }
         if (keyCode == 256) {
             if (reloadField != null && reloadField.isFocused()) {
                 reloadField.setText(Integer.toString(SelectiveRenderSettings.fullReloadThreshold()));

@@ -18,9 +18,9 @@ def mean(image, area=(.45,.45,.55,.55)):
 def foliage_pixels(image):
     w,h=image.size
     crop=image.convert("RGB").crop((round(w*.2),round(h*.1),round(w*.8),round(h*.45)))
-    # Native grass can be green or dry yellow/brown, depending on the biome.
-    # Red overlay and blue sky fail this band; both native grass tints pass.
-    return sum(g>35 and b<min(r,g)*.85 for r,g,b in crop.getdata())
+    # Native foliage can be green, dry brown or cold-biome blue/green.
+    # It remains dark and chromatic; neutral stone, bright sky/clouds and opaque red fail.
+    return sum(35<g<180 and r<180 and b<180 and max(r,g,b)-min(r,g,b)>10 for r,g,b in crop.getdata())
 
 
 def check_world(images):

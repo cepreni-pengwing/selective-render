@@ -108,6 +108,17 @@ final class VisualRegressionSmoke {
                 assertWidgets(page,0);
                 var fields=(java.util.Map<?,?>)field(page,"gridFields");
                 if(fields.size()!=3) throw new IllegalStateException("Plot grid must expose exactly three editable values");
+                if(id.equals("23-ui-grid-complete")) {
+                    var road=(net.minecraft.client.gui.widget.TextFieldWidget)fields.get(6);
+                    var commit=SelectiveRenderSettingsScreen.class.getDeclaredMethod("commitGrid"); commit.setAccessible(true);
+                    road.setText("-1");
+                    if((Boolean)commit.invoke(page) || !grid.equals(PlotGridClient.current())) throw new IllegalStateException("Invalid grid edit was accepted");
+                    road.setText("9");
+                    if(!(Boolean)commit.invoke(page) || PlotGridClient.current().roadWidth()!=9) throw new IllegalStateException("Grid menu did not save road edit");
+                    SelectiveRenderSettings.load();
+                    if(PlotGridClient.current().roadWidth()!=9) throw new IllegalStateException("Edited grid did not survive reload");
+                    road.setText("7"); commit.invoke(page);
+                }
                 return;
             }
             if (id.startsWith("13-") || id.startsWith("14-") || id.startsWith("15-")) {

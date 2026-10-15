@@ -35,6 +35,11 @@ class VisualReportTest(unittest.TestCase):
     def test_correct_blending_and_regions_pass(self):
         self.assertEqual([],self.failed(self.fixtures()))
 
+    def test_cold_biome_blue_green_grass_is_not_a_false_failure(self):
+        images=self.fixtures()
+        images['06-color-100'].paste((66,93,82),(30,12,90,20))
+        self.assertEqual([],self.failed(images))
+
     def test_opacity_collapsed_to_opaque_is_detected(self):
         images=self.fixtures()
         for key in ['03-color-25','04-color-50','05-color-75']:
