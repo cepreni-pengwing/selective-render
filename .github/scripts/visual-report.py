@@ -58,6 +58,12 @@ def check_world(images):
     return checks
 
 
+def grid_text_visible(image):
+    w,h=image.size
+    crop=image.convert("RGB").crop((round(w*.47),round(h*.247),round(w*.60),round(h*.267)))
+    return sum(min(r,g,b)>210 for r,g,b in crop.getdata())>10
+
+
 def main():
     args=argparse.ArgumentParser()
     args.add_argument("directory",type=Path)
@@ -79,6 +85,8 @@ def main():
         checks.append({"name":"Complete screenshot series","passed":not missing,"detail":f"{len(images)}/{len(scenarios)}; missing: {missing}"})
         if not missing and not options.ui_only:
             checks.extend(check_world(images))
+        if "23-ui-grid-complete" in images:
+            checks.append({"name":"Saved grid values remain visible", "passed":grid_text_visible(images["23-ui-grid-complete"]), "detail":"Visible text inside the first saved corner field"})
         log=options.directory/"logs/latest.log"
         checks.append({"name":"In-game widget and policy assertions completed","passed":log.exists() and "[SR visual smoke] PASS:" in log.read_text(errors="replace"),"detail":"Visible widget bounds/overlaps, palette visibility, cut-plane policy, reset confirmation"})
     else:

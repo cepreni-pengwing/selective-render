@@ -287,11 +287,11 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             if(gridFields.containsKey(5)) gridFields.get(5).setValue(next.x2()+" "+next.z2());
             if(gridFields.containsKey(6)) gridFields.get(6).setValue(next.roadWidth()==null?"":next.roadWidth().toString());
             gridError="";
-            for(var field:gridFields.values()) { field.setTextColor(0xFFFFFF); field.setTooltip(null); }
+            for(var field:gridFields.values()) { field.setTextColor(0xFFFFFFFF); field.setTooltip(null); }
             return true;
         } catch(IllegalArgumentException error) {
             gridError="Enter two X/Z coordinates and a nonnegative road width.";
-            for(var field:gridFields.values()) { field.setTextColor(UiStyle.ERROR); field.setTooltip(Tooltip.create(Component.literal(gridError))); }
+            for(var field:gridFields.values()) { field.setTextColor(0xFF000000 | UiStyle.ERROR); field.setTooltip(Tooltip.create(Component.literal(gridError))); }
             return false;
         }
     }
@@ -381,7 +381,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             if(event.key()==256) {
                 var grid=PlotGridClient.current();
                 if(grid!=null) entry.getValue().setValue(entry.getKey()==4?grid.x1()+" "+grid.z1():entry.getKey()==5?grid.x2()+" "+grid.z2():grid.roadWidth()==null?"":grid.roadWidth().toString());
-                entry.getValue().setTextColor(0xFFFFFF); setFocused(null); return true;
+                entry.getValue().setTextColor(0xFFFFFFFF); setFocused(null); return true;
             }
         }
         if (event.key() == 256) {

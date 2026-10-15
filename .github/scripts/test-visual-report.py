@@ -59,6 +59,12 @@ class VisualReportTest(unittest.TestCase):
         images['06-color-100'].paste((50,100,30),(44,29,72,34))
         self.assertIn('Opaque Color covers coplanar grass side overlays',self.failed(images))
 
+    def test_saved_grid_text_cannot_become_transparent(self):
+        image=Image.new('RGB',(1280,720),(0,0,0))
+        self.assertFalse(report.grid_text_visible(image))
+        image.paste((255,255,255),(610,180,625,188))
+        self.assertTrue(report.grid_text_visible(image))
+
     def test_region_color_leak_is_detected(self):
         images=self.fixtures(); images['12-region-split']=images['06-color-100'].copy()
         self.assertIn('Regional blue and global red stay independent',self.failed(images))
