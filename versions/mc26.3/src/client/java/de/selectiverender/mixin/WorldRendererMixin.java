@@ -52,7 +52,7 @@ abstract class WorldRendererMixin {
 
     @Inject(method = "isEntityVisible", at = @At("HEAD"), cancellable = true)
     private void selectiverender$filterEntity(Entity entity, Frustum frustum,
-            double x, double y, double z, CallbackInfoReturnable<Boolean> cir) {
+            double x, double y, double z, float tickDelta, long frame, CallbackInfoReturnable<Boolean> cir) {
         if (!SelectiveRenderState.shouldRender(entity)) cir.setReturnValue(false);
     }
 }
