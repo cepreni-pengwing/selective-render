@@ -237,9 +237,25 @@ jobs:
           EOF
 
       - name: Start client and join a singleplayer world
+        if: matrix.minecraft != '26.3'
         env:
           JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.visual.smoke=${{ needs.test-plan.outputs.visual == 'true' && matrix.profile == 'baseline' }} -Dselectiverender.visual.uiOnly=${{ inputs.visual != true }} -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
+        with:
+          mc: ${{ matrix.minecraft }}
+          java: ${{ matrix.java }}
+          modloader: fabric
+          regex: .*fabric.*
+          mc-runtime-test: fabric
+          fabric-api: ${{ matrix.fabric_api_minecraft && 'none' || matrix.fabric_api }}
+          cache-mc: github
+          xvfb: true
+
+      - name: Start 26.3 client and join a singleplayer world
+        if: matrix.minecraft == '26.3'
+        env:
+          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.visual.smoke=${{ needs.test-plan.outputs.visual == 'true' && matrix.profile == 'baseline' }} -Dselectiverender.visual.uiOnly=${{ inputs.visual != true }} -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
+        uses: headlesshq/mc-runtime-test@dfc8a2a0145f723b01abda5e1cf59eaba516d128 # 5.0.0
         with:
           mc: ${{ matrix.minecraft }}
           java: ${{ matrix.java }}
