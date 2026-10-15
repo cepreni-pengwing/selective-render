@@ -285,7 +285,7 @@ final class RegionEditorScreen extends Screen {
                     new Choice("Use global",overrides.inheritedColor()==null || overrides.inheritedColor().lighting()==null,()->target.inheritLighting()),
                     new Choice(target.lighting()?"On":"Off",false,()->target.setLighting(!target.lighting()))));
             override("Cull fluid faces",2,overrides.cullFluids(),new Object[]{false,true},new String[]{"Off","On"});
-            if(textureOn) field("Block texture","boundary-texture",target.texture(),true,value-> {
+            if(target.textureFieldVisible()) field("Block texture","boundary-texture",target.texture(),true,value-> {
                 var id=net.minecraft.util.Identifier.tryParse(value.trim());
                 if(id==null || !net.minecraft.registry.Registries.BLOCK.containsId(id))
                     throw new IllegalArgumentException("Unknown block ID");

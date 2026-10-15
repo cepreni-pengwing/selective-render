@@ -1,0 +1,22 @@
+package de.selectiverender.mixin.sodium.legacy;
+
+import de.selectiverender.SelectiveRenderState;
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Pseudo;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Pseudo
+@Mixin(targets = "net.caffeinemc.mods.sodium.client.render.chunk.lists.SectionCollector", remap = false)
+abstract class VisibleChunkCollectorMixin {
+    @Inject(
+            method = "visit(Lnet/caffeinemc/mods/sodium/client/render/chunk/RenderSection;I)V",
+            at = @At("HEAD"),
+            cancellable = true)
+    private void selectiverender$filterSection(RenderSection section, int flags, CallbackInfo ci) {
+        if (!SelectiveRenderState.shouldRenderSection(
+                section.getChunkX(), section.getChunkY(), section.getChunkZ())) ci.cancel();
+    }
+}

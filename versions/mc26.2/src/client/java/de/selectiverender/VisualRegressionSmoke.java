@@ -160,7 +160,15 @@ final class VisualRegressionSmoke {
                 var after=SelectiveRenderConfig.editorDocument(client,client.level.dimension().identifier().toString());
                 if (id.equals("19-ui-reset-confirm") && (!before.options().equals(after.options()) || !before.filters().equals(after.filters()))) throw new IllegalStateException("First reset click altered values");
                 if (id.equals("20-ui-reset-done") && (!after.filters().getOrDefault(NAME,java.util.List.of()).isEmpty() || !after.options().getOrDefault(NAME,RegionOptions.DEFAULT).equals(RegionOptions.DEFAULT))) throw new IllegalStateException("Second reset click did not restore inheritance");
-                assertWidgets(editor,-1); return;
+                var targetMethod=RegionEditorScreen.class.getDeclaredMethod("boundaryTarget"); targetMethod.setAccessible(true);
+            var target=(BoundaryEditorTarget)targetMethod.invoke(editor);
+            boolean textureRow=false;
+            for(var row:(java.util.List<?>)field(editor,"rows")) {
+                var label=row.getClass().getDeclaredMethod("label"); label.setAccessible(true);
+                if("Block texture".equals(label.invoke(row))) textureRow=true;
+            }
+            if(textureRow!=target.textureFieldVisible()) throw new IllegalStateException("Regional texture field ignored inheritance or Off");
+            assertWidgets(editor,-1); return;
             }
             boolean off=id.equals("17-ui-region-off");
             if (id.equals("16-ui-region-color") || off || id.equals("18-ui-reset-before")) {
@@ -175,6 +183,14 @@ final class VisualRegressionSmoke {
             if (!off && field(editor,"colorControls")==null) throw new IllegalStateException("Color On lost its regional palette");
             var listed=(java.util.List<RegionDocument>)field(editor,"documents");
             if(listed.stream().anyMatch(value -> !value.dimension().equals(client.level.dimension().identifier().toString()))) throw new IllegalStateException("Other dimension leaked into region menu");
+            var targetMethod=RegionEditorScreen.class.getDeclaredMethod("boundaryTarget"); targetMethod.setAccessible(true);
+            var target=(BoundaryEditorTarget)targetMethod.invoke(editor);
+            boolean textureRow=false;
+            for(var row:(java.util.List<?>)field(editor,"rows")) {
+                var label=row.getClass().getDeclaredMethod("label"); label.setAccessible(true);
+                if("Block texture".equals(label.invoke(row))) textureRow=true;
+            }
+            if(textureRow!=target.textureFieldVisible()) throw new IllegalStateException("Regional texture field ignored inheritance or Off");
             assertWidgets(editor,-1);
         } catch (ReflectiveOperationException error) { throw new IllegalStateException("Visual UI scenario failed",error); }
     }

@@ -1,5 +1,6 @@
 {
   "source": [
+    "BeamBlockCatalog.java",
     "BoundaryEditorTarget.java",
     "BoundaryModelScope.java",
     "BoundaryPlane.java",

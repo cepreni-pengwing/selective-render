@@ -1,0 +1,81 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version '1.17.20'
+}
+
+def releaseProperties = new Properties()
+file('../../gradle.properties').withInputStream { releaseProperties.load(it) }
+version = releaseProperties.getProperty('mod_version')
+group = releaseProperties.getProperty('maven_group')
+base { archivesName = 'selective-render-mc26.1.x' }
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://api.modrinth.com/maven' }
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    implementation "maven.modrinth:sodium:${sodium_version}"
+    compileOnly 'maven.modrinth:modmenu:18.0.2'
+    compileOnly 'maven.modrinth:N6n5dqoA:aZ3IOnv2'
+    compileOnly 'io.github.llamalad7:mixinextras-fabric:0.5.5'
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        selectiverender { sourceSet sourceSets.client }
+    }
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
+    withSourcesJar()
+}
+tasks.withType(JavaCompile).configureEach {
+    options.release = 25
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-Xmaxerrs', '1000']
+}
+tasks.withType(ProcessResources).configureEach {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+tasks.named('processClientResources', ProcessResources) {
+    from('../../docs/images/icon.png') { into 'assets/selectiverender' }
+    from('../../src/client/resources/assets') { into 'assets' }
+}
+sourceSets.test {
+    java.srcDir '../../src/test/java'
+    compileClasspath += sourceSets.client.output
+    runtimeClasspath += sourceSets.client.output
+}
+tasks.test { useJUnitPlatform() }
+
+// Reserved slots allow texture alpha without changing Sodium's vertex-light channel.
+tasks.named('processClientResources', ProcessResources) {
+    doLast {
+        (0..100).each { opacity ->
+            def pixel = new File(destinationDir, "assets/selectiverender/textures/block/boundary_alpha_${opacity}.png")
+            pixel.parentFile.mkdirs()
+            def bitmap = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            int argb = (((opacity * 255 + 50).intdiv(100)) << 24) | 0xFFFFFF
+            for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) bitmap.setRGB(x, y, argb)
+            javax.imageio.ImageIO.write(bitmap, 'png', pixel)
+        }
+        ['boundary_white': 16, 'boundary_rainbow': 256, 'boundary_texture': 128, 'boundary_combined': 128].each { name, size ->
+            def pixel = new File(destinationDir, "assets/selectiverender/textures/block/${name}.png")
+            pixel.parentFile.mkdirs()
+            def bitmap = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) bitmap.setRGB(x, y, -1)
+            javax.imageio.ImageIO.write(bitmap, 'png', pixel)
+        }
+    }
+}

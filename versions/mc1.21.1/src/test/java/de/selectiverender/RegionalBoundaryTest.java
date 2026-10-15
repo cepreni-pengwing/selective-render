@@ -6,6 +6,21 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class RegionalBoundaryTest {
+    @Test void textureInputRequiresAnExplicitEnabledRegionalTexture() throws Exception {
+        var mode=SelectiveRenderSettings.class.getDeclaredField("boundaryMode"); mode.setAccessible(true);
+        Object previous=mode.get(null); var options=new AtomicReference<>(RegionOptions.DEFAULT);
+        var target=new BoundaryEditorTarget(options::get,options::set);
+        try {
+            for(var value:new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL,SelectiveRenderSettings.BoundaryMode.TEXTURE}) {
+                mode.set(null,value); options.set(RegionOptions.DEFAULT);
+                assertFalse(target.textureFieldVisible());
+                target.setTextureEnabled(false); assertFalse(target.textureFieldVisible());
+                target.setTextureEnabled(true); assertTrue(target.textureFieldVisible());
+                target.inheritTexture(); assertFalse(target.textureFieldVisible());
+            }
+        } finally { mode.set(null,previous); }
+    }
+
     @Test void disabledLayersStayDisabledAcrossAppearanceAndInheritanceChanges() throws Exception {
         var field=SelectiveRenderSettings.class.getDeclaredField("boundaryMode"); field.setAccessible(true);
         var previous=field.get(null);

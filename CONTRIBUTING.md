@@ -1,11 +1,13 @@
 # Contributing
 
-Use Java 17 for Minecraft 1.20.1, Java 21 for Minecraft 1.21.1, and Java 25 for Minecraft 26.2:
+Use Java 17 for Minecraft 1.20.1, Java 21 for Minecraft 1.21.1, and Java 25 for Minecraft 26.x:
 
 ```bash
 ./gradlew build
 ./gradlew -p versions/mc1.21.1 build
+./versions/mc26.1/gradlew -p versions/mc26.1 build
 ./versions/mc26.2/gradlew -p versions/mc26.2 build
+./versions/mc26.3/gradlew -p versions/mc26.3 build
 ```
 
 Keep changes focused, preserve client-only behavior, and do not alter chunk loading, networking,
@@ -33,7 +35,7 @@ Shared pure logic and matching tests listed in `.github/scripts/source-parity.js
 ## Runtime and optional visual checks
 
 Every main push tests startup, world join, compatibility profiles and runtime assertions for all
-three versions. Screenshots are off for ordinary logic, docs and version changes. Menu changes
+seven Minecraft versions through five build targets. The 26.1.x target additionally tests Sodium 0.8.9 and 0.9.2. Screenshots are off for ordinary logic, docs and version changes. Menu changes
 automatically select only the UI screenshot scenarios on baseline profiles. No screenshots are
 created by the compatibility profiles.
 
@@ -53,3 +55,7 @@ Runtime assertions compare saved and temporary plot lighting/geometry under each
 check hidden interaction priority, grid setup/persistence and plot-clear aliases. Visual assertions
 check widget bounds, palette visibility, region reset, normalized grid values and automatic saving.
 These checks do not certify every resource pack, shader or far-distance camera angle.
+
+## Structural block catalog
+
+Regenerate the ID-only catalog with `.github/scripts/generate-beam-catalog.py --conquest PATH --architects PATH` using the installed mod JARs. Models are inspected only to exclude volume-building shapes; no third-party assets are distributed. Run `.github/scripts/test-beam-catalog.py` and source parity after regeneration.

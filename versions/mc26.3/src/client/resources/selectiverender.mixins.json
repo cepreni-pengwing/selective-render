@@ -1,0 +1,43 @@
+{
+  "required": true,
+  "package": "de.selectiverender.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "BoundarySpriteImagesAccess",
+    "iris.BoundaryShaderMetadataMixin",
+    "worldedit.CuiEventDispatcherMixin",
+    "WorldRendererMixin",
+    "LightCoordsMixin",
+    "ClientChunkManagerMixin",
+    "ClientWorldNetworkAccess",
+    "MinecraftClientMixin",
+    "ClientPlayerInteractionManagerMixin",
+    "RaycastContextMixin",
+    "EntityRendererMixin",
+    "GameRendererMixin",
+    "CameraSubmersionVisibilityMixin",
+    "ScreenEffectVisibilityMixin",
+    "LocalPlayerTargetMixin",
+    "BlockRenderManagerMixin",
+    "FluidBoundaryRendererMixin",
+    "BlockModelRendererMixin",
+    "BlockEntityRenderDispatcherMixin",
+    "ParticleManagerMixin",
+    "ParticleLightMixin",
+    "ParticlePositionView",
+    "SpecialParticleGroupMixin",
+    "axiom.RayCasterMixin",
+    "sodium.BlockRendererMixin",
+    "sodium.BlockOcclusionCacheMixin",
+    "sodium.FluidRendererMixin",
+    "sodium.OcclusionCullerMixin",
+    "sodium.VisibleChunkCollectorMixin",
+    "sodium.WorldSliceMixin",
+    "sodium.SectionManagerDiagnosticsMixin",
+    "sodium.MeshTaskDiagnosticsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "minVersion": "0.8"
+}

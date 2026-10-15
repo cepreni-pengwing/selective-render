@@ -6,6 +6,8 @@ Selective Render is a client-side Fabric mod for focusing the view on selected p
 
 ## Getting started
 
+Available builds cover Minecraft **1.20.1**, **1.21.1**, **26.1 / 26.1.1 / 26.1.2** (one shared JAR), **26.2**, and **26.3**. The 26.1.x JAR supports Sodium 0.8.9 and 0.9.2; use the Sodium release matching your Minecraft patch.
+
 Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with its default keybind, or open the Selective Render category in Controls to change bindings.
 
 To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then save it with `/sr create NAME`. You can also create a region from coordinates in one command, or use a cuboid selection supplied by WorldEdit. Saved regions can be enabled together, hidden, filtered, and organized independently.
@@ -51,7 +53,7 @@ To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`
 
 Keybinds shown in the table are defaults. The settings key is `#`, hide-group toggle is `F10`, and render-group toggle is `F9`. All other keybinds are Not Bound by default. Change them under **Options → Controls → Selective Render**.
 
-Filters accept block IDs and block tags known to the client. A built-in `selectiverender:beams` tag covers supported beam, lintel, and pole blocks from Conquest Reforged and Architects. Filtered blocks can follow the hidden-region interaction setting. Filters are visual/client-side and do not change server state or collision.
+Filters accept block IDs and block tags known to the client. A built-in `selectiverender:beams` tag covers 3,388 structural IDs from Conquest Reforged 1.7.0 and Architects 1.0.3, including branches, fences/gates, railings, doors, shelves and pipes. Full blocks, generic small blocks, layers, stairs, slabs and quarter/eighth shapes are excluded. Filtered blocks can follow the hidden-region interaction setting. Filters are visual/client-side and do not change server state or collision.
 
 ## Server plot integration
 

@@ -14,6 +14,7 @@ final class BoundaryEditorTarget {
     boolean normal() { return options().inheritedNormal()==null?SelectiveRenderSettings.boundaryNormal():options().inheritedNormal(); }
     void inheritNormal() { if(regional()) write.accept(options().withNormal(null)); }
     void setNormal(boolean value) { if(regional()) write.accept(options().withNormal(value)); else SelectiveRenderSettings.setBoundaryNormal(value); }
+    boolean textureFieldVisible() { return regional() && textureEnabled() && !textureGlobal(); }
     boolean textureGlobal() { return options().inheritedTexture()==null; }
     boolean colorGlobal() { return options().inheritedColor()==null; }
     boolean textureEnabled() { var layer=options().inheritedTexture(); return layer==null?BoundaryStyle.texture(SelectiveRenderSettings.boundaryMode()):layer.enabled(); }

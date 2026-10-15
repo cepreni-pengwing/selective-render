@@ -1,0 +1,112 @@
+package de.selectiverender;
+
+/** Renderer-independent color/opacity math. */
+public final class BoundaryStyle {
+    private BoundaryStyle() { }
+    public static boolean fullbright(SelectiveRenderSettings.BoundaryMode mode) {
+        return mode == SelectiveRenderSettings.BoundaryMode.COLOR && !BoundaryRenderContext.lighting();
+    }
+    public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode) {
+        return renderLayers(mode, BoundaryRenderContext.normal(), BoundaryRenderContext.opacity());
+    }
+    public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode, boolean normal) {
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE)
+            return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE, SelectiveRenderSettings.BoundaryMode.COLOR};
+        if (mode == SelectiveRenderSettings.BoundaryMode.COLOR && normal)
+            return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL, mode};
+        return new SelectiveRenderSettings.BoundaryMode[]{mode};
+    }
+    public static SelectiveRenderSettings.BoundaryMode[] renderLayers(SelectiveRenderSettings.BoundaryMode mode, boolean normal, int opacity) {
+        if (color(mode) && opacity >= 100) return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.COLOR};
+        if (color(mode) && opacity <= 0) {
+            if (texture(mode)) return new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.TEXTURE};
+            return normal ? new SelectiveRenderSettings.BoundaryMode[]{SelectiveRenderSettings.BoundaryMode.NORMAL}
+                    : new SelectiveRenderSettings.BoundaryMode[0];
+        }
+        return renderLayers(mode, normal);
+    }
+    /** Duplicate native texture/tint layers belong only to a visible NORMAL underlay. */
+    public static boolean nativeOverlay(SelectiveRenderSettings.BoundaryMode mode, boolean normal, int opacity) {
+        return mode == SelectiveRenderSettings.BoundaryMode.COLOR && normal && opacity < 100;
+    }
+    /** Layers share exactly the same encoded geometry; world-space separation loses depth precision at distance. */
+    public static float overlayOffset(SelectiveRenderSettings.BoundaryMode layer) {
+        return 0f;
+    }
+    public static boolean visibleLayer(SelectiveRenderSettings.BoundaryMode mode) {
+        return mode != SelectiveRenderSettings.BoundaryMode.COLOR || BoundaryRenderContext.opacity() > 0;
+    }
+    /** Every slider pixel is opaque, including its checkerboard-composited opacity preview. */
+    public static int sliderPixel(int kind, int x, int y, float hue, float saturation, float brightness) {
+        float f = Math.max(0, Math.min(255, x)) / 255f;
+        int color = kind == 0 ? hsv(f, 1, 1) : kind == 1 ? hsv(hue, f, brightness)
+                : kind == 2 ? hsv(hue, saturation, f) : hsv(hue, saturation, brightness);
+        if (kind == 3) {
+            int gray = ((x / 4 + y / 4) & 1) == 0 ? 0x55 : 0x99;
+            int r = Math.round(gray * (1 - f) + (color >> 16 & 255) * f);
+            int g = Math.round(gray * (1 - f) + (color >> 8 & 255) * f);
+            int b = Math.round(gray * (1 - f) + (color & 255) * f);
+            color = r << 16 | g << 8 | b;
+        }
+        return 0xFF000000 | color;
+    }
+    public static int previewPixel(int x, int y, float hue, float saturation, float brightness, int opacity, boolean rainbow) {
+        int color = hsv(rainbow ? x / 255f : hue, saturation, brightness);
+        float a = opacity(opacity) / 100f;
+        int gray = ((x / 4 + y / 4) & 1) == 0 ? 0x55 : 0x99;
+        int r = Math.round(gray * (1 - a) + (color >> 16 & 255) * a);
+        int g = Math.round(gray * (1 - a) + (color >> 8 & 255) * a);
+        int b = Math.round(gray * (1 - a) + (color & 255) * a);
+        return 0xFF000000 | r << 16 | g << 8 | b;
+    }
+    public static int opacity(int value) { return Math.max(0, Math.min(100, value)); }
+    public static int alpha(int percent) { return (opacity(percent) * 255 + 50) / 100; }
+    public static boolean color(SelectiveRenderSettings.BoundaryMode mode) {
+        return mode == SelectiveRenderSettings.BoundaryMode.COLOR || mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE;
+    }
+    public static boolean texture(SelectiveRenderSettings.BoundaryMode mode) {
+        return mode == SelectiveRenderSettings.BoundaryMode.TEXTURE || mode == SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE;
+    }
+    public static SelectiveRenderSettings.BoundaryMode layers(boolean color, boolean texture) {
+        return color ? (texture ? SelectiveRenderSettings.BoundaryMode.COLOR_TEXTURE : SelectiveRenderSettings.BoundaryMode.COLOR)
+                : (texture ? SelectiveRenderSettings.BoundaryMode.TEXTURE : SelectiveRenderSettings.BoundaryMode.NORMAL);
+    }
+    /** Straight-alpha color-over-texture composition; opacity affects Color only. */
+    public static int compose(int source, int rgb, int percent, SelectiveRenderSettings.BoundaryMode mode) {
+        if (mode == SelectiveRenderSettings.BoundaryMode.NORMAL) return source;
+        if (mode == SelectiveRenderSettings.BoundaryMode.CULLED) return 0;
+        int a = alpha(percent);
+        int bottomAlpha = texture(mode) ? source >>> 24 : 0;
+        if (!color(mode)) return source & 0xFFFFFF | bottomAlpha << 24;
+        if (a == 0) return texture(mode) ? source : 0;
+        double bottom = bottomAlpha / 255d * (1 - a / 255d), top = a / 255d, total = top + bottom;
+        int result = (int)Math.round(total * 255) << 24;
+        for (int shift = 0; shift <= 16; shift += 8) result |= (int)Math.round((((rgb >> shift) & 255) * top
+                + ((source >> shift) & 255) * bottom) / total) << shift;
+        return result;
+    }
+    /** ARGB <-> NativeImage's legacy ABGR representation (symmetric). */
+    public static int swapRedBlue(int value) { return value & 0xFF00FF00 | (value >> 16 & 255) | (value & 255) << 16; }
+    public static int hsv(float hue, float saturation, float value) {
+        hue = hue - (float)Math.floor(hue);
+        saturation = Math.max(0, Math.min(1, saturation)); value = Math.max(0, Math.min(1, value));
+        float h = hue * 6, f = h - (float)Math.floor(h), p = value * (1 - saturation);
+        float q = value * (1 - saturation * f), t = value * (1 - saturation * (1 - f));
+        float r, g, b;
+        switch ((int)h) {
+            case 0 -> { r = value; g = t; b = p; }
+            case 1 -> { r = q; g = value; b = p; }
+            case 2 -> { r = p; g = value; b = t; }
+            case 3 -> { r = p; g = q; b = value; }
+            case 4 -> { r = t; g = p; b = value; }
+            default -> { r = value; g = p; b = q; }
+        }
+        return Math.round(r * 255) << 16 | Math.round(g * 255) << 8 | Math.round(b * 255);
+    }
+    public static float[] hsv(int rgb) {
+        float r = (rgb >> 16 & 255) / 255f, g = (rgb >> 8 & 255) / 255f, b = (rgb & 255) / 255f;
+        float max = Math.max(r, Math.max(g, b)), min = Math.min(r, Math.min(g, b)), d = max - min;
+        float hue = d == 0 ? 0 : max == r ? ((g - b) / d + 6) % 6 : max == g ? (b - r) / d + 2 : (r - g) / d + 4;
+        return new float[]{hue / 6, max == 0 ? 0 : d / max, max};
+    }
+}
