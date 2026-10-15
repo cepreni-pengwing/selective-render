@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      ui:
+        description: 'Run only menu screenshots'
+        type: boolean
+        default: false
       visual:
         description: 'Run screenshot and visual simulation tests'
         type: boolean
@@ -31,7 +35,7 @@ jobs:
         env:
           VISUAL_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
           VISUAL_HEAD: ${{ github.sha }}
-          VISUAL_REQUESTED: ${{ inputs.visual || false }}
+          VISUAL_REQUESTED: ${{ inputs.visual || inputs.ui || false }}
         run: python3 .github/scripts/select-visual-tests.py >> "$GITHUB_OUTPUT"
   world-join:
     needs: test-plan
