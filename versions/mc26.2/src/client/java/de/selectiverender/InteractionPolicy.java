@@ -18,6 +18,10 @@ final class InteractionPolicy {
         };
     }
 
+    static Boolean hiddenOverride(boolean hiddenRegion, boolean filteredOut, boolean allowed) {
+        return hiddenRegion || filteredOut ? Boolean.valueOf(allowed) : null;
+    }
+
     static boolean allowsHiddenBlock(boolean hiddenRegion, boolean filteredOut,
                                      boolean interactWithHiddenRegions) {
         return interactWithHiddenRegions || (!hiddenRegion && !filteredOut);

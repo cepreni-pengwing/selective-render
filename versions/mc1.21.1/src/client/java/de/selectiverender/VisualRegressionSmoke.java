@@ -9,6 +9,8 @@ import net.minecraft.block.Blocks;
 /** Destructive fixtures are strictly opt-in, integrated-server-only, disposable CI test worlds. */
 final class VisualRegressionSmoke {
     private static final boolean ENABLED=Boolean.getBoolean("selectiverender.visual.smoke");
+    private static final VisualScenarioPlan.Case[] SCENARIOS=java.util.Arrays.stream(VisualScenarioPlan.CASES)
+            .filter(value -> !Boolean.getBoolean("selectiverender.visual.uiOnly") || value.ui()).toArray(VisualScenarioPlan.Case[]::new);
     private static final String NAME="__sr_visual_fixture__", LEFT="__sr_visual_left__";
     private static int ticks, index=-1, age, finishing;
     private static BlockPos origin;
@@ -33,23 +35,23 @@ final class VisualRegressionSmoke {
                 SelectiveRenderConfig.deleteRegion(client,LEFT); SelectiveRenderConfig.deleteRegion(client,NAME);
                 PlotGridClient.save(null);
                 client.setScreen(null); finishing=-1;
-                SelectiveRenderClient.LOGGER.info("[SR visual smoke] PASS: {} screenshots and widget/policy assertions", VisualScenarioPlan.CASES.length);
+                SelectiveRenderClient.LOGGER.info("[SR visual smoke] PASS: {} screenshots and widget/policy assertions", SCENARIOS.length);
             }
             return;
         }
         if (index<0) {
             if (!fixtureDelivered(client)) return;
-            index=0; configure(client,VisualScenarioPlan.CASES[index]);
+            index=0; configure(client,SCENARIOS[index]);
             // Network updates can arrive after the server task completes; rebuild only after all cells match.
             client.worldRenderer.reload();
         }
-        var scenario=VisualScenarioPlan.CASES[index];
-        if (++age<(index==0?120:scenario.ui()?10:40)) return;
+        var scenario=SCENARIOS[index];
+        if (++age<(index==0&&!scenario.ui()?120:scenario.ui()?10:40)) return;
         capture(client,"sr-visual-"+scenario.id()+".png");
         SelectiveRenderClient.LOGGER.info("[SR visual smoke] CAPTURE {}",scenario.id());
         age=0;
-        if (++index==VisualScenarioPlan.CASES.length) { finishing=10; return; }
-        configure(client,VisualScenarioPlan.CASES[index]);
+        if (++index==SCENARIOS.length) { finishing=10; return; }
+        configure(client,SCENARIOS[index]);
     }
     private static boolean fixtureDelivered(MinecraftClient client) {
         for(int x=-4;x<=4;x++) for(int y=0;y<=7;y++) for(int z=0;z<=3;z++) {
@@ -113,20 +115,25 @@ final class VisualRegressionSmoke {
         }
         try {
             if (id.equals("22-ui-grid-partial") || id.equals("23-ui-grid-complete")) {
-                var grid=new PlotGrid(-32,-32,-1,-1,id.equals("22-ui-grid-partial")?null:Integer.valueOf(7),true);
+                var grid=new PlotGrid(-32,-32,-1,-1,id.equals("22-ui-grid-partial")?null:Integer.valueOf(7),true).normalized();
                 PlotGridClient.save(grid);
                 var page=new SelectiveRenderSettingsScreen(null,SelectiveRenderSettingsScreen.Tab.PLOTS,null,0);
                 client.setScreen(page);
                 assertWidgets(page,0);
                 var fields=(java.util.Map<?,?>)field(page,"gridFields");
                 if(fields.size()!=3) throw new IllegalStateException("Plot grid must expose exactly three editable values");
+                for(var child:page.children()) if(child instanceof net.minecraft.client.gui.widget.ClickableWidget button) {
+                    if(button.getMessage().getString().equals("Save grid")) throw new IllegalStateException("Redundant save-grid button remained");
+                    if(button.getMessage().getString().equals("Delete grid") && button.getY()!=36) throw new IllegalStateException("Delete grid is not at the top");
+                }
                 if(id.equals("23-ui-grid-complete")) {
                     var road=(net.minecraft.client.gui.widget.TextFieldWidget)fields.get(6);
                     var commit=SelectiveRenderSettingsScreen.class.getDeclaredMethod("commitGrid"); commit.setAccessible(true);
                     road.setText("-1");
                     if((Boolean)commit.invoke(page) || !grid.equals(PlotGridClient.current())) throw new IllegalStateException("Invalid grid edit was accepted");
-                    road.setText("9");
-                    if(!(Boolean)commit.invoke(page) || PlotGridClient.current().roadWidth()!=9) throw new IllegalStateException("Grid menu did not save road edit");
+                    page.setFocused(road); page.tick(); road.setText("9");
+                    page.setFocused(null); page.tick();
+                    if(PlotGridClient.current().roadWidth()!=9) throw new IllegalStateException("Grid menu did not save road edit");
                     SelectiveRenderSettings.load();
                     if(PlotGridClient.current().roadWidth()!=9) throw new IllegalStateException("Edited grid did not survive reload");
                     road.setText("7"); commit.invoke(page);
@@ -157,6 +164,8 @@ final class VisualRegressionSmoke {
             field(editor,"scroll",id.equals("18-ui-reset-before")?0:Integer.MAX_VALUE); editor.init();
             if (off && field(editor,"colorControls")!=null) throw new IllegalStateException("Color Off retained the regional palette");
             if (!off && field(editor,"colorControls")==null) throw new IllegalStateException("Color On lost its regional palette");
+            var listed=(java.util.List<RegionDocument>)field(editor,"documents");
+            if(listed.stream().anyMatch(value -> !value.dimension().equals(client.world.getRegistryKey().getValue().toString()))) throw new IllegalStateException("Other dimension leaked into region menu");
             assertWidgets(editor,-1);
         } catch (ReflectiveOperationException error) { throw new IllegalStateException("Visual UI scenario failed",error); }
     }

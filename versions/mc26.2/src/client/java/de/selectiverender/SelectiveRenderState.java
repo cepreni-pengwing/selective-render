@@ -348,8 +348,9 @@ public final class SelectiveRenderState {
         RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
         boolean hiddenAllowed = options.hiddenInteractions() == null
                 ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
-        if (!InteractionPolicy.allowsHiddenBlock(isActivelyHidden(position),
-                !hiddenAllowed && isFilteredOut(position), hiddenAllowed)) return false;
+        boolean hidden=isActivelyHidden(position);
+        Boolean hiddenOverride=InteractionPolicy.hiddenOverride(hidden,!hidden && isFilteredOut(position),hiddenAllowed);
+        if(hiddenOverride!=null) return hiddenOverride;
         return allowsInteractionAt(options, x, y, z, hiddenAllowed);
     }
     /** Empty destinations still obey region geometry, but are not hidden block content. */
@@ -360,7 +361,7 @@ public final class SelectiveRenderState {
         RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
         boolean hiddenAllowed = options.hiddenInteractions() == null
                 ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
-        if (isActivelyHidden(position) && !hiddenAllowed) return false;
+        if (isActivelyHidden(position)) return hiddenAllowed;
         return allowsInteractionAt(options, x, y, z, hiddenAllowed);
     }
     private static boolean allowsInteractionAt(RegionOptions options, int x, int y, int z, boolean hiddenAllowed) {
@@ -407,12 +408,11 @@ public final class SelectiveRenderState {
         RegionOptions options = SelectiveRenderConfig.optionsAt(x, y, z);
         boolean hiddenAllowed = options.hiddenInteractions() == null
                 ? SelectiveRenderSettings.interactWithHiddenRegions() : options.hiddenInteractions();
-        if (!hiddenAllowed) {
-            if (isActivelyHidden(x,y,z)) return false;
-            if (!(entity instanceof Player)) for (FilteredRegion filtered : visibility.filteredRegions()) {
-                if (filtered.excludesEntities(x,y,z)) return false;
-            }
+        boolean hidden=isActivelyHidden(x,y,z);
+        if(!hidden && !(entity instanceof Player)) for(FilteredRegion filtered:visibility.filteredRegions()) {
+            if(filtered.excludesEntities(x,y,z)) { hidden=true; break; }
         }
+        if(hidden) return hiddenAllowed;
         return allowsInteractionAt(options, x, y, z, hiddenAllowed);
     }
 

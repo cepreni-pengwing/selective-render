@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 .github/scripts/check-source-parity.py
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-visual-selection.py
   build-1-20-1:
     runs-on: ubuntu-latest
     strategy:

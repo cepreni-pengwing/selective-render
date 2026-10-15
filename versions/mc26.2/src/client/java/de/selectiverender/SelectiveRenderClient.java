@@ -49,6 +49,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             "key.selectiverender.toggle_plot",
             GLFW.GLFW_KEY_UNKNOWN,
             KEY_CATEGORY);
+    private static final KeyMapping PLOT_CLEAR_KEY = new KeyMapping(
+            "key.selectiverender.clear_plots",
+            GLFW.GLFW_KEY_UNKNOWN,
+            KEY_CATEGORY);
     private static final KeyMapping SETTINGS_KEY = new KeyMapping(
             "key.selectiverender.settings",
             GLFW.GLFW_KEY_APOSTROPHE,
@@ -85,6 +89,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         KeyMappingHelper.registerKeyMapping(TOGGLE_KEY);
         KeyMappingHelper.registerKeyMapping(HIDE_TOGGLE_KEY);
         KeyMappingHelper.registerKeyMapping(PLOT_TOGGLE_KEY);
+        KeyMappingHelper.registerKeyMapping(PLOT_CLEAR_KEY);
         KeyMappingHelper.registerKeyMapping(SETTINGS_KEY);
         KeyMappingHelper.registerKeyMapping(BLOCK_FILTERS_KEY);
         ClientTickEvents.START_CLIENT_TICK.register(client -> PerformanceDiagnostics.tickStart());
@@ -98,6 +103,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             while (TOGGLE_KEY.consumeClick()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.consumeClick()) toggleHideFromKey(client);
             while (PLOT_TOGGLE_KEY.consumeClick()) PlotSquaredClient.toggle();
+            while (PLOT_CLEAR_KEY.consumeClick()) PlotSquaredClient.clear();
             while (BLOCK_FILTERS_KEY.consumeClick()) toggleBlockFilters();
             while (SETTINGS_KEY.consumeClick()) {
                 if (client.gui.screen() == null) {
@@ -300,6 +306,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     return Command.SINGLE_SUCCESS;
                 }))
                 .then(ClientCommands.literal("clear").executes(context -> PlotSquaredClient.clear()))
+                .then(ClientCommands.literal("c").executes(context -> PlotSquaredClient.clear()))
                 .then(ClientCommands.argument("minY", IntegerArgumentType.integer())
                         .executes(context -> PlotSquaredClient.toggle(
                                 IntegerArgumentType.getInteger(context, "minY"),

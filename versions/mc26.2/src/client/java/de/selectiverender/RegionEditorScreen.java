@@ -47,6 +47,12 @@ final class RegionEditorScreen extends Screen {
         this.parent = parent;
     }
 
+    private List<RegionDocument> currentDocuments() {
+        if(minecraft.level==null) return List.of();
+        String dimension=minecraft.level.dimension().identifier().toString();
+        return SelectiveRenderConfig.editorDocuments(minecraft).stream().filter(value -> value.dimension().equals(dimension)).toList();
+    }
+
     @Override
     public void removed() {
         var state = SelectiveRenderSettings.menuNavigation();
@@ -69,7 +75,7 @@ final class RegionEditorScreen extends Screen {
         clearWidgets();
         inputs.clear(); captions.clear(); rows.clear(); newFilterInput = null; filterEdits.clear();
         if (!documentsLoaded) {
-            documents = SelectiveRenderConfig.editorDocuments(minecraft);
+            documents = currentDocuments();
             documentsLoaded = true;
         }
         if (minecraft.level != null && context == null) context = SelectiveRenderConfig.contextIdentity(minecraft, minecraft.level);
@@ -110,8 +116,7 @@ final class RegionEditorScreen extends Screen {
         }
         List<Navigation> navigation = new ArrayList<>();
         for (RegionDocument value : documents) {
-            navigation.add(new Navigation(value.dimension(), null));
-            if (!collapsed.contains(value.dimension())) for (String name : value.regions().keySet()) {
+            for (String name : value.regions().keySet()) {
                 navigation.add(new Navigation(value.dimension(), name));
             }
         }
@@ -140,12 +145,12 @@ final class RegionEditorScreen extends Screen {
                             listedDocument.regions().get(entry.name()), listedDocument.hidden().contains(entry.name()), !listedSelected,
                             listedDocument.filters().getOrDefault(entry.name(), List.of()),
                             listedDocument.options().getOrDefault(entry.name(), RegionOptions.DEFAULT));
-                    documents = SelectiveRenderConfig.editorDocuments(minecraft);
+                    documents = currentDocuments();
                 })).bounds(navLeft + navWidth - 44, 36 + (i - navScroll) * 24, 44, 20).build());
             }
 
         }
-        if (document == null) info("No saved regions in this world or server");
+        if (document == null) info("No saved regions in this dimension");
         else buildRows();
         scroll = Math.max(0, Math.min(scroll, Math.max(0, rows.size() - visibleRows)));
         for (int i = scroll; i < Math.min(rows.size(), scroll + visibleRows); i++) {
@@ -217,7 +222,7 @@ final class RegionEditorScreen extends Screen {
         SelectiveRenderConfig.editRegion(minecraft, document.dimension(), region, region,
                 boxes(), hidden(), selected(), List.of(),
                 RegionOptions.DEFAULT.with(0, document.options().getOrDefault(region, RegionOptions.DEFAULT).filtersEnabled()));
-        documents = SelectiveRenderConfig.editorDocuments(minecraft);
+        documents = currentDocuments();
         resetArmed = false; addingFilter = false;
     }
 
@@ -229,7 +234,7 @@ final class RegionEditorScreen extends Screen {
                 throw new IllegalArgumentException("The world changed; reopen the region editor");
             }
             SelectiveRenderConfig.deleteEditorRegion(minecraft, document.dimension(), region);
-            documents = SelectiveRenderConfig.editorDocuments(minecraft);
+            documents = currentDocuments();
             deletionArmed = false; resetArmed = false; scroll = 0; navScroll = 0; filtersOpen = false; boxesOpen = false;
         }), new Choice(resetArmed ? "Confirm reset" : "Reset region", false, this::resetRegion)), null, 0));
         field("Name", "name", region, false, value -> save(value, boxes(), hidden(), selected(), rules()));
@@ -276,7 +281,7 @@ final class RegionEditorScreen extends Screen {
                     new Choice(textureOn?"On":"Off",false,()->target.setTextureEnabled(!textureOn))));
             options("Color",List.of(new Choice("Use global",target.colorGlobal(),target::inheritColor),
                     new Choice(colorOn?"On":"Off",false,()->target.setColorEnabled(!colorOn))));
-            if(colorOn) options("Color lighting",List.of(
+            if(colorOn) options("Shade overlay",List.of(
                     new Choice("Use global",overrides.inheritedColor()==null || overrides.inheritedColor().lighting()==null,()->target.inheritLighting()),
                     new Choice(target.lighting()?"On":"Off",false,()->target.setLighting(!target.lighting()))));
             override("Cull fluid faces",2,overrides.cullFluids(),new Object[]{false,true},new String[]{"Off","On"});

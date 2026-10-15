@@ -14,7 +14,7 @@ final class PlotGridClient {
     static PlotGrid current() { var key=context(); return key==null?null:SelectiveRenderSettings.plotGrid(key); }
     static void save(PlotGrid grid) {
         var key=context();
-        if(key!=null) { SelectiveRenderSettings.setPlotGrid(key,grid); STEPS.remove(key); PlotSquaredClient.clearGridPlots(); }
+        if(key!=null) { SelectiveRenderSettings.setPlotGrid(key,grid==null?null:grid.normalized()); STEPS.remove(key); PlotSquaredClient.clearGridPlots(); }
     }
     static String setup(BlockRegion selection) {
         var key=context();

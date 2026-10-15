@@ -4,6 +4,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class InteractionPolicyTest {
+    @Test void hiddenAccessHasPriorityOverEveryGeneralScope() {
+        for(var mode:SelectiveRenderSettings.InteractionMode.values()) for(boolean inside:new boolean[]{false,true})
+            for(boolean allowed:new boolean[]{false,true}) {
+                Boolean hidden=InteractionPolicy.hiddenOverride(true,false,allowed);
+                assertEquals(allowed, hidden!=null?hidden:InteractionPolicy.allows(mode,inside));
+                assertEquals(allowed,InteractionPolicy.hiddenOverride(false,true,allowed));
+                assertNull(InteractionPolicy.hiddenOverride(false,false,allowed));
+            }
+    }
     @Test void noOpModeWinsUnlessInactiveFilteringIsExplicitlyEnabled() {
         var inside = SelectiveRenderSettings.InteractionMode.INSIDE;
         assertFalse(InteractionPolicy.active(inside, false, false, true));

@@ -8,7 +8,7 @@ class PlotGridTest {
         for(var neighbor:new PlotGrid[]{new PlotGrid(20,0,35,23,null,true),new PlotGrid(-20,0,-5,23,null,true),
                 new PlotGrid(0,28,15,51,null,true),new PlotGrid(0,-28,15,-5,null,true)}) {
             var grid=first.identifyNeighbor(neighbor);
-            assertEquals(4,grid.roadWidth()); assertEquals(first.x1(),grid.x1()); assertEquals(first.z2(),grid.z2());
+            assertEquals(4,grid.roadWidth()); assertEquals(first.minX(),grid.x1()); assertEquals(first.maxZ(),grid.z2());
         }
     }
     @Test void plotsAndRoadsRepeatCorrectlyAcrossZeroAndNegativeCoordinates() {
@@ -19,6 +19,15 @@ class PlotGridTest {
             if(dx>=16 || dz>=24) assertNull(result);
             else assertArrayEquals(new int[]{x-dx,x-dx+15,z-dz,z-dz+23},result);
         }
+    }
+    @Test void normalizedGridKeepsEveryPlotAndRoadAtTheSameWorldCoordinates() {
+        var original=new PlotGrid(-157,847,-142,870,4,true);
+        var normalized=original.normalized();
+        assertEquals(3,normalized.x1()); assertEquals(7,normalized.z1());
+        assertEquals(18,normalized.x2()); assertEquals(30,normalized.z2());
+        assertEquals(normalized,normalized.normalized());
+        for(int x=-250;x<=250;x++) for(int z=-50;z<=50;z++)
+            assertArrayEquals(original.plotAt(x,z),normalized.plotAt(x,z));
     }
     @Test void missingRoadIsDifferentFromZeroWidthRoad() {
         var grid=new PlotGrid(0,0,15,15,null,true);

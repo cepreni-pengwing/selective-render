@@ -70,7 +70,7 @@ final class BoundaryAppearanceScreen extends Screen {
                 inherit.active=color? !target.colorGlobal():!target.textureGlobal(); clip(inherit);
             }
         }
-        var lighting = addDrawableChild(ButtonWidget.builder(Text.literal("Color lighting: " + (target.lighting() ? "On" : "Off")), button -> {
+        var lighting = addDrawableChild(ButtonWidget.builder(Text.literal("Shade overlay: " + (target.lighting() ? "On" : "Off")), button -> {
             if(!commit()) return; target.setLighting(!target.lighting()); rebuild();
         }).dimensions(middle, (target.regional()?186:130) - scroll, size, 20).build()); clip(lighting); lighting.visible &= colorVisible;
         var fluids = addDrawableChild(ButtonWidget.builder(Text.literal("Cull fluids: " + (target.cullFluids() ? "On" : "Off")), button -> {

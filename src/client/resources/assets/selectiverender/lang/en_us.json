@@ -2,7 +2,8 @@
   "category.selectiverender": "Selective Render",
   "key.selectiverender.toggle": "Toggle render group",
   "key.selectiverender.toggle_hide": "Toggle hide group",
-  "key.selectiverender.toggle_plot": "Toggle PlotSquared region",
+  "key.selectiverender.toggle_plot": "Toggle current plot",
   "key.selectiverender.settings": "Open settings",
-  "key.selectiverender.toggle_block_filters": "Toggle all block filters"
+  "key.selectiverender.toggle_block_filters": "Toggle all block filters",
+  "key.selectiverender.clear_plots": "Clear temporary plots"
 }

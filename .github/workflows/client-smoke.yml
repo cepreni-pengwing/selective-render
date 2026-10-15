@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      visual:
+        description: 'Run screenshot and visual simulation tests'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -14,7 +19,22 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test-plan:
+    runs-on: ubuntu-latest
+    outputs:
+      visual: ${{ steps.select.outputs.visual }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: select
+        env:
+          VISUAL_BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          VISUAL_HEAD: ${{ github.sha }}
+          VISUAL_REQUESTED: ${{ inputs.visual || false }}
+        run: python3 .github/scripts/select-visual-tests.py >> "$GITHUB_OUTPUT"
   world-join:
+    needs: test-plan
     name: Minecraft ${{ matrix.minecraft }} / ${{ matrix.profile }} world join
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -149,7 +169,7 @@ jobs:
 
       - name: Start client and join a singleplayer world
         env:
-          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.visual.smoke=${{ matrix.profile == 'baseline' }} -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
+          JAVA_TOOL_OPTIONS: -Dselectiverender.performance.auto=true -Dselectiverender.boundary.smoke=true -Dselectiverender.visual.smoke=${{ needs.test-plan.outputs.visual == 'true' && matrix.profile == 'baseline' }} -Dselectiverender.visual.uiOnly=${{ inputs.visual != true }} -Dselectiverender.ctm.smoke=${{ matrix.profile == 'connected-textures' }}
         uses: headlesshq/mc-runtime-test@fbafe02f89f4f13682e7b16dbcee6b6a43f4faca # 4.5.1
         with:
           mc: ${{ matrix.minecraft }}
@@ -177,6 +197,7 @@ jobs:
             exit 1
           fi
           grep -q '\[SR grid smoke\] PASS:' run/logs/latest.log
+          grep -q '\[SR plot parity smoke\] PASS:' run/logs/latest.log
           grep -q '\[SR reset smoke\] Two clicks clear overrides/filters and preserve region geometry/type/activation' run/logs/latest.log
           if ! grep -q '\[SR placement smoke\] Only-filtered air permits placement' run/logs/latest.log; then
             echo "Only-filter placement runtime smoke did not complete." >&2
@@ -213,12 +234,12 @@ jobs:
           fi
 
       - uses: actions/setup-python@v5
-        if: always()
+        if: always() && needs.test-plan.outputs.visual == 'true' && matrix.profile == 'baseline'
         with:
           python-version: '3.12'
 
       - name: Build offline gallery and check rendered pixels
-        if: always()
+        if: always() && needs.test-plan.outputs.visual == 'true' && matrix.profile == 'baseline'
         shell: bash
         run: |
           python3 -m pip install --disable-pip-version-check Pillow==11.3.0
@@ -226,6 +247,7 @@ jobs:
           extra=()
           if [[ '${{ matrix.profile }}' == 'baseline' ]]; then
             extra+=(--require-visual)
+            if [[ '${{ inputs.visual }}' != 'true' ]]; then extra+=(--ui-only); fi
           fi
           python3 .github/scripts/visual-report.py run --version '${{ matrix.minecraft }}' --profile '${{ matrix.profile }}' "${extra[@]}"
 
@@ -249,4 +271,4 @@ jobs:
         shell: bash
         run: |
           echo '### Minecraft ${{ matrix.minecraft }} / ${{ matrix.profile }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '[Download test pictures and report](${{ steps.evidence.outputs.artifact-url }}) — extract the ZIP and open index.html. Automatically expires after seven days.' >> "$GITHUB_STEP_SUMMARY"
+          echo '[Download test evidence](${{ steps.evidence.outputs.artifact-url }}) — logs are always included; screenshot runs also contain index.html. Automatically expires after seven days.' >> "$GITHUB_STEP_SUMMARY"

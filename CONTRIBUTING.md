@@ -30,26 +30,26 @@ Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Shared pure logic and matching tests listed in `.github/scripts/source-parity.json` must stay in sync across their version roots. Run `python .github/scripts/check-source-parity.py` before publishing; mappings and renderer APIs remain version-specific. Update the manifest explicitly if a listed file needs an intentional version difference.
 
-## Automated visual checks
+## Runtime and optional visual checks
 
-The client workflow runs a shared 21-case visual plan on the three baseline versions: a fixed
-stone/dirt/glass/grass fixture, Normal, Color 0/25/50/75/100, Texture, Texture + Color,
-Rainbow, Culled, Only stone, regional/global colors, and UI palette/inheritance/reset states.
-Visible widget bounds and overlaps, cut/interior policy and reset behavior are asserted in-game.
-`visual-report.py` checks actual framebuffer colors, opacity progression and Rainbow hue variation.
+Every main push tests startup, world join, compatibility profiles and runtime assertions for all
+three versions. Screenshots are off for ordinary logic, docs and version changes. Menu changes
+automatically select only the UI screenshot scenarios on baseline profiles. No screenshots are
+created by the compatibility profiles.
 
-Open a Client Smoke Test run, download its version's `client-smoke-...-baseline` artifact,
-extract it and open `index.html`. The offline gallery contains full-size images and machine results.
-Images are never committed or attached to releases; artifacts expire after seven days. Extended
-images run only on baseline profiles to limit storage. Compatibility profiles retain their existing
-runtime assertions and two palette images.
+Before a full release, explicitly dispatch **Client Smoke Test** with its **visual** input enabled
+to run the complete 23-case world/UI suite, including boundary colors, opacity, textures and Rainbow.
+The visual selection policy is tested by `.github/scripts/test-visual-selection.py`.
 
-The fixture is destructive **only in disposable, integrated-server CI worlds**. It is disabled unless
-`-Dselectiverender.visual.smoke=true` is explicitly set; ordinary users never run it. Do not enable it
-in an existing save. The suite refuses multiplayer worlds. It keeps the runtime harness alive with
-an unpaused scene screen, positions a detached camera, then restores the camera before completion.
+Download a baseline artifact and open `index.html` when a visual run was selected. Reports and
+images stay in expiring GitHub Actions artifacts (seven days), never in Git or release assets.
+Ordinary runs retain logs. Full images need inspection only when relevant to the change.
 
-These checks reduce manual work; they do not certify all shader/resource packs, far-distance depth
-precision or real-pack FPS. Review unusual screenshot changes and test the affected real setup.
+Visual fixtures are destructive only in disposable integrated-server CI worlds, enabled by
+`-Dselectiverender.visual.smoke=true`. Do not enable them in an existing save. Automatic menu runs
+also set `-Dselectiverender.visual.uiOnly=true`. The suite refuses multiplayer worlds.
 
-The 1.12 visual suite also covers partial/completed plot-grid menus and checks grass-side overlay suppression. All three Minecraft versions run the visual suite with Sodium and vanilla resources. Grid runtime assertions cover partial persistence, neighbor validation, settings reload and client-only plot selection.
+Runtime assertions compare saved and temporary plot lighting/geometry under each skylight mode,
+check hidden interaction priority, grid setup/persistence and plot-clear aliases. Visual assertions
+check widget bounds, palette visibility, region reset, normalized grid values and automatic saving.
+These checks do not certify every resource pack, shader or far-distance camera angle.

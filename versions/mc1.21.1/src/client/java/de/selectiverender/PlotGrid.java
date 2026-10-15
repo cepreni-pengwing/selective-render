@@ -16,7 +16,14 @@ public record PlotGrid(int x1, int z1, int x2, int z2, Integer roadWidth, boolea
     public int maxZ() { return Math.max(z1, z2); }
     public long width() { return (long)maxX() - minX() + 1; }
     public long depth() { return (long)maxZ() - minZ() + 1; }
-    public PlotGrid withRoad(int width) { return new PlotGrid(x1,z1,x2,z2,width,enabled); }
+    /** Equivalent grid phase, represented by the smallest nonnegative plot origin. */
+    public PlotGrid normalized() {
+        if(roadWidth==null) return this;
+        long x=Math.floorMod((long)minX(),width()+roadWidth), z=Math.floorMod((long)minZ(),depth()+roadWidth);
+        if(x+width()-1>LIMIT || z+depth()-1>LIMIT) return this;
+        return new PlotGrid((int)x,(int)z,(int)(x+width()-1),(int)(z+depth()-1),roadWidth,enabled);
+    }
+    public PlotGrid withRoad(int width) { return new PlotGrid(x1,z1,x2,z2,width,enabled).normalized(); }
     public PlotGrid withEnabled(boolean value) { return new PlotGrid(x1,z1,x2,z2,roadWidth,value); }
     public PlotGrid identifyNeighbor(PlotGrid next) {
         if (width() != next.width() || depth() != next.depth())

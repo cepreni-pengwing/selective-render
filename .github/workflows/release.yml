@@ -26,6 +26,10 @@ jobs:
           project_version=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
           project_version_1211=$(sed -n 's/^mod_version=//p' versions/mc1.21.1/gradle.properties | tr -d '\r')
           tag_version=${GITHUB_REF_NAME#v}
+          if [[ ! "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release versions require three numeric components." >&2
+            exit 1
+          fi
           if [[ -z "$project_version" || "$tag_version" != "$project_version" || "$tag_version" != "$project_version_1211" ]]; then
             echo "Tag version '$tag_version' does not match build versions '$project_version' and '$project_version_1211'." >&2
             exit 1

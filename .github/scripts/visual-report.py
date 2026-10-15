@@ -64,9 +64,12 @@ def main():
     args.add_argument("--version",required=True)
     args.add_argument("--profile",required=True)
     args.add_argument("--require-visual",action="store_true")
+    args.add_argument("--ui-only",action="store_true")
     options=args.parse_args()
     plan=Path(__file__).resolve().parents[2]/"src/client/java/de/selectiverender/VisualScenarioPlan.java"
     scenarios=dict(re.findall(r'new Case\("([^"]+)",\s*"([^"]+)"',plan.read_text()))
+    if options.ui_only:
+        scenarios={key:value for key,value in scenarios.items() if "-ui-" in key}
     folder=options.directory/"screenshots"
     files=sorted(folder.glob("sr-*.png"))
     images={path.stem.removeprefix("sr-visual-"):Image.open(path) for path in files if path.name.startswith("sr-visual-")}
@@ -74,7 +77,7 @@ def main():
     if options.require_visual:
         missing=sorted(set(scenarios)-set(images))
         checks.append({"name":"Complete screenshot series","passed":not missing,"detail":f"{len(images)}/{len(scenarios)}; missing: {missing}"})
-        if not missing:
+        if not missing and not options.ui_only:
             checks.extend(check_world(images))
         log=options.directory/"logs/latest.log"
         checks.append({"name":"In-game widget and policy assertions completed","passed":log.exists() and "[SR visual smoke] PASS:" in log.read_text(errors="replace"),"detail":"Visible widget bounds/overlaps, palette visibility, cut-plane policy, reset confirmation"})

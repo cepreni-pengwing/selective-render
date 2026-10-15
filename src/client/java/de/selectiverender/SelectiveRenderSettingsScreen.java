@@ -35,6 +35,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private final java.util.Map<Integer, TextFieldWidget> gridFields = new java.util.HashMap<>();
     private String gridError = "";
     private boolean deletingGrid;
+    private TextFieldWidget focusedGridField;
     private TextFieldWidget reloadField;
     private TextFieldWidget plotHeightField;
     private TextFieldWidget plotMaximumField;
@@ -79,6 +80,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         reloadWasFocused = false; heightWasFocused = false;
         reloadField = null;
         plotHeightField = null; plotMaximumField = null; maximumWasFocused = false;
+        focusedGridField=null;
         gridFields.clear();
         rows.clear();
         captions.clear();
@@ -188,25 +190,22 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                         SelectiveRenderSettings.interactWithHiddenRegions() ? 1 : 0,
                         i -> SelectiveRenderSettings.setInteractWithHiddenRegions(i == 1));
             }
-            case REGIONS -> label("Open the region editor to browse saved dimensions");
+            case REGIONS -> label("Open the region editor for this dimension");
             case BOUNDARIES -> { } // Dedicated inline boundary page.
             case PLOTS -> {
                 var grid = PlotGridClient.current();
                 if (PlotGridClient.context() == null) label("Join a world to edit its plot grid");
                 else if (grid == null) label("Set up with /sr plot grid");
                 else {
+                    rows.add(new Row("",List.of(new Choice("Delete grid",false,() -> {
+                        deletingGrid=true; PlotGridClient.save(null); gridFields.clear(); navigate(tab,regionName,scroll);
+                    },"Remove the grid for this server and dimension")),0));
                     options("Plot source", new String[]{"SRP", "Grid"}, grid.enabled()?1:0,
                             i -> PlotGridClient.save(PlotGridClient.current().withEnabled(i==1)));
                     rows.add(new Row("Corner 1 (X Z)",List.of(),4));
                     rows.add(new Row("Corner 2 (X Z)",List.of(),5));
                     rows.add(new Row("Road width",List.of(),6));
                     if (grid.roadWidth()==null) label("Road width not set");
-                    rows.add(new Row("",List.of(new Choice("Save grid",false,() -> {
-                        if (commitGrid()) navigate(tab,regionName,scroll);
-                    },"Save both plot corners and the uniform road width")),0));
-                    rows.add(new Row("",List.of(new Choice("Delete grid",false,() -> {
-                        deletingGrid=true; PlotGridClient.save(null); gridFields.clear(); navigate(tab,regionName,scroll);
-                    },"Remove the grid for this server and dimension")),0));
                     if (!gridError.isEmpty()) label(gridError);
                 }
                 rows.add(new Row("Default plot minimum Y", List.of(), 2));
@@ -277,8 +276,11 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             String[] first=a.trim().split("[,\\s]+"); String[] second=b.trim().split("[,\\s]+");
             if(first.length!=2 || second.length!=2) throw new IllegalArgumentException();
             var next=new PlotGrid(Integer.parseInt(first[0]),Integer.parseInt(first[1]),Integer.parseInt(second[0]),Integer.parseInt(second[1]),
-                    road.isBlank()?null:Integer.valueOf(road.trim()),grid.enabled());
+                    road.isBlank()?null:Integer.valueOf(road.trim()),grid.enabled()).normalized();
             if(!next.equals(grid)) PlotGridClient.save(next);
+            if(gridFields.containsKey(4)) gridFields.get(4).setText(next.x1()+" "+next.z1());
+            if(gridFields.containsKey(5)) gridFields.get(5).setText(next.x2()+" "+next.z2());
+            if(gridFields.containsKey(6)) gridFields.get(6).setText(next.roadWidth()==null?"":next.roadWidth().toString());
             gridError="";
             for(var field:gridFields.values()) { field.setEditableColor(0xFFFFFF); field.setTooltip(null); }
             return true;
@@ -316,6 +318,10 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private boolean commitOutside(double x, double y) {
+        for(var field:gridFields.values()) if(field.isFocused() && !field.isMouseOver(x,y)) {
+            if(!commitGrid()) return false;
+            setFocused(null);
+        }
         if (reloadField != null && reloadField.isFocused() && !reloadField.isMouseOver(x, y)) {
             if (!commitNumber(reloadField, false)) return false;
             setFocused(null);
@@ -334,6 +340,8 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     @Override
     public void tick() {
         super.tick();
+        if(focusedGridField!=null && !focusedGridField.isFocused() && !commitGrid()) setFocused(focusedGridField);
+        focusedGridField=gridFields.values().stream().filter(field -> field.isFocused()).findFirst().orElse(null);
         if (reloadField != null) {
             if (reloadWasFocused && !reloadField.isFocused() && !commitNumber(reloadField, false)) setFocused(reloadField);
             reloadWasFocused = reloadField.isFocused();

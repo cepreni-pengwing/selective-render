@@ -34,11 +34,63 @@ final class BoundaryRuntimeSmoke {
         } finally { PlotGridClient.save(original); }
     }
 
+    private static void assertPlotRegionParity(MinecraftClient client) {
+        var previous=SelectiveRenderState.snapshot();
+        var light=SelectiveRenderSettings.virtualLightMode();
+        var interactions=SelectiveRenderSettings.interactionMode();
+        boolean hiddenAllowed=SelectiveRenderSettings.interactWithHiddenRegions();
+        var pos=client.player.getBlockPos();
+        var box=new BlockRegion(pos.getX()-4,pos.getX()+4,pos.getY()-2,pos.getY()+4,pos.getZ()-4,pos.getZ()+4);
+        var hidden=new BlockRegion(pos.getX()+1,pos.getX()+2,pos.getY(),pos.getY()+2,pos.getZ(),pos.getZ()+1);
+        try {
+            SelectiveRenderState.resetPlotMode();
+            for(var mode:SelectiveRenderSettings.VirtualLightMode.values()) {
+                SelectiveRenderSettings.setVirtualLightMode(mode);
+                SelectiveRenderState.setSavedState(java.util.List.of(box),true,java.util.List.of(),false,java.util.List.of(),java.util.List.of());
+                int[] normal=plotLightProbe(client,pos);
+                SelectiveRenderState.activatePlotMode(java.util.List.of(box));
+                if(!java.util.Arrays.equals(normal,plotLightProbe(client,pos))) throw new IllegalStateException("Temporary plot changed region lighting or geometry in "+mode);
+                SelectiveRenderState.resetPlotMode();
+            }
+            SelectiveRenderState.setSavedState(java.util.List.of(box),true,java.util.List.of(hidden),true,java.util.List.of(),java.util.List.of());
+            var target=pos.add(1,0,0);
+            var stand=new net.minecraft.entity.decoration.ArmorStandEntity(client.world,target.getX()+.5,target.getY(),target.getZ()+.5);
+            for(var mode:SelectiveRenderSettings.InteractionMode.values()) for(boolean allow:new boolean[]{false,true}) {
+                SelectiveRenderSettings.setInteractionMode(mode); SelectiveRenderSettings.setInteractWithHiddenRegions(allow);
+                if(SelectiveRenderState.shouldInteract(target)!=allow || SelectiveRenderState.shouldPlaceAt(target)!=allow
+                        || SelectiveRenderState.shouldInteract(stand)!=allow) throw new IllegalStateException("Hidden interaction priority failed in "+mode);
+            }
+            SelectiveRenderClient.LOGGER.info("[SR plot parity smoke] PASS: temporary/saved lighting and geometry match; hidden interaction priority verified");
+        } finally {
+            SelectiveRenderState.resetPlotMode();
+            SelectiveRenderState.setSavedState(previous.configuredRegions(),previous.enabled(),previous.hiddenRegions(),previous.hideEnabled(),previous.visibleOverrides(),previous.filteredRegions());
+            if(previous.plotModeActive()) SelectiveRenderState.activatePlotMode(previous.plotRegions(),previous.plotRenderingEnabled());
+            SelectiveRenderSettings.setVirtualLightMode(light); SelectiveRenderSettings.setInteractionMode(interactions);
+            SelectiveRenderSettings.setInteractWithHiddenRegions(hiddenAllowed);
+        }
+    }
+    private static int[] plotLightProbe(MinecraftClient client,BlockPos pos) {
+        return new int[]{VirtualSkyLightSampler.sample(client.world,pos),
+                SelectiveRenderState.highestVisibleOccluder(client.world,pos.getX(),pos.getZ()),
+                SelectiveRenderState.visibleColumnTop(pos.getX(),pos.getZ(),320),
+                SelectiveRenderState.visibleColumnBottom(pos.getX(),pos.getZ(),-64),
+                SelectiveRenderState.mayNeedVirtualSkyLight(pos.getX(),pos.getZ())?1:0,
+                SelectiveRenderState.shouldRender(pos)?1:0,
+                SelectiveRenderState.shouldRender(pos.add(5,0,0))?1:0,
+                SelectiveRenderState.cullFluidsAt(pos.getX(),pos.getY(),pos.getZ())?1:0,
+                SelectiveRenderState.boundaryModeAt(pos.getX(),pos.getY(),pos.getZ()).ordinal()};
+    }
     static void tick(MinecraftClient client) {
         if (!ENABLED || client.world == null || client.player == null || ticks > 130) return;
         ticks++;
         if (ticks == 10) {
+            try {
+                var command=SelectiveRenderClient.class.getDeclaredMethod("command",String.class); command.setAccessible(true);
+                var root=((com.mojang.brigadier.builder.LiteralArgumentBuilder<?>)command.invoke(null,"sr")).build();
+                if(root.getChild("p").getChild("c")==null || root.getChild("plot").getChild("clear")==null) throw new IllegalStateException("Plot clear aliases are missing");
+            } catch(ReflectiveOperationException error) { throw new IllegalStateException(error); }
             assertPlotGrid(client);
+            assertPlotRegionParity(client);
             BlockPos pos = client.player.getBlockPos();
             SelectiveRenderSettings.setVirtualLightMode(SelectiveRenderSettings.VirtualLightMode.NONE);
             if (!SelectiveRenderConfig.saveRegion(client, NAME, new BlockRegion(pos.getX() - 4, pos.getX() + 4,
@@ -133,6 +185,7 @@ final class BoundaryRuntimeSmoke {
 
 
     private static void capturePalette(MinecraftClient client, String name) {
+        if(!Boolean.getBoolean("selectiverender.visual.smoke")) return;
         net.minecraft.client.util.ScreenshotRecorder.saveScreenshot(client.runDirectory, name, client.getFramebuffer(), message -> { });
     }
     /** Check the sprites used by terrain, not just the settings value or GUI preview. */
