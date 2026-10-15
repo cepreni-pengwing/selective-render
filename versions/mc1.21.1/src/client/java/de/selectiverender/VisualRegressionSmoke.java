@@ -37,14 +37,26 @@ final class VisualRegressionSmoke {
             }
             return;
         }
-        if (index<0) { index=0; configure(client,VisualScenarioPlan.CASES[index]); }
+        if (index<0) {
+            if (!fixtureDelivered(client)) return;
+            index=0; configure(client,VisualScenarioPlan.CASES[index]);
+            // Network updates can arrive after the server task completes; rebuild only after all cells match.
+            client.worldRenderer.reload();
+        }
         var scenario=VisualScenarioPlan.CASES[index];
-        if (++age<(scenario.ui()?10:40)) return;
+        if (++age<(index==0?120:scenario.ui()?10:40)) return;
         capture(client,"sr-visual-"+scenario.id()+".png");
         SelectiveRenderClient.LOGGER.info("[SR visual smoke] CAPTURE {}",scenario.id());
         age=0;
         if (++index==VisualScenarioPlan.CASES.length) { finishing=10; return; }
         configure(client,VisualScenarioPlan.CASES[index]);
+    }
+    private static boolean fixtureDelivered(MinecraftClient client) {
+        for(int x=-4;x<=4;x++) for(int y=0;y<=7;y++) for(int z=0;z<=3;z++) {
+            var expected=y>5?Blocks.AIR.getDefaultState():y==5?Blocks.SHORT_GRASS.getDefaultState():y==4?Blocks.GRASS_BLOCK.getDefaultState():x==-4?Blocks.GLASS.getDefaultState():x==4?Blocks.DIRT.getDefaultState():Blocks.STONE.getDefaultState();
+            if(!client.world.getBlockState(new BlockPos(origin.getX()+x,origin.getY()+y,origin.getZ()+z)).equals(expected)) return false;
+        }
+        return true;
     }
     private static void prepareFixture(MinecraftClient client) {
         var server=client.getServer();

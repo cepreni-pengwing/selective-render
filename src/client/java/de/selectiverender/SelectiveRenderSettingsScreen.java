@@ -280,7 +280,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     road.isBlank()?null:Integer.valueOf(road.trim()),grid.enabled());
             if(!next.equals(grid)) PlotGridClient.save(next);
             gridError="";
-            for(var field:gridFields.values()) field.setEditableColor(0xFFFFFF);
+            for(var field:gridFields.values()) { field.setEditableColor(0xFFFFFF); field.setTooltip(null); }
             return true;
         } catch(IllegalArgumentException error) {
             gridError="Enter two X/Z coordinates and a nonnegative road width.";
