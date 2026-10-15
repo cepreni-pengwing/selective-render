@@ -47,6 +47,13 @@ public final class SelectiveRenderSettings {
     private static volatile int defaultPlotMaxY = 319;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
 
+    private static java.util.Map<String, PlotGrid> plotGrids = new java.util.HashMap<>();
+    static PlotGrid plotGrid(String context) { return plotGrids.get(context); }
+    static void setPlotGrid(String context, PlotGrid grid) {
+        if (grid == null) plotGrids.remove(context); else plotGrids.put(context, grid);
+        save();
+    }
+
     private static MenuNavigationState menuNavigation = new MenuNavigationState();
     static MenuNavigationState menuNavigation() { return menuNavigation; }
     static void saveMenuNavigation() { save(); }
@@ -65,6 +72,8 @@ public final class SelectiveRenderSettings {
             }
             return;
         }
+        plotGrids = stored.plotGrids == null ? new java.util.HashMap<>() : new java.util.HashMap<>(stored.plotGrids);
+        plotGrids.values().removeIf(java.util.Objects::isNull);
         menuNavigation = stored.menuNavigation == null ? new MenuNavigationState() : stored.menuNavigation;
         menuNavigation.normalize();
         playerVisibility = stored.playerVisibility == null
@@ -273,6 +282,7 @@ public final class SelectiveRenderSettings {
             StoredSettings stored = new StoredSettings();
             stored.formatVersion = SETTINGS_FORMAT_VERSION;
             stored.menuNavigation = menuNavigation;
+            stored.plotGrids = plotGrids;
             stored.playerVisibility = playerVisibility(); // Legacy readers cannot represent both dimensions simultaneously.
             stored.playerGroup = playerGroup; stored.playerScope = playerScope;
             stored.interactionMode = interactionMode;
@@ -396,6 +406,7 @@ public final class SelectiveRenderSettings {
 
     private static final class StoredSettings {
         int formatVersion;
+        java.util.Map<String, PlotGrid> plotGrids;
         MenuNavigationState menuNavigation;
         PlayerVisibility playerVisibility;
         PlayerRenderPolicy.Group playerGroup;

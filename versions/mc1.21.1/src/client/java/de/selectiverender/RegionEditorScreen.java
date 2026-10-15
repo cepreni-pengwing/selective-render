@@ -29,6 +29,7 @@ final class RegionEditorScreen extends Screen {
     private RegionDocument document;
     private String region;
     private String context;
+    private String menuContext;
     private String error = "";
     private int paneLeft, paneWidth, navLeft, navWidth, navScroll, scroll, visibleRows;
     private BoundaryColorControls colorControls;
@@ -51,7 +52,7 @@ final class RegionEditorScreen extends Screen {
         var state = SelectiveRenderSettings.menuNavigation();
         state.tab = "REGIONS";
         rememberRegion();
-        var view = state.region(context == null ? "menu" : context);
+        var view = state.region(menuContext == null ? "menu" : menuContext);
         view.dimension = document == null ? null : document.dimension();
         view.selected = region;
         view.collapsed = new HashSet<>(collapsed);
@@ -72,8 +73,12 @@ final class RegionEditorScreen extends Screen {
             documentsLoaded = true;
         }
         if (client.world != null && context == null) context = SelectiveRenderConfig.contextIdentity(client, client.world);
+        if (menuContext == null && context != null) {
+            menuContext = SelectiveRenderConfig.menuIdentity(client, client.world);
+            SelectiveRenderSettings.menuNavigation().regionMenu(menuContext, context);
+        }
         if (!navigationRestored) {
-            var view = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context);
+            var view = SelectiveRenderSettings.menuNavigation().region(menuContext == null ? "menu" : menuContext);
             collapsed.addAll(view.collapsed);
             region = view.selected;
             restoredDimension = view.dimension;
@@ -195,12 +200,12 @@ final class RegionEditorScreen extends Screen {
 
     private void rememberRegion() {
         if (document == null || region == null) return;
-        var entry = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context).entry(document.dimension(), region);
+        var entry = SelectiveRenderSettings.menuNavigation().region(menuContext == null ? "menu" : menuContext).entry(document.dimension(), region);
         entry.scroll=scroll; entry.filtersOpen=filtersOpen; entry.boundariesOpen=boundariesOpen;
         entry.interactionsOpen=interactionsOpen; entry.boxesOpen=boxesOpen;
     }
     private void restoreRegion() {
-        var entry = SelectiveRenderSettings.menuNavigation().region(context == null ? "menu" : context).entry(document.dimension(), region);
+        var entry = SelectiveRenderSettings.menuNavigation().region(menuContext == null ? "menu" : menuContext).entry(document.dimension(), region);
         scroll=entry.scroll; filtersOpen=entry.filtersOpen; boundariesOpen=entry.boundariesOpen;
         interactionsOpen=entry.interactionsOpen; boxesOpen=entry.boxesOpen;
     }

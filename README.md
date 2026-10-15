@@ -59,6 +59,12 @@ The optional [Selective Render Plots](https://modrinth.com/plugin/selective-rend
 
 Optional Y limits are inclusive. When omitted, both limits come from the Selective Render settings (defaults `-64` and `319`). A positive X/Z margin expands the plot; a negative margin shrinks it. If a margin would remove the entire plot, it is rejected. Servers using LuckPerms or another permission manager must grant `selectiverender.plot.solo` to players allowed to use the integration.
 
+## Client-only plot grid
+
+Use `/sr plot grid`, mark two opposite block corners of one plot with the current WorldEdit/SR selection source, then repeat the command. The first plot is saved immediately and appears in **Plots** with three editable values: Corner 1 (X Z), Corner 2 (X Z), and Road width. Enter the road width manually, or mark a directly adjacent, equally sized plot and run `/sr plot grid` a third time to calculate it. Both axes use the same road width; merged plots and irregular grids are not inferred.
+
+The saved grid belongs to the current server and dimension. Choose **Grid** or **SRP** in Plots, edit the values, or delete the grid. Existing `/sr plot`, its keybind, and `/sr plot save` use the selected source. Streets are excluded. Grid data survives reconnects and restarts in the settings file; moving that file to another device preserves multiplayer profiles when the server address and dimension match. Singleplayer save paths still require the same world assignment.
+
 ## Settings and behavior
 
 - Player visibility combines a player group (Everyone, Nobody, Only you or Other players) with an independent region scope (Everywhere, Inside regions, Outside regions or Nowhere). Scope follows the currently rendered area; player hitboxes use the same policy. Existing player choices are preserved.

@@ -76,4 +76,10 @@ jobs:
             test -n "$jar_262"
             assets+=("$jar_262")
           fi
-          gh release create "$GITHUB_REF_NAME" "${assets[@]}" --generate-notes --verify-tag --prerelease
+          previous_tag=$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)
+          if [[ -n "$previous_tag" ]]; then
+            printf '**Full Changelog**: [%s...%s](https://github.com/%s/compare/%s...%s)\n' "$previous_tag" "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" "$previous_tag" "$GITHUB_REF_NAME" > release-notes.md
+          else
+            printf '**Full Changelog**: [Commits](https://github.com/%s/commits/%s)\n' "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" > release-notes.md
+          fi
+          gh release create "$GITHUB_REF_NAME" "${assets[@]}" --notes-file release-notes.md --verify-tag --prerelease

@@ -389,6 +389,10 @@ public final class SelectiveRenderConfig {
         write(client, true);
     }
 
+    public static String menuIdentity(MinecraftClient client, ClientWorld world) {
+        return ownerFor(client, world);
+    }
+
     public static String contextIdentity(MinecraftClient client, ClientWorld world) {
         return ownerFor(client, world) + "|" + world.getRegistryKey().getValue();
     }

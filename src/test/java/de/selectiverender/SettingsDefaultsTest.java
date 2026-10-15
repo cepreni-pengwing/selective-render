@@ -25,6 +25,8 @@ class SettingsDefaultsTest {
                 SelectiveRenderSettings.hiddenVirtualLightMode());
         assertEquals(8192, SelectiveRenderSettings.fullReloadThreshold());
         assertEquals(-64, SelectiveRenderSettings.defaultPlotMinY());
+        assertEquals(100, SelectiveRenderSettings.boundaryOpacity());
+        assertNull(RegionOptions.DEFAULT.inheritedColor());
     }
 
     @Test void modesCycleThroughEveryValueAndWrap() {

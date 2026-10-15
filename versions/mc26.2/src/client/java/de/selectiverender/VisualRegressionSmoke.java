@@ -31,6 +31,7 @@ final class VisualRegressionSmoke {
                 client.setCameraEntity(originalCamera);
                 if (client.gui.hud.isHidden()!=originalHud) client.gui.hud.toggle();
                 SelectiveRenderConfig.deleteRegion(client,LEFT); SelectiveRenderConfig.deleteRegion(client,NAME);
+                PlotGridClient.save(null);
                 client.gui.setScreen(null); finishing=-1;
                 SelectiveRenderClient.LOGGER.info("[SR visual smoke] PASS: {} screenshots and widget/policy assertions", VisualScenarioPlan.CASES.length);
             }
@@ -99,6 +100,16 @@ final class VisualRegressionSmoke {
             return;
         }
         try {
+            if (id.equals("22-ui-grid-partial") || id.equals("23-ui-grid-complete")) {
+                var grid=new PlotGrid(-32,-32,-1,-1,id.equals("22-ui-grid-partial")?null:Integer.valueOf(7),true);
+                PlotGridClient.save(grid);
+                var page=new SelectiveRenderSettingsScreen(null,SelectiveRenderSettingsScreen.Tab.PLOTS,null,0);
+                client.gui.setScreen(page);
+                assertWidgets(page,0);
+                var fields=(java.util.Map<?,?>)field(page,"gridFields");
+                if(fields.size()!=3) throw new IllegalStateException("Plot grid must expose exactly three editable values");
+                return;
+            }
             if (id.startsWith("13-") || id.startsWith("14-") || id.startsWith("15-")) {
                 var page=new BoundaryAppearanceScreen(null); client.gui.setScreen(page);
                 assertWidgets(page,id.startsWith("15-")?0:4);

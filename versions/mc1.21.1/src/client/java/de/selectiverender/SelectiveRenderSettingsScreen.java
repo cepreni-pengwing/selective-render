@@ -32,6 +32,9 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private int paneLeft;
     private int paneWidth;
     private final List<Row> rows = new ArrayList<>();
+    private final java.util.Map<Integer, TextFieldWidget> gridFields = new java.util.HashMap<>();
+    private String gridError = "";
+    private boolean deletingGrid;
     private TextFieldWidget reloadField;
     private TextFieldWidget plotHeightField;
     private TextFieldWidget plotMaximumField;
@@ -76,6 +79,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         reloadWasFocused = false; heightWasFocused = false;
         reloadField = null;
         plotHeightField = null; plotMaximumField = null; maximumWasFocused = false;
+        gridFields.clear();
         rows.clear();
         captions.clear();
         paneWidth = SettingsViewport.of(width, height, 0, 0).paneWidth();
@@ -96,7 +100,18 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         for (int i = scroll; i < Math.min(rows.size(), scroll + visibleRows); i++) {
             Row row = rows.get(i);
             int y = 36 + (i - scroll) * 24;
-            if (row.numeric() != 0) {
+            if (row.numeric() >= 4) {
+                int labelWidth = optionLabelWidth();
+                captions.add(new Caption(row.label(),y,labelWidth-12));
+                var field = new TextFieldWidget(textRenderer,paneLeft+labelWidth,y,Math.max(32,paneWidth-labelWidth),20,Text.literal(row.label()));
+                field.setMaxLength(32);
+                var grid = PlotGridClient.current();
+                String value = grid == null ? "" : row.numeric()==4 ? grid.x1()+" "+grid.z1()
+                        : row.numeric()==5 ? grid.x2()+" "+grid.z2() : grid.roadWidth()==null ? "" : grid.roadWidth().toString();
+                field.setText(value);
+                gridFields.put(row.numeric(),field);
+                addDrawableChild(field);
+            } else if (row.numeric() != 0) {
                 int labelWidth = optionLabelWidth();
                 int valueWidth = Math.min(84, paneWidth - labelWidth);
                 captions.add(new Caption(row.label(), y, labelWidth - 12));
@@ -122,7 +137,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     int buttonWidth = row.labelWidth() == 0 ? available
                             : Math.min(available, Math.max(36, textRenderer.getWidth(choice.label()) + 16));
                     var button = addDrawableChild(ButtonWidget.builder(Text.literal(choice.label()), b -> {
-                        if (applyNumericSettings()) choice.action().run();
+                        if (choice.label().equals("Delete grid") || applyNumericSettings()) choice.action().run();
                     }).dimensions(x, y, buttonWidth, 20).build());
                     x += buttonWidth + 6;
                     button.active = !choice.selected();
@@ -176,6 +191,24 @@ public final class SelectiveRenderSettingsScreen extends Screen {
             case REGIONS -> label("Open the region editor to browse saved dimensions");
             case BOUNDARIES -> { } // Dedicated inline boundary page.
             case PLOTS -> {
+                var grid = PlotGridClient.current();
+                if (PlotGridClient.context() == null) label("Join a world to edit its plot grid");
+                else if (grid == null) label("Set up with /sr plot grid");
+                else {
+                    options("Plot source", new String[]{"SRP", "Grid"}, grid.enabled()?1:0,
+                            i -> PlotGridClient.save(PlotGridClient.current().withEnabled(i==1)));
+                    rows.add(new Row("Corner 1 (X Z)",List.of(),4));
+                    rows.add(new Row("Corner 2 (X Z)",List.of(),5));
+                    rows.add(new Row("Road width",List.of(),6));
+                    if (grid.roadWidth()==null) label("Road width not set");
+                    rows.add(new Row("",List.of(new Choice("Save grid",false,() -> {
+                        if (commitGrid()) navigate(tab,regionName,scroll);
+                    },"Save both plot corners and the uniform road width")),0));
+                    rows.add(new Row("",List.of(new Choice("Delete grid",false,() -> {
+                        deletingGrid=true; PlotGridClient.save(null); gridFields.clear(); navigate(tab,regionName,scroll);
+                    },"Remove the grid for this server and dimension")),0));
+                    if (!gridError.isEmpty()) label(gridError);
+                }
                 rows.add(new Row("Default plot minimum Y", List.of(), 2));
                 rows.add(new Row("Default plot maximum Y", List.of(), 3));
             }
@@ -233,8 +266,31 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 : new SelectiveRenderSettingsScreen(parent, nextTab, nextRegion, nextScroll));
     }
 
+    private boolean commitGrid() {
+        if (deletingGrid || gridFields.isEmpty()) return true;
+        var grid=PlotGridClient.current();
+        if(grid==null) return true;
+        String a=gridFields.containsKey(4)?gridFields.get(4).getText():grid.x1()+" "+grid.z1();
+        String b=gridFields.containsKey(5)?gridFields.get(5).getText():grid.x2()+" "+grid.z2();
+        String road=gridFields.containsKey(6)?gridFields.get(6).getText():grid.roadWidth()==null?"":grid.roadWidth().toString();
+        try {
+            String[] first=a.trim().split("[,\\s]+"); String[] second=b.trim().split("[,\\s]+");
+            if(first.length!=2 || second.length!=2) throw new IllegalArgumentException();
+            var next=new PlotGrid(Integer.parseInt(first[0]),Integer.parseInt(first[1]),Integer.parseInt(second[0]),Integer.parseInt(second[1]),
+                    road.isBlank()?null:Integer.valueOf(road.trim()),grid.enabled());
+            if(!next.equals(grid)) PlotGridClient.save(next);
+            gridError="";
+            for(var field:gridFields.values()) field.setEditableColor(0xFFFFFF);
+            return true;
+        } catch(IllegalArgumentException error) {
+            gridError="Enter two X/Z coordinates and a nonnegative road width.";
+            for(var field:gridFields.values()) field.setEditableColor(UiStyle.ERROR);
+            return false;
+        }
+    }
+
     private boolean applyNumericSettings() {
-        return commitNumber(reloadField, false) && commitNumber(plotHeightField, true) && commitNumber(plotMaximumField, true);
+        return commitGrid() && commitNumber(reloadField, false) && commitNumber(plotHeightField, true) && commitNumber(plotMaximumField, true);
     }
 
     private boolean commitNumber(TextFieldWidget field, boolean plot) {

@@ -59,7 +59,7 @@ abstract class BlockRendererMixin {
         } else if (BoundaryColorTexture.custom(mode)) {
             for (int v = 0; v < 4; v++) selectiverender$quads.vertex(v, quad.x(v), quad.y(v), quad.z(v));
             if (!selectiverender$quads.accept(quad.lightFace().ordinal())) {
-                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(selectiverender$currentPos)) {
+                if(de.selectiverender.BoundaryStyle.nativeOverlay(mode, de.selectiverender.BoundaryRenderContext.normalAt(selectiverender$currentPos), de.selectiverender.BoundaryRenderContext.opacityAt(selectiverender$currentPos))) {
                     selectiverender$emitting=true; try { selectiverender$emit(quad); } finally { selectiverender$emitting=false; }
                 }
                 ci.cancel(); return;

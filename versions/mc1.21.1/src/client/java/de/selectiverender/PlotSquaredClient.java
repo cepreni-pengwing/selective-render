@@ -90,6 +90,13 @@ public final class PlotSquaredClient {
                 maxY == null ? 0 : maxY, minY, maxY, xzMargin);
     }
 
+    static void clearGridPlots() {
+        if (activeContext == null) return;
+        PlotSession session = SESSIONS.remove(activeContext);
+        if (session != null && SelectiveRenderState.plotModeActive()) SelectiveRenderState.disablePlotMode();
+        clearPending();
+    }
+
     public static int clear() {
         clearPending();
         PlotSession session = currentSession(false);
@@ -131,6 +138,18 @@ public final class PlotSquaredClient {
                                Integer requestedMinY, Integer requestedMaxY, int xzMargin) {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.world == null || client.player == null || client.getNetworkHandler() == null) return 0;
+        PlotGrid grid = PlotGridClient.current();
+        if (grid != null && grid.enabled()) {
+            if (grid.roadWidth() == null) { send(red("Set the road width or mark the neighboring plot first.")); return 0; }
+            BlockRegion raw = PlotGridClient.plotAtPlayer(minY,maxY);
+            if (raw == null) { send(red("You are not standing on a plot.")); return 0; }
+            List<BlockRegion> adjusted = PlotRegionTransform.apply(List.of(raw),requestedMinY,requestedMaxY,xzMargin);
+            if (adjusted.isEmpty()) { send(red("The margin removes the entire plot.")); return 0; }
+            if (action == ACTION_TOGGLE) togglePlot(client,"grid",List.of(raw),adjusted);
+            else if (!SelectiveRenderConfig.saveRegions(client,name,adjusted)) { send(red("The plot could not be saved.")); return 0; }
+            else send(green("Plot saved."));
+            return Command.SINGLE_SUCCESS;
+        }
         if (!ClientPlayNetworking.canSend(RequestPayload.ID)) {
             send(red("Selective Render Plots is unavailable on this server"));
             return 0;

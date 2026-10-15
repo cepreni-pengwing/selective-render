@@ -62,7 +62,7 @@ abstract class BlockModelRendererMixin {
             var vertices = new org.joml.Vector3fc[]{quad.position0(), quad.position1(), quad.position2(), quad.position3()};
             for (int v = 0; v < 4; v++) selectiverender$quads.get().vertex(v, vertices[v].x(), vertices[v].y(), vertices[v].z());
             if (!selectiverender$quads.get().accept(quad.direction().ordinal())) {
-                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(pos)) output.put(x,y,z,quad,quadInstance);
+                if(de.selectiverender.BoundaryStyle.nativeOverlay(mode, de.selectiverender.BoundaryRenderContext.normalAt(pos), de.selectiverender.BoundaryRenderContext.opacityAt(pos))) output.put(x,y,z,quad,quadInstance);
                 ci.cancel(); return;
             }
 

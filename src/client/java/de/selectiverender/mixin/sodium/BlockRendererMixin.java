@@ -57,7 +57,7 @@ abstract class BlockRendererMixin {
         }
         for (int v = 0; v < 4; v++) selectiverender$quads.vertex(v, quad.getX(v), quad.getY(v), quad.getZ(v));
         if (!selectiverender$quads.accept(quad.getLightFace().ordinal())) {
-            if(selectiverender$textured.get()==SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(context.pos())) {
+            if(de.selectiverender.BoundaryStyle.nativeOverlay(selectiverender$textured.get(), de.selectiverender.BoundaryRenderContext.normalAt(context.pos()), de.selectiverender.BoundaryRenderContext.opacityAt(context.pos()))) {
                 selectiverender$solidColor.set(false); builder.addSprite(quad.getSprite());
                 try { original.call(renderer,context,builder,offset,material,quad,selectiverender$nativeColors.get()==null?colors:selectiverender$nativeColors.get(),light); }
                 finally { selectiverender$solidColor.set(true); }

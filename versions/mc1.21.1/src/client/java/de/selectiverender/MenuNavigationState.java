@@ -13,6 +13,10 @@ final class MenuNavigationState {
 
     int scroll(String tab) { return Math.max(0, scrolls.getOrDefault(tab, 0)); }
     RegionView region(String context) { return regions.computeIfAbsent(context, key -> new RegionView()); }
+    RegionView regionMenu(String owner, String previousContext) {
+        return regions.computeIfAbsent(owner, key -> regions.containsKey(previousContext)
+                ? regions.get(previousContext) : new RegionView());
+    }
     void normalize() {
         if (tab == null) tab = "GENERAL";
         if (scrolls == null) scrolls = new HashMap<>();

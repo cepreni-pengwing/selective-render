@@ -23,7 +23,9 @@ final class VisualScenarioPlan {
         new Case("18-ui-reset-before", "Reset beside Delete; one filter and custom region options", SelectiveRenderSettings.BoundaryMode.COLOR,100,false,true),
         new Case("19-ui-reset-confirm", "First click only arms Confirm reset", SelectiveRenderSettings.BoundaryMode.COLOR,100,false,true),
         new Case("20-ui-reset-done", "Second click clears filters and restores inheritance", SelectiveRenderSettings.BoundaryMode.COLOR,100,false,true),
-        new Case("21-ui-inherit", "Regional palette follows global values again", SelectiveRenderSettings.BoundaryMode.COLOR,50,false,true)
+        new Case("21-ui-inherit", "Regional palette follows global values again", SelectiveRenderSettings.BoundaryMode.COLOR,50,false,true),
+        new Case("22-ui-grid-partial", "Plot grid after first plot; road width still unset", SelectiveRenderSettings.BoundaryMode.NORMAL,100,false,true),
+        new Case("23-ui-grid-complete", "Saved plot corners, road width and source choice", SelectiveRenderSettings.BoundaryMode.NORMAL,100,false,true)
     };
     private VisualScenarioPlan() { }
 }

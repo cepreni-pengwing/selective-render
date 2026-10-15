@@ -7,10 +7,38 @@ final class BoundaryRuntimeSmoke {
     private static int ticks;
     private static final String NAME = "__sr_boundary_smoke__";
     private BoundaryRuntimeSmoke() { }
+    private static void assertPlotGrid(Minecraft client) {
+        var original=PlotGridClient.current();
+        var context=PlotGridClient.context();
+        try {
+            if(SelectiveRenderSettings.boundaryOpacity()!=100) throw new IllegalStateException("Default opacity is not 100%");
+            if(!PlotGridClient.setup(null).startsWith("Mark opposite plot corners")) throw new IllegalStateException("Grid setup did not start");
+            var pos=client.player.blockPosition();
+            var first=new BlockRegion(pos.getX(),pos.getX()+15,0,1,pos.getZ(),pos.getZ()+15);
+            if(!PlotGridClient.setup(first).startsWith("Mark opposite corners of a directly neighboring plot")) throw new IllegalStateException("Missing neighbor instruction");
+            var partial=PlotGridClient.current();
+            if(partial==null || partial.roadWidth()!=null) throw new IllegalStateException("First plot was not saved independently");
+            SelectiveRenderSettings.load();
+            if(!partial.equals(PlotGridClient.current())) throw new IllegalStateException("Partial grid did not survive settings reload");
+            var invalid=PlotGridClient.setup(first);
+            if(invalid.equals("Plot grid saved.") || !partial.equals(PlotGridClient.current())) throw new IllegalStateException("Invalid neighbor altered calibration");
+            var neighbor=new BlockRegion(first.minX()+20,first.maxX()+20,10,11,first.minZ(),first.maxZ());
+            if(!PlotGridClient.setup(neighbor).equals("Plot grid saved.") || PlotGridClient.current().roadWidth()!=4) throw new IllegalStateException("Grid road width is incorrect");
+            var complete=PlotGridClient.current();
+            SelectiveRenderSettings.load();
+            if(!complete.equals(PlotGridClient.current())) throw new IllegalStateException("Complete grid did not survive settings reload");
+            if(PlotSquaredClient.toggle()!=1 || !SelectiveRenderState.plotModeActive()) throw new IllegalStateException("Client-only plot selection failed");
+            PlotSquaredClient.clear();
+            if(!context.equals(PlotGridClient.context())) throw new IllegalStateException("Grid context changed");
+            SelectiveRenderClient.LOGGER.info("[SR grid smoke] PASS: setup, partial save, invalid neighbor, road calculation, reload and client-only selection");
+        } finally { PlotGridClient.save(original); }
+    }
+
     static void tick(Minecraft client) {
         if (!ENABLED || client.level == null || client.player == null || ticks > 130) return;
         ticks++;
         if (ticks == 10) {
+            assertPlotGrid(client);
             BlockPos pos = client.player.blockPosition();
             SelectiveRenderSettings.setVirtualLightMode(SelectiveRenderSettings.VirtualLightMode.NONE);
             if (!SelectiveRenderConfig.saveRegion(client, NAME, new BlockRegion(pos.getX() - 4, pos.getX() + 4,

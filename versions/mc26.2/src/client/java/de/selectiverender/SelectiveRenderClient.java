@@ -295,6 +295,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static LiteralArgumentBuilder<FabricClientCommandSource> plotCommand(String name) {
         return ClientCommands.literal(name)
                 .executes(context -> PlotSquaredClient.toggle())
+                .then(ClientCommands.literal("grid").executes(context -> {
+                    feedback(context.getSource(), message(white(PlotGridClient.setup(commandSelection()))));
+                    return Command.SINGLE_SUCCESS;
+                }))
                 .then(ClientCommands.literal("clear").executes(context -> PlotSquaredClient.clear()))
                 .then(ClientCommands.argument("minY", IntegerArgumentType.integer())
                         .executes(context -> PlotSquaredClient.toggle(

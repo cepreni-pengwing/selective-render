@@ -67,7 +67,7 @@ abstract class BlockModelRendererMixin {
                     Float.intBitsToFloat(vertices[v * stride + 1]), Float.intBitsToFloat(vertices[v * stride + 2]));
             if (!selectiverender$quads.get().accept(quad.getFace().ordinal())) {
                 selectiverender$coloredBoundary.set(false);
-                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(pos)) return;
+                if(de.selectiverender.BoundaryStyle.nativeOverlay(mode, de.selectiverender.BoundaryRenderContext.normalAt(pos), de.selectiverender.BoundaryRenderContext.opacityAt(pos))) return;
                 ci.cancel(); return;
             }
         }

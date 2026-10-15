@@ -25,6 +25,10 @@ public final class BoundaryStyle {
         }
         return renderLayers(mode, normal);
     }
+    /** Duplicate native texture/tint layers belong only to a visible NORMAL underlay. */
+    public static boolean nativeOverlay(SelectiveRenderSettings.BoundaryMode mode, boolean normal, int opacity) {
+        return mode == SelectiveRenderSettings.BoundaryMode.COLOR && normal && opacity < 100;
+    }
     /** Layers share exactly the same encoded geometry; world-space separation loses depth precision at distance. */
     public static float overlayOffset(SelectiveRenderSettings.BoundaryMode layer) {
         return 0f;

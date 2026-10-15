@@ -42,7 +42,7 @@ abstract class AbstractBlockRenderContextMixin {
             var tracker = IndiumRenderContext.boundaryQuads();
             for (int v = 0; v < 4; v++) tracker.vertex(v, quad.x(v), quad.y(v), quad.z(v));
             if (!tracker.accept(quad.lightFace().ordinal())) {
-                if(mode == SelectiveRenderSettings.BoundaryMode.COLOR && de.selectiverender.BoundaryRenderContext.normalAt(position)) {
+                if(de.selectiverender.BoundaryStyle.nativeOverlay(mode, de.selectiverender.BoundaryRenderContext.normalAt(position), de.selectiverender.BoundaryRenderContext.opacityAt(position))) {
                     selectiverender$emitting=true;
                     try { var emitter=((net.fabricmc.fabric.api.renderer.v1.render.RenderContext)(Object)this).getEmitter(); emitter.copyFrom(quad).emit(); }
                     finally { selectiverender$emitting=false; }

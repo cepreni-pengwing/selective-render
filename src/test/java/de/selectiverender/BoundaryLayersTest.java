@@ -2,6 +2,15 @@ package de.selectiverender;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 class BoundaryLayersTest {
+    @Test void grassOverlayCannotEscapeAnOpaqueColorOrReplacementTexture() {
+        for(var mode:SelectiveRenderSettings.BoundaryMode.values()) for(boolean normal:new boolean[]{false,true})
+            for(int opacity:new int[]{0,25,50,75,100}) {
+                boolean hasNormal=java.util.Arrays.asList(BoundaryStyle.renderLayers(mode,normal,opacity)).contains(SelectiveRenderSettings.BoundaryMode.NORMAL);
+                if(mode!=SelectiveRenderSettings.BoundaryMode.NORMAL)
+                    assertEquals(hasNormal,BoundaryStyle.nativeOverlay(mode,normal,opacity),mode+" / "+opacity);
+            }
+    }
+
     @Test void opaqueColorDoesNotEmitAnInvisibleCompetingUnderlay() {
         var color=SelectiveRenderSettings.BoundaryMode.COLOR;
         var texture=SelectiveRenderSettings.BoundaryMode.TEXTURE;

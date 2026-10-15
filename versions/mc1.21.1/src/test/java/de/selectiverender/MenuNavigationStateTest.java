@@ -5,6 +5,20 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MenuNavigationStateTest {
+    @Test void dimensionSwitchAndRestartKeepServerWideListLayout() {
+        var state=new MenuNavigationState();
+        var old=state.region("server:example|minecraft:overworld");
+        old.collapsed.add("minecraft:the_nether"); old.navigationScroll=4;
+        old.entry("minecraft:overworld","build").boundariesOpen=true;
+        var view=state.regionMenu("server:example","server:example|minecraft:overworld");
+        assertSame(old,view);
+        var copy=new Gson().fromJson(new Gson().toJson(state),MenuNavigationState.class); copy.normalize();
+        var next=copy.regionMenu("server:example","server:example|minecraft:the_nether");
+        assertTrue(next.collapsed.contains("minecraft:the_nether")); assertEquals(4,next.navigationScroll);
+        assertTrue(next.entry("minecraft:overworld","build").boundariesOpen);
+        assertTrue(copy.regionMenu("server:other","server:other|minecraft:overworld").collapsed.isEmpty());
+    }
+
     @Test void accordionAndScrollStateAreIndependentPerRegionDimensionAndWorld() {
         var state=new MenuNavigationState();
         var first=state.region("world-a").entry("minecraft:overworld","one");

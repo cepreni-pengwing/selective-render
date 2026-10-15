@@ -41,7 +41,7 @@ Visible widget bounds and overlaps, cut/interior policy and reset behavior are a
 Open a Client Smoke Test run, download its version's `client-smoke-...-baseline` artifact,
 extract it and open `index.html`. The offline gallery contains full-size images and machine results.
 Images are never committed or attached to releases; artifacts expire after seven days. Extended
-images run only on baseline profiles to limit storage. Compatibility profiles retain their existing
+images run only on baseline and vanilla profiles to limit storage. Compatibility profiles retain their existing
 runtime assertions and two palette images.
 
 The fixture is destructive **only in disposable, integrated-server CI worlds**. It is disabled unless
@@ -51,3 +51,5 @@ an unpaused scene screen, positions a detached camera, then restores the camera 
 
 These checks reduce manual work; they do not certify all shader/resource packs, far-distance depth
 precision or real-pack FPS. Review unusual screenshot changes and test the affected real setup.
+
+The 1.12 visual suite also covers partial/completed plot-grid menus and checks grass-side overlay suppression. All three Minecraft versions run the visual suite both with Sodium and with the vanilla renderer. Grid runtime assertions cover partial persistence, neighbor validation, settings reload and client-only plot selection.

@@ -35,6 +35,8 @@ def check_world(images):
     check("Opacity changes the rendered image at every quarter",all(b[0]>a[0]+8 and b[1]<a[1]-4 for a,b in zip(levels,levels[1:])),str([[round(v,1) for v in value] for value in levels]))
     red=rgb["06-color-100"]
     check("100% Color is opaque red",red[0]>180 and red[1]<35 and red[2]<35,str([round(v,1) for v in red]))
+    grass_side=mean(images["06-color-100"],(.38,.38,.58,.40))
+    check("Opaque Color covers coplanar grass side overlays",grass_side[0]>180 and grass_side[1]<35 and grass_side[2]<35,str([round(v,1) for v in grass_side]))
     foliage=foliage_pixels(images["06-color-100"])
     only_foliage=foliage_pixels(images["11-only-stone"])
     check("Grass decoration keeps its native material",foliage>150,f"Native foliage pixels: {foliage}")

@@ -49,6 +49,11 @@ class VisualReportTest(unittest.TestCase):
         images=self.fixtures(); images['06-color-100']=Image.new('RGB',(120,80),(255,0,0))
         self.assertIn('Grass decoration keeps its native material',self.failed(images))
 
+    def test_native_grass_overlay_on_opaque_boundary_is_detected(self):
+        images=self.fixtures()
+        images['06-color-100'].paste((50,100,30),(44,29,72,34))
+        self.assertIn('Opaque Color covers coplanar grass side overlays',self.failed(images))
+
     def test_region_color_leak_is_detected(self):
         images=self.fixtures(); images['12-region-split']=images['06-color-100'].copy()
         self.assertIn('Regional blue and global red stay independent',self.failed(images))
