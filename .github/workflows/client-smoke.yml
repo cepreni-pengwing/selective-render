@@ -101,6 +101,7 @@ jobs:
             profile: patch-sodium08
             java: 25
             fabric_api: 0.155.3
+            fabric_api_minecraft: 26.1.2
             build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
             jar_dir: versions/mc26.1/build/libs
             sodium: mc26.1.1-0.8.9-fabric
@@ -108,6 +109,7 @@ jobs:
             profile: patch-sodium08
             java: 25
             fabric_api: 0.155.3
+            fabric_api_minecraft: 26.1.2
             build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
             jar_dir: versions/mc26.1/build/libs
             sodium: mc26.1.1-0.8.9-fabric
@@ -115,6 +117,7 @@ jobs:
             profile: baseline
             java: 25
             fabric_api: 0.155.3
+            fabric_api_minecraft: 26.1.2
             build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
             jar_dir: versions/mc26.1/build/libs
             sodium: mc26.1.2-0.9.2-fabric
@@ -122,6 +125,7 @@ jobs:
             profile: sodium08
             java: 25
             fabric_api: 0.155.3
+            fabric_api_minecraft: 26.1.2
             build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
             jar_dir: versions/mc26.1/build/libs
             sodium: mc26.1.1-0.8.9-fabric
@@ -129,6 +133,7 @@ jobs:
             profile: worldedit
             java: 25
             fabric_api: 0.155.3
+            fabric_api_minecraft: 26.1.2
             build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
             jar_dir: versions/mc26.1/build/libs
             sodium: mc26.1.2-0.9.2-fabric
@@ -182,6 +187,13 @@ jobs:
               "https://api.modrinth.com/maven/maven/modrinth/sodium/${{ matrix.sodium }}/sodium-${{ matrix.sodium }}.jar"
           fi
 
+      - name: Stage shared 26.1.x Fabric API
+        if: matrix.fabric_api_minecraft
+        shell: bash
+        run: |
+          curl --fail --location --retry 3 --retry-all-errors --output run/mods/fabric-api.jar \
+            'https://maven.fabricmc.net/net/fabricmc/fabric-api/fabric-api/${{ matrix.fabric_api }}+${{ matrix.fabric_api_minecraft }}/fabric-api-${{ matrix.fabric_api }}+${{ matrix.fabric_api_minecraft }}.jar'
+
       - name: Stage optional WorldEdit compatibility profile
         if: matrix.worldedit_url
         shell: bash
@@ -230,7 +242,7 @@ jobs:
           modloader: fabric
           regex: .*fabric.*
           mc-runtime-test: fabric
-          fabric-api: ${{ matrix.fabric_api }}
+          fabric-api: ${{ matrix.fabric_api_minecraft && 'none' || matrix.fabric_api }}
           cache-mc: github
           xvfb: true
 
