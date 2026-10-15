@@ -437,4 +437,3 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         }
     }
 }
-
