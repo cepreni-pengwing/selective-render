@@ -19,6 +19,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Particle.class)
 abstract class ParticleLightMixin {
+    @org.spongepowered.asm.mixin.Unique private static final Direction[] selectiverender$lightDirections=Direction.values();
     @Shadow protected ClientLevel level;
     @Shadow protected double x;
     @Shadow protected double y;
@@ -37,14 +38,15 @@ abstract class ParticleLightMixin {
         int sky = LightCoordsUtil.sky(packed);
         int virtual = VirtualSkyLightSampler.sample(level, pos);
         int centerVirtual = virtual;
-        boolean directSky = de.selectiverender.VirtualSkyActivation.canUseDirectSky(virtual, SelectiveRenderState.shouldSeedVirtualSkyColumn(true))
+        boolean directSky = virtual < 15 && de.selectiverender.VirtualSkyActivation.canUseDirectSky(virtual, SelectiveRenderState.shouldSeedVirtualSkyColumn(true))
                 && SelectiveRenderState.highestVisibleOccluder(
                 level, pos.getX(), pos.getZ()) <= pos.getY();
         if (directSky) {
             PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.PARTICLE_DIRECT_SKY, 1);
             virtual = 15;
         }
-        for (Direction direction : Direction.values()) {
+        for (Direction direction : selectiverender$lightDirections) {
+            if (virtual >= 15) break;
             virtual = Math.max(virtual,
                     VirtualSkyLightSampler.sample(level, pos.relative(direction)));
         }

@@ -28,7 +28,7 @@ public final class SelectiveRenderSettings {
     private static volatile PlayerVisibility playerVisibility = PlayerVisibility.EVERYWHERE;
     private static volatile PlayerRenderPolicy.Group playerGroup = PlayerRenderPolicy.Group.EVERYONE;
     private static volatile PlayerRenderPolicy.Scope playerScope = PlayerRenderPolicy.Scope.EVERYWHERE;
-    private static volatile InteractionMode interactionMode = InteractionMode.EVERYWHERE;
+    private static volatile InteractionMode interactionMode = InteractionMode.INSIDE;
     private static volatile BoundaryMode boundaryMode = BoundaryMode.NORMAL;
     private static volatile int boundaryColor;
     private static volatile int boundaryOpacity = 100;
@@ -82,7 +82,7 @@ public final class SelectiveRenderSettings {
         playerGroup = stored.playerGroup == null ? migratedPlayers.group() : stored.playerGroup;
         playerScope = stored.playerScope == null ? migratedPlayers.scope() : stored.playerScope;
         interactionMode = stored.interactionMode == null
-                ? InteractionMode.EVERYWHERE : stored.interactionMode;
+                ? InteractionMode.INSIDE : stored.interactionMode;
         boundaryMode = stored.boundaryMode == null ? BoundaryMode.NORMAL : stored.boundaryMode;
         boundaryColor = stored.boundaryColor == null ? 0 : stored.boundaryColor & 0xFFFFFF;
         boundaryColorLighting = stored.boundaryColorLighting;

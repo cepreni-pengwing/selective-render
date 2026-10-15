@@ -4,13 +4,13 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class SettingsDefaultsTest {
-    @Test void defaultsAreUnrestrictedWithNormalBoundariesAndNoDebugBoxes() {
+    @Test void defaultsUseInsideInteractionsWithNormalBoundariesAndNoDebugBoxes() {
         assertEquals(PlayerRenderPolicy.Group.EVERYONE, SelectiveRenderSettings.playerGroup());
         assertEquals(PlayerRenderPolicy.Scope.EVERYWHERE, SelectiveRenderSettings.playerScope());
         assertTrue(SelectiveRenderSettings.worldEditSelection());
         assertEquals(SelectiveRenderSettings.PlayerVisibility.EVERYWHERE,
                 SelectiveRenderSettings.playerVisibility());
-        assertEquals(SelectiveRenderSettings.InteractionMode.EVERYWHERE,
+        assertEquals(SelectiveRenderSettings.InteractionMode.INSIDE,
                 SelectiveRenderSettings.interactionMode());
         assertEquals(SelectiveRenderSettings.BoundaryMode.NORMAL,
                 SelectiveRenderSettings.boundaryMode());

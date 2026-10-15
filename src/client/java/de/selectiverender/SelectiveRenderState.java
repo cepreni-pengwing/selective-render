@@ -198,6 +198,11 @@ public final class SelectiveRenderState {
         return matchesBlockFilters(snapshot, state, blockX, blockY, blockZ);
     }
 
+    /** Lighting already established coordinate visibility; do not repeat region geometry queries. */
+    public static boolean passesBlockFilters(BlockState state,int x,int y,int z) {
+        return matchesBlockFilters(visibility,state,x,y,z);
+    }
+
     private static boolean matchesBlockFilters(VisibilitySnapshot snapshot, BlockState state,
                                                int blockX, int blockY, int blockZ) {
         if (snapshot.filteredRegions().isEmpty()) return true;

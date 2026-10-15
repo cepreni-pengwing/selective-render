@@ -24,6 +24,33 @@ class TerrainSkyLightCacheTest {
         };
     }
 
+    @Test void interiorReuseRequiresHaloAndCurrentRevisionAndPreservesVoxelLayout() {
+        var key=new TerrainSkyLightCache.Key(world,1,0,-16,-16,-16,31,31,31);
+        byte[] light=new byte[48*48*48];
+        for(int y=0;y<48;y++) for(int z=0;z<48;z++) for(int x=0;x<48;x++)
+            light[(y*48+z)*48+x]=(byte)((x+2*y+3*z)%16);
+        cache.put(key,capture(1,0),light,light.length);
+        byte[] core=cache.copyInterior(world,1,0,0,0,0,-64,319);
+        assertNotNull(core);
+        for(int y=0;y<16;y++) for(int z=0;z<16;z++) for(int x=0;x<16;x++)
+            assertEquals(light[((y+16)*48+z+16)*48+x+16],core[(y*16+z)*16+x]);
+        assertNull(cache.copyInterior(world,1,0,4,0,0,-64,319));
+        assertNull(cache.copyInterior(new Object(),1,0,0,0,0,-64,319));
+        assertNull(cache.copyInterior(world,2,0,0,0,0,-64,319));
+        assertNull(cache.copyInterior(world,1,1,0,0,0,-64,319));
+        cache.invalidateColumn(0,0);
+        assertNull(cache.copyInterior(world,1,0,0,0,0,-64,319));
+    }
+
+    @Test void reusedCoreRespectsClippedWorldHeightAndIsAnIndependentCopy() {
+        var key=new TerrainSkyLightCache.Key(world,1,0,-16,0,-16,31,31,31);
+        byte[] light=new byte[48*32*48]; java.util.Arrays.fill(light,(byte)15);
+        cache.put(key,capture(1,0),light,light.length);
+        byte[] core=cache.copyInterior(world,1,0,0,0,0,0,31);
+        assertNotNull(core); assertEquals(15,core[0]); core[0]=0;
+        assertEquals(15,cache.copyInterior(world,1,0,0,0,0,0,31)[0]);
+    }
+
     @Test void identicalOpticsReuseAnImmutableResultAcrossMeshJobs() {
         byte[] light = {15, 8, 0};
         cache.put(key(1, 0), capture(1, 0), light, light.length);

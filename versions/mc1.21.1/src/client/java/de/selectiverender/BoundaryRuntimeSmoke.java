@@ -70,7 +70,7 @@ final class BoundaryRuntimeSmoke {
         }
     }
     private static int[] plotLightProbe(MinecraftClient client,BlockPos pos) {
-        return new int[]{VirtualSkyLightSampler.sample(client.world,pos),
+        return new int[]{VirtualSkyLightSampler.sampleForValidation(client.world,pos),
                 SelectiveRenderState.highestVisibleOccluder(client.world,pos.getX(),pos.getZ()),
                 SelectiveRenderState.visibleColumnTop(pos.getX(),pos.getZ(),320),
                 SelectiveRenderState.visibleColumnBottom(pos.getX(),pos.getZ(),-64),
@@ -343,7 +343,8 @@ final class BoundaryRuntimeSmoke {
             SelectiveRenderState.setSavedState(java.util.List.of(),false,java.util.List.of(),false,java.util.List.of(),java.util.List.of(filtered));
             if(!SelectiveRenderState.virtualSkyLightActive() || SelectiveRenderState.highestVisibleOccluder(client.world,pos.getX(),pos.getZ())!=Integer.MIN_VALUE)
                 throw new IllegalStateException("Only-filtered roof still blocked direct skylight");
-            if(VirtualSkyLightSampler.sample(client.world,pos)!=15) throw new IllegalStateException("Filter-only sampler did not provide direct sky");
+            VirtualSkyLightSampler.verifyBudgetedBuild(client.world,pos);
+            if(VirtualSkyLightSampler.sampleForValidation(client.world,pos)!=15) throw new IllegalStateException("Filter-only sampler did not provide direct sky");
             var stand=new net.minecraft.entity.decoration.ArmorStandEntity(client.world,pos.getX()+.5,pos.getY(),pos.getZ()+.5);
             if(SelectiveRenderState.shouldRender(stand) || SelectiveRenderState.shouldInteract(stand))
                 throw new IllegalStateException("Only-filtered entity remained visible or targetable");

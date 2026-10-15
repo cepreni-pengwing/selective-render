@@ -12,24 +12,23 @@ public final class VirtualLightPropagation {
      */
     public static int seedFrontier(byte[] light, byte[] queued, int[] queue,
                                    int sizeX, int sizeY, int sizeZ) {
-        int plane = sizeX * sizeZ;
-        int count = 0;
-        int index = 0;
-        for (int y = 0; y < sizeY; y++) {
-            for (int z = 0; z < sizeZ; z++) {
-                for (int x = 0; x < sizeX; x++, index++) {
-                    int value = Byte.toUnsignedInt(light[index]);
-                    if (value <= 1) continue;
-                    if ((x > 0 && canImprove(value, Byte.toUnsignedInt(light[index - 1])))
-                            || (x + 1 < sizeX && canImprove(value, Byte.toUnsignedInt(light[index + 1])))
-                            || (z > 0 && canImprove(value, Byte.toUnsignedInt(light[index - sizeX])))
-                            || (z + 1 < sizeZ && canImprove(value, Byte.toUnsignedInt(light[index + sizeX])))
-                            || (y > 0 && canImprove(value, Byte.toUnsignedInt(light[index - plane])))
-                            || (y + 1 < sizeY && canImprove(value, Byte.toUnsignedInt(light[index + plane])))) {
-                        queue[count++] = index;
-                        queued[index] = 1;
-                    }
-                }
+        return seedFrontierRange(light,queued,queue,sizeX,sizeY,sizeZ,0,sizeX*sizeY*sizeZ,0);
+    }
+
+    public static int seedFrontierRange(byte[] light, byte[] queued, int[] queue,
+                                        int sizeX,int sizeY,int sizeZ,int from,int to,int offset) {
+        int plane=sizeX*sizeZ, count=0;
+        for(int index=from;index<to;index++) {
+            int x=index%sizeX,z=(index/sizeX)%sizeZ,y=index/plane;
+            int value=Byte.toUnsignedInt(light[index]);
+            if(value<=1) continue;
+            if ((x>0 && canImprove(value,Byte.toUnsignedInt(light[index-1])))
+                    || (x+1<sizeX && canImprove(value,Byte.toUnsignedInt(light[index+1])))
+                    || (z>0 && canImprove(value,Byte.toUnsignedInt(light[index-sizeX])))
+                    || (z+1<sizeZ && canImprove(value,Byte.toUnsignedInt(light[index+sizeX])))
+                    || (y>0 && canImprove(value,Byte.toUnsignedInt(light[index-plane])))
+                    || (y+1<sizeY && canImprove(value,Byte.toUnsignedInt(light[index+plane])))) {
+                queue[offset+count++]=index; queued[index]=1;
             }
         }
         return count;

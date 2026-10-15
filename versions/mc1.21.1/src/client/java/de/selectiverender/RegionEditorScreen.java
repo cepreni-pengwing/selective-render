@@ -238,8 +238,8 @@ final class RegionEditorScreen extends Screen {
             deletionArmed = false; resetArmed = false; scroll = 0; navScroll = 0; filtersOpen = false; boxesOpen = false;
         }), new Choice(resetArmed ? "Confirm reset" : "Reset region", false, this::resetRegion)), null, 0));
         field("Name", "name", region, false, value -> save(value, boxes(), hidden(), selected(), rules()));
-        options("Type", List.of(new Choice("Render", !hidden(), () -> save(region, boxes(), false, true, rules())),
-                new Choice("Hidden", hidden(), () -> save(region, boxes(), true, true, rules()))));
+        options("Type", List.of(new Choice("Render", !hidden(), () -> save(region, boxes(), false, selected(), rules())),
+                new Choice("Hidden", hidden(), () -> save(region, boxes(), true, selected(), rules()))));
         accordion("Filters", rules().size(), filtersOpen, () -> filtersOpen = !filtersOpen);
         if (filtersOpen) {
             RegionOptions currentOptions = document.options().getOrDefault(region, RegionOptions.DEFAULT);

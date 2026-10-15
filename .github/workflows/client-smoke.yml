@@ -198,6 +198,7 @@ jobs:
           fi
           grep -q '\[SR grid smoke\] PASS:' run/logs/latest.log
           grep -q '\[SR plot parity smoke\] PASS:' run/logs/latest.log
+          grep -q '\[SR skylight budget smoke\] PASS:' run/logs/latest.log
           grep -q '\[SR reset smoke\] Two clicks clear overrides/filters and preserve region geometry/type/activation' run/logs/latest.log
           if ! grep -q '\[SR placement smoke\] Only-filtered air permits placement' run/logs/latest.log; then
             echo "Only-filter placement runtime smoke did not complete." >&2

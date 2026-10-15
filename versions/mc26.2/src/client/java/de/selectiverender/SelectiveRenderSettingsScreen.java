@@ -34,7 +34,15 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     private final List<Row> rows = new ArrayList<>();
     private final java.util.Map<Integer, EditBox> gridFields = new java.util.HashMap<>();
     private String gridError = "";
+    private void clearWidgetsForGridConfirmation() { clearWidgets(); init(); }
+
+    private void deleteGrid() {
+        if (!gridDeletionArmed) { gridDeletionArmed=true; clearWidgetsForGridConfirmation(); return; }
+        deletingGrid=true; PlotGridClient.save(null); gridFields.clear(); navigate(tab,regionName,scroll);
+    }
+
     private boolean deletingGrid;
+    private boolean gridDeletionArmed;
     private EditBox focusedGridField;
     private EditBox reloadField;
     private EditBox plotHeightField;
@@ -143,7 +151,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                     int buttonWidth = row.labelWidth() == 0 ? available
                             : Math.min(available, Math.max(36, font.width(choice.label()) + 16));
                     var button = addRenderableWidget(Button.builder(Component.literal(choice.label()), b -> {
-                        if (!choice.label().equals("Delete grid") && !applyNumericSettings()) return;
+                        if (!(choice.label().equals("Delete grid") || choice.label().equals("Confirm deletion")) && !applyNumericSettings()) return;
                         choice.action().run();
                     }).bounds(x, y, buttonWidth, 20).build());
                     x += buttonWidth + 6;
@@ -202,9 +210,8 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 if (PlotGridClient.context() == null) label("Join a world to edit its plot grid");
                 else if (grid == null) label("Set up with /sr plot grid");
                 else {
-                    rows.add(new Row("",List.of(new Choice("Delete grid",false,() -> {
-                        deletingGrid=true; PlotGridClient.save(null); gridFields.clear(); navigate(tab,regionName,scroll);
-                    },"Remove the grid for this server and dimension")),0));
+                    rows.add(new Row("",List.of(new Choice(gridDeletionArmed ? "Confirm deletion" : "Delete grid",false,this::deleteGrid,
+                        "Remove the grid for this server and dimension")),0));
                     options("Plot source", new String[]{"SRP", "Grid"}, grid.enabled()?1:0,
                             i -> PlotGridClient.save(PlotGridClient.current().withEnabled(i==1)));
                     rows.add(new Row("Corner 1 (X Z)",List.of(),4));

@@ -138,6 +138,15 @@ final class VisualRegressionSmoke {
                     if(PlotGridClient.current().roadWidth()!=9) throw new IllegalStateException("Edited grid did not survive reload");
                     road.setText("7"); commit.invoke(page);
                 }
+                var delete=SelectiveRenderSettingsScreen.class.getDeclaredMethod("deleteGrid"); delete.setAccessible(true);
+                delete.invoke(page);
+                if(!grid.equals(PlotGridClient.current()) || !(Boolean)field(page,"gridDeletionArmed"))
+                    throw new IllegalStateException("First delete click removed the grid");
+                delete.invoke(page);
+                if(PlotGridClient.current()!=null) throw new IllegalStateException("Second delete click did not remove the grid");
+                PlotGridClient.save(grid);
+                client.setScreen(new SelectiveRenderSettingsScreen(null,SelectiveRenderSettingsScreen.Tab.PLOTS,null,0));
+
                 return;
             }
             if (id.startsWith("13-") || id.startsWith("14-") || id.startsWith("15-")) {

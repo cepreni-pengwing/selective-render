@@ -7,6 +7,17 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RegionDocumentTest {
+    @Test void changingTypePreservesEachRegionsActivationAndOtherRegions() {
+        for(boolean active:new boolean[]{false,true}) for(boolean hidden:new boolean[]{false,true}) {
+            var source=new RegionDocument("minecraft:overworld",Map.of("test",List.of(BOX),"other",List.of(BOX)),
+                    active && !hidden?Set.of("test","other"):Set.of("other"),hidden?Set.of("test"):Set.of(),
+                    active && hidden?Set.of("test"):Set.of(),Map.of(),true,true);
+            var changed=source.edit("test","test",List.of(BOX),!hidden,source.isSelected("test"),List.of());
+            assertEquals(active,changed.isSelected("test")); assertTrue(changed.isSelected("other"));
+            assertEquals(!hidden,changed.hidden().contains("test"));
+        }
+    }
+
     @Test void convertingAnInactiveHiddenRegionSelectsItOnlyInTheRenderGroup() {
         var hidden=new RegionDocument("minecraft:overworld",Map.of("test",List.of(BOX)),
                 Set.of(),Set.of("test"),Set.of(),Map.of(),false,true);

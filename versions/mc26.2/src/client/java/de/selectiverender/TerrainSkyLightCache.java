@@ -124,6 +124,29 @@ public final class TerrainSkyLightCache {
         }
     }
 
+    /** Copy only an interior core: every propagated path has a full 14-block halo.
+     * Direct vertical sky was already traced above the volume by the terrain solver. */
+    public synchronized byte[] copyInterior(Object world,int generation,int policy,
+                                           int x,int y,int z,int worldBottom,int worldTop) {
+        final int radius=14;
+        for(var item:entries.entrySet()) {
+            Key key=item.getKey(); Entry entry=item.getValue();
+            if(key.world!=world || key.generation!=generation || key.policy!=policy || entry.result.vanilla()) continue;
+            if(key.minX>x-radius || key.maxX<x+15+radius || key.minZ>z-radius || key.maxZ<z+15+radius
+                    || key.minY>Math.max(worldBottom,y-radius) || key.maxY<Math.min(worldTop,y+15+radius)) continue;
+            if(entry.revision!=revision(key)) continue;
+            byte[] result=new byte[4096];
+            int width=key.maxX-key.minX+1, depth=key.maxZ-key.minZ+1;
+            for(int sy=Math.max(y,worldBottom);sy<=Math.min(y+15,worldTop);sy++) for(int sz=0;sz<16;sz++) {
+                int source=((sy-key.minY)*depth+z+sz-key.minZ)*width+x-key.minX;
+                int target=((sy-y)*16+sz)*16;
+                System.arraycopy(entry.result.light,source,result,target,16);
+            }
+            return result;
+        }
+        return null;
+    }
+
     public synchronized void invalidateColumn(int chunkX, int chunkZ) {
         PerformanceDiagnostics.count(PerformanceDiagnostics.Metric.TERRAIN_COLUMN_INVALIDATION, 1);
         // Bound revision metadata even on very long exploration sessions.

@@ -60,6 +60,7 @@ abstract class WorldSliceMixin {
     @Unique private boolean selectiverender$virtualSkyPrepared;
     @Unique private boolean selectiverender$vanillaSkyUnchanged;
     @Unique private boolean selectiverender$sourceRead;
+    @Unique private boolean selectiverender$coordinateVisible;
     @Unique private static final Direction[] selectiverender$directions = Direction.values();
 
     @Inject(method = "copyData", at = @At("HEAD"))
@@ -247,7 +248,7 @@ abstract class WorldSliceMixin {
                     BlockState state = selectiverender$sourceState(cursor, x, y, z);
                     selectiverender$lightStates[index] = state;
                     selectiverender$lightVisible[index] = (byte)
-                            (SelectiveRenderState.shouldRender(x, y, z) ? 1 : 0);
+                            (selectiverender$coordinateVisible ? 1 : 0);
                     selectiverender$lightOpacity[index] = (byte)
                             selectiverender$sourceOpacity(state, cursor);
                 }
@@ -413,10 +414,11 @@ abstract class WorldSliceMixin {
     @Unique
     private BlockState selectiverender$sourceState(BlockPos.Mutable cursor, int x, int y, int z) {
         cursor.set(x, y, z);
-        if (!SelectiveRenderState.shouldRender(cursor)) return Blocks.AIR.getDefaultState();
+        selectiverender$coordinateVisible=SelectiveRenderState.shouldRender(cursor);
+        if (!selectiverender$coordinateVisible) return Blocks.AIR.getDefaultState();
         BlockState state = selectiverender$getSourceBlockState(cursor);
         if (state == null) state = Blocks.AIR.getDefaultState();
-        return SelectiveRenderState.shouldRender(state, x, y, z) ? state : Blocks.AIR.getDefaultState();
+        return SelectiveRenderState.passesBlockFilters(state, x, y, z) ? state : Blocks.AIR.getDefaultState();
     }
 
     @Unique
