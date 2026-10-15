@@ -96,7 +96,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             if (BoundaryColorTexture.prepare()) SelectiveRenderState.refreshVisibilityRegions(SelectiveRenderState.traversalRegions());
             BoundaryRuntimeSmoke.tick(client);
             VisualRegressionSmoke.tick(client);
-            if (PerformanceDiagnostics.tickEnd()) logPerformanceContext();
+            if (PerformanceDiagnostics.tickEnd()) {
+                logPerformanceContext();
+                if (!PerformanceDiagnostics.enabled() && client.player != null) {
+                    client.inGameHud.getChatHud().addMessage(message(green("Diagnostics finished; send logs/latest.log.")));
+                }
+            }
             while (TOGGLE_KEY.wasPressed()) toggleFromKey(client);
             while (HIDE_TOGGLE_KEY.wasPressed()) toggleHideFromKey(client);
             while (PLOT_TOGGLE_KEY.wasPressed()) PlotSquaredClient.toggle();
