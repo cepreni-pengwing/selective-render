@@ -1,109 +1,66 @@
 name: Release
 
 on:
-  push:
-    tags: ['v*']
+  workflow_run:
+    workflows: [Client Smoke Test]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew
-      - name: Validate tag version
+      - name: Determine version
+        id: version
         shell: bash
         run: |
-          project_version=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
-          project_version_1211=$(sed -n 's/^mod_version=//p' versions/mc1.21.1/gradle.properties | tr -d '\r')
-          tag_version=${GITHUB_REF_NAME#v}
-          if [[ ! "$tag_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Release versions require three numeric components." >&2
-            exit 1
+          version=$(sed -n 's/^mod_version=//p' gradle.properties | tr -d '\r')
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "Invalid mod_version '$version'" >&2; exit 1; }
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
-          if [[ -z "$project_version" || "$tag_version" != "$project_version" || "$tag_version" != "$project_version_1211" ]]; then
-            echo "Tag version '$tag_version' does not match build versions '$project_version' and '$project_version_1211'." >&2
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor origin/main "$GITHUB_SHA"; then
-            echo "Tagged commit '$GITHUB_SHA' is not based on the current origin/main history." >&2
-            exit 1
-          fi
-      - run: ./gradlew clean build --stacktrace
-      - name: Read optional release targets
-        id: targets
-        shell: bash
-        run: |
-          mc26_2=$(sed -n 's/^release_mc26_2=//p' gradle.properties | tr -d '\r')
-          mc1_21_1=$(sed -n 's/^release_mc1_21_1=//p' gradle.properties | tr -d '\r')
-          echo "mc26_2=${mc26_2:-false}" >> "$GITHUB_OUTPUT"
-          for target in mc26_1 mc26_3; do
-            enabled=$(sed -n "s/^release_${target}=//p" gradle.properties | tr -d '\r')
-            echo "${target}=${enabled:-false}" >> "$GITHUB_OUTPUT"
-          done
-          echo "mc1_21_1=${mc1_21_1:-false}" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-java@v4
-        if: steps.targets.outputs.mc1_21_1 == 'true'
+      - uses: actions/setup-java@v6
+        if: steps.version.outputs.exists == 'false'
         with:
           distribution: temurin
-          java-version: '21'
-      - run: ./gradlew -p versions/mc1.21.1 clean build --stacktrace
-        if: steps.targets.outputs.mc1_21_1 == 'true'
-      - uses: actions/setup-java@v4
-        if: steps.targets.outputs.mc26_2 == 'true'
-        with:
-          distribution: temurin
-          java-version: '25'
-      - run: chmod +x versions/mc26.2/gradlew
-        if: steps.targets.outputs.mc26_2 == 'true'
-      - run: ./versions/mc26.2/gradlew -p versions/mc26.2 clean build --stacktrace
-        if: steps.targets.outputs.mc26_2 == 'true'
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - run: chmod +x versions/mc26.1/gradlew && ./versions/mc26.1/gradlew -p versions/mc26.1 clean build --stacktrace
-        if: steps.targets.outputs.mc26_1 == 'true'
-      - run: chmod +x versions/mc26.3/gradlew && ./versions/mc26.3/gradlew -p versions/mc26.3 clean build --stacktrace
-        if: steps.targets.outputs.mc26_3 == 'true'
-      - name: Publish versioned JARs
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v6
+        if: steps.version.outputs.exists == 'false'
+      - if: steps.version.outputs.exists == 'false'
+        run: ./gradlew build -Porg.gradle.java.installations.auto-detect=false -Porg.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64 --stacktrace
+      - name: Publish prerelease
+        if: steps.version.outputs.exists == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        shell: bash
         run: |
-          jar_1201=$(find build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-          test -n "$jar_1201"
-          assets=("$jar_1201")
-          if [[ '${{ steps.targets.outputs.mc1_21_1 }}' == 'true' ]]; then
-            jar_1211=$(find versions/mc1.21.1/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-            test -n "$jar_1211"
-            assets+=("$jar_1211")
-          fi
-          if [[ '${{ steps.targets.outputs.mc26_2 }}' == 'true' ]]; then
-            jar_262=$(find versions/mc26.2/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-            test -n "$jar_262"
-            assets+=("$jar_262")
-          fi
-          for target in mc26.1 mc26.3; do
-            if [[ "$target" == 'mc26.1' ]]; then enabled='${{ steps.targets.outputs.mc26_1 }}'; else enabled='${{ steps.targets.outputs.mc26_3 }}'; fi
-            if [[ "$enabled" == 'true' ]]; then
-              jar=$(find "versions/$target/build/libs" -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
-              test -n "$jar"
-              assets+=("$jar")
-            fi
-          done
-          previous_tag=$(git describe --tags --abbrev=0 "${GITHUB_SHA}^" 2>/dev/null || true)
-          if [[ -n "$previous_tag" ]]; then
-            printf '**Full Changelog**: [%s...%s](https://github.com/%s/compare/%s...%s)\n' "$previous_tag" "$GITHUB_REF_NAME" "$GITHUB_REPOSITORY" "$previous_tag" "$GITHUB_REF_NAME" > release-notes.md
+          mapfile -t assets < <(find versions/*/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | sort)
+          test "${#assets[@]}" -eq 5
+          previous=$(git describe --tags --abbrev=0 "$SHA" 2>/dev/null || true)
+          if [[ -n "$previous" ]]; then
+            printf '**Full Changelog**: [%s...%s](https://github.com/%s/compare/%s...%s)\n' "$previous" "$TAG" "$GITHUB_REPOSITORY" "$previous" "$TAG" > notes.md
           else
-            printf '**Full Changelog**: [Commits](https://github.com/%s/commits/%s)\n' "$GITHUB_REPOSITORY" "$GITHUB_REF_NAME" > release-notes.md
+            printf '**Full Changelog**: [Commits](https://github.com/%s/commits/%s)\n' "$GITHUB_REPOSITORY" "$TAG" > notes.md
           fi
-          gh release create "$GITHUB_REF_NAME" "${assets[@]}" --notes-file release-notes.md --verify-tag --prerelease
+          gh release create "$TAG" "${assets[@]}" --target "$SHA" --title "$TAG" --notes-file notes.md --prerelease

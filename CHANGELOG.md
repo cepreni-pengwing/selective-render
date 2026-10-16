@@ -1,5 +1,41 @@
 # Changelog
 
+## 1.13.1
+
+- Built all Minecraft targets from one Gradle project with shared sources, removing four duplicated copies of common code
+- Published prereleases automatically after a successful client smoke test when the version is raised
+- Skipped boundary work in 1.20.1 Sodium meshing when no regions or filters are active
+- Showed the effective regional interaction state instead of "Off" when inheriting "Inside regions"
+- Restricted region names in the editor to characters that commands accept
+- Toggled client-grid plots by their footprint, independent of the requested height range
+- Rejected a default plot minimum Y above the maximum in the Plots tab
+- Refreshed tag-based filters when the server synchronizes tags and cached filter suggestions
+- Avoided a brief unfiltered state while saving region editor changes
+
+## 1.13.0
+
+- Expanded `#selectiverender:beams` to 3,388 structural IDs from Conquest Reforged 1.7.0 and Architects 1.0.3, excluding full blocks, layers, stairs, slabs and similar volume shapes
+- Added Minecraft 26.1, 26.1.1 and 26.1.2 (one shared JAR for Sodium 0.8.9 and 0.9.2) and Minecraft 26.3
+- Showed the regional block texture row only when Texture is explicitly enabled for that region
+
+## 1.12.3
+
+- Preserved region activation when changing a region's type in the menu
+- Computed entity, particle and block-entity skylight over several client ticks with a soft 2 ms budget, reusing finished terrain light where possible
+
+## 1.12.2
+
+- Added a chat message when timed diagnostics finish
+
+## 1.12.1
+
+- Refined plot controls and hidden interaction priority
+
+## 1.12
+
+- Added the client-only plot grid set up with `/sr plot grid`, editable in the Plots tab
+- Fixed boundary overlays and menu position persistence
+
 ## 1.11.13
 
 - Added 21 opt-in in-game visual cases per baseline version with deterministic boundary fixtures and UI screenshots

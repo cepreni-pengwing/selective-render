@@ -346,7 +346,8 @@ final class RegionEditorScreen extends Screen {
         if (labels.length == 2 && labels[0].equals("Off") && labels[1].equals("On")) {
             Object effective = current != null ? current : switch (field) {
                 case 2 -> SelectiveRenderSettings.cullFluidBoundaryFaces();
-                case 3 -> SelectiveRenderSettings.interactionMode();
+                case 3 -> InteractionPolicy.allows(SelectiveRenderSettings.interactionMode(), true)
+                        ? SelectiveRenderSettings.InteractionMode.EVERYWHERE : SelectiveRenderSettings.InteractionMode.NONE;
                 case 5 -> SelectiveRenderSettings.interactWithHiddenRegions();
                 default -> false;
             };

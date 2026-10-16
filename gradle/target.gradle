@@ -1,0 +1,92 @@
+def targetProperties = new Properties()
+file('gradle.properties').withInputStream { targetProperties.load(it) }
+targetProperties.each { key, value ->
+    def override = rootProject.findProperty("${project.name}.${key}")
+    project.ext.set(key, override ?: value)
+}
+
+def javaVersion = project.java_version as int
+def mappingFamily = javaVersion < 25 ? 'legacy' : 'modern'
+
+version = rootProject.mod_version
+group = rootProject.maven_group
+base { archivesName = "selective-render-${project.findProperty('archive_target') ?: project.name}" }
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.fabricmc.net/' }
+    maven { url = 'https://maven.terraformersmc.com/releases/' }
+    maven { url = 'https://api.modrinth.com/maven' }
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.2')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'com.google.code.gson:gson:2.10.1'
+}
+
+loom {
+    splitEnvironmentSourceSets()
+    mods {
+        selectiverender { sourceSet sourceSets.client }
+    }
+    runs {
+        client {
+            configName = "Minecraft Client (${project.name})"
+            ideConfigGenerated true
+            vmArg '-Dsodium.checks.issue2561=false'
+            runDir 'run'
+        }
+    }
+}
+
+sourceSets {
+    client {
+        java.srcDirs rootProject.files('shared/common/src/client/java', "shared/$mappingFamily/src/client/java")
+        resources.srcDir rootProject.file('shared/common/src/client/resources')
+    }
+    test {
+        java.srcDir rootProject.file('shared/common/src/test/java')
+        compileClasspath += sourceSets.client.output
+        runtimeClasspath += sourceSets.client.output
+    }
+}
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(javaVersion)
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = javaVersion
+    options.encoding = 'UTF-8'
+}
+
+tasks.named('test') { useJUnitPlatform() }
+
+tasks.withType(ProcessResources).configureEach {
+    inputs.property 'version', project.version
+    filesMatching('fabric.mod.json') { expand version: project.version }
+}
+
+def generatedTextures = layout.buildDirectory.dir('generated/boundary-textures')
+def generateBoundaryTextures = tasks.register('generateBoundaryTextures') {
+    outputs.dir generatedTextures
+    doLast {
+        def directory = generatedTextures.get().dir('assets/selectiverender/textures/block').asFile
+        directory.mkdirs()
+        def write = { String name, int size, int argb ->
+            def bitmap = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)
+            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) bitmap.setRGB(x, y, argb)
+            javax.imageio.ImageIO.write(bitmap, 'png', new File(directory, "${name}.png"))
+        }
+        (0..100).each { opacity -> write("boundary_alpha_${opacity}", 16, (((opacity * 255 + 50).intdiv(100)) << 24) | 0xFFFFFF) }
+        ['boundary_white': 16, 'boundary_rainbow': 256, 'boundary_texture': 128, 'boundary_combined': 128].each { name, size -> write(name, size, -1) }
+    }
+}
+
+tasks.named('processClientResources', ProcessResources) {
+    from(generateBoundaryTextures)
+    from(rootProject.file('docs/images/icon.png')) { into 'assets/selectiverender' }
+}

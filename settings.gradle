@@ -4,6 +4,19 @@ pluginManagement {
         gradlePluginPortal()
         mavenCentral()
     }
+    plugins {
+        id 'net.fabricmc.fabric-loom' version '1.17.20'
+        id 'net.fabricmc.fabric-loom-remap' version '1.17.20'
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
 }
 
 rootProject.name = 'selective-render'
+
+['mc1.20.1', 'mc1.21.1', 'mc26.1', 'mc26.2', 'mc26.3'].each { target ->
+    include target
+    project(":$target").projectDir = file("versions/$target")
+}

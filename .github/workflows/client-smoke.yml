@@ -28,7 +28,7 @@ jobs:
     outputs:
       visual: ${{ steps.select.outputs.visual }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - id: select
@@ -50,29 +50,25 @@ jobs:
             profile: baseline
             java: 17
             fabric_api: 0.92.2
-            build: ./gradlew build --stacktrace
-            jar_dir: build/libs
+            target: mc1.20.1
             sodium: mc1.20.1-0.5.13-fabric
           - minecraft: 1.21.1
             profile: baseline
             java: 21
             fabric_api: 0.116.17
-            build: ./gradlew -p versions/mc1.21.1 build --stacktrace
-            jar_dir: versions/mc1.21.1/build/libs
+            target: mc1.21.1
             sodium: mc1.21.1-0.8.13-fabric
           - minecraft: 26.2
             profile: baseline
             java: 25
             fabric_api: 0.159.0
-            build: ./versions/mc26.2/gradlew -p versions/mc26.2 build --stacktrace
-            jar_dir: versions/mc26.2/build/libs
+            target: mc26.2
             sodium: mc26.2-0.9.2-fabric
           - minecraft: 1.20.1
             profile: worldedit-cui
             java: 17
             fabric_api: 0.92.2
-            build: ./gradlew build --stacktrace
-            jar_dir: build/libs
+            target: mc1.20.1
             sodium: mc1.20.1-0.5.13-fabric
             worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/Wrlqaul6/worldedit-mod-7.2.15.jar
             worldedit_sha: 2c41dcd9a622f948ed5409eecc485018fbf274945bdd1a9c0fdf4c4954f9a47dc311e6e0f9e445180d8b771e4a40947533d67bd66feb4ab8c8f87c2880dba7ef
@@ -80,8 +76,7 @@ jobs:
             profile: worldedit
             java: 21
             fabric_api: 0.116.17
-            build: ./gradlew -p versions/mc1.21.1 build --stacktrace
-            jar_dir: versions/mc1.21.1/build/libs
+            target: mc1.21.1
             sodium: mc1.21.1-0.8.13-fabric
             worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/WTAFvuRx/worldedit-mod-7.3.8.jar
             worldedit_sha: e039492df0b486e7ce76d0eaf8cb11eadad2e78220600b8498ab8eef4642a29e310a6bcb4378257553b3639c6d0bc1ebf0f73df3a7a677c6af6baf86716b0bc7
@@ -89,8 +84,7 @@ jobs:
             profile: worldedit
             java: 25
             fabric_api: 0.159.0
-            build: ./versions/mc26.2/gradlew -p versions/mc26.2 build --stacktrace
-            jar_dir: versions/mc26.2/build/libs
+            target: mc26.2
             sodium: mc26.2-0.9.2-fabric
             worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/6YnCYPwc/worldedit-mod-7.4.5.jar
             worldedit_sha: 611ff7cc00d78c63a284ef26b6fbc806af295c469375e5e71e4d7e993aa6ea3fa90945e46511c99b6157a01ed5c3868a2a6419b47a38114cc1e67b32c20f7ca3
@@ -98,48 +92,42 @@ jobs:
             profile: connected-textures
             java: 17
             fabric_api: 0.92.2
-            build: ./gradlew build --stacktrace
-            jar_dir: build/libs
+            target: mc1.20.1
             sodium: mc1.20.1-0.5.13-fabric
           - minecraft: 26.1
             profile: patch-sodium08
             java: 25
             fabric_api: 0.155.3
             fabric_api_minecraft: 26.1.2
-            build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
-            jar_dir: versions/mc26.1/build/libs
+            target: mc26.1
             sodium: mc26.1.1-0.8.9-fabric
           - minecraft: 26.1.1
             profile: patch-sodium08
             java: 25
             fabric_api: 0.155.3
             fabric_api_minecraft: 26.1.2
-            build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
-            jar_dir: versions/mc26.1/build/libs
+            target: mc26.1
             sodium: mc26.1.1-0.8.9-fabric
           - minecraft: 26.1.2
             profile: baseline
             java: 25
             fabric_api: 0.155.3
             fabric_api_minecraft: 26.1.2
-            build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
-            jar_dir: versions/mc26.1/build/libs
+            target: mc26.1
             sodium: mc26.1.2-0.9.2-fabric
           - minecraft: 26.1.2
             profile: sodium08
             java: 25
             fabric_api: 0.155.3
             fabric_api_minecraft: 26.1.2
-            build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
-            jar_dir: versions/mc26.1/build/libs
+            target: mc26.1
             sodium: mc26.1.1-0.8.9-fabric
           - minecraft: 26.1.2
             profile: worldedit
             java: 25
             fabric_api: 0.155.3
             fabric_api_minecraft: 26.1.2
-            build: ./versions/mc26.1/gradlew -p versions/mc26.1 build --stacktrace
-            jar_dir: versions/mc26.1/build/libs
+            target: mc26.1
             sodium: mc26.1.2-0.9.2-fabric
             worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/gjsLvJfW/worldedit-mod-7.4.3.jar
             worldedit_sha: de51a1a319e057f1312ec54de2f08df5d0c00a78718080a3284e0c1ffadffb47d5353e0e538d9334b72eb7260df5a6f2c4bf8373eec8d5a4f6cdfaae1ff4524e
@@ -147,42 +135,42 @@ jobs:
             profile: baseline
             java: 25
             fabric_api: 0.163.0
-            build: ./versions/mc26.3/gradlew -p versions/mc26.3 build --stacktrace
-            jar_dir: versions/mc26.3/build/libs
+            target: mc26.3
             sodium: mc26.3-0.9.2-fabric
           - minecraft: 26.3
             profile: worldedit
             java: 25
             fabric_api: 0.163.0
-            build: ./versions/mc26.3/gradlew -p versions/mc26.3 build --stacktrace
-            jar_dir: versions/mc26.3/build/libs
+            target: mc26.3
             sodium: mc26.3-0.9.2-fabric
             worldedit_url: https://cdn.modrinth.com/data/1u6JkXh5/versions/ByRNkO83/worldedit-mod-7.4.6.jar
             worldedit_sha: 3bc4fbf2ee36746f54dc036283b3ded3f17fd91991eaa1ead76b0861aa902cd7ffbc0962db0065d8690e46d1c4890847ebe97ee0b4e36a979b41168c30586ee4
     steps:
       - name: Check out repository
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@v7
 
-      - name: Set up Java ${{ matrix.java }}
-        uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+      - name: Set up Java
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: ${{ matrix.java }}
+          java-version: |
+            17
+            21
+            25
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build Selective Render
         shell: bash
         run: |
-          chmod +x gradlew versions/mc26.1/gradlew versions/mc26.2/gradlew versions/mc26.3/gradlew
-          ${{ matrix.build }}
+          ./gradlew :${{ matrix.target }}:build -Porg.gradle.java.installations.auto-detect=false -Porg.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64 --stacktrace
 
       - name: Stage Selective Render and Sodium
         shell: bash
         run: |
           mkdir -p run/mods
-          jar=$(find '${{ matrix.jar_dir }}' -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
+          jar=$(find 'versions/${{ matrix.target }}/build/libs' -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | head -n 1)
           test -n "$jar"
           cp "$jar" run/mods/
           if [[ -n '${{ matrix.sodium }}' ]]; then
@@ -319,7 +307,7 @@ jobs:
             exit 1
           fi
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         if: always() && needs.test-plan.outputs.visual == 'true' && matrix.profile == 'baseline'
         with:
           python-version: '3.12'
@@ -340,7 +328,7 @@ jobs:
       - name: Upload client logs and screenshots
         id: evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@v7
         with:
           name: client-smoke-${{ matrix.minecraft }}-${{ matrix.profile }}
           if-no-files-found: ignore

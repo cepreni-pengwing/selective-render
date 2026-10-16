@@ -10,7 +10,7 @@ Available builds cover Minecraft **1.20.1**, **1.21.1**, **26.1 / 26.1.1 / 26.1.
 
 Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with its default keybind, or open the Selective Render category in Controls to change bindings.
 
-To make a region, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then save it with `/sr create NAME`. You can also create a region from coordinates in one command, or use a cuboid selection supplied by WorldEdit. Saved regions can be enabled together, hidden, filtered, and organized independently.
+To make a region, select a cuboid with WorldEdit (the default selection source) and save it with `/sr create NAME`. Without WorldEdit, switch the selection source to SR positions in the settings, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then run `/sr create NAME`. You can also create a region from coordinates in one command. Saved regions can be enabled together, hidden, filtered, and organized independently.
 
 ## Commands
 
@@ -75,27 +75,27 @@ The saved grid belongs to the current server and dimension. Choose **Grid** or *
 - Interactions default to Inside regions and can also be allowed outside them or everywhere; existing saved choices are retained. “Interactions while rendering is off” offers Unrestricted (default) or Follow region rules. Active filters keep their hidden-block interaction rules independently of this choice. A separate option controls interactions with hidden regions and filtered blocks, taking priority over the general interaction scope for that content.
 - Boundary faces offer independent Normal, Texture and Color toggles. Normal is enabled by default; Texture replaces it, and Color overlays either surface. With both replacement layers off, Normal controls whether the original face is visible. Texture receives normal lighting, including virtual skylight; Color defaults to unlit; **Shade overlay** applies ordinary world lighting to it when enabled. Opacity from 0–100% affects only Color. Texture now queries loaded block models at the boundary, including resource-pack replacements and supported Fabric connected-texture transforms with virtual boundary neighbors. CTM queries use an isolated scratch context during terrain rendering, and model UV rotation/mirroring is preserved. The representative texture is retained as a fallback for unsupported models; multipart/compact CTM implementations are not universally reproduced. Color presets include Rainbow, which maps one hue cycle around each cuboid's horizontal perimeter, plus White and Black. Saturation, brightness and opacity remain adjustable; clicking Hue leaves Rainbow for a single color. Optional Iris hooks prevent Color from inheriting the underlying block's material classification, while shaderpack post-processing can still affect final appearance. Each region exposes its own inline appearance controls; disabled Color hides the entire palette, presets, preview and lighting controls, while disabled Texture hides its block input. Use global follows the corresponding global layer toggle. Section expansion and scroll position are remembered per region. Color edits inherit global lighting unless lighting is explicitly overridden. Transparent Color boundaries may cost more than opaque faces. Legacy Black settings become Color with black. Only block filters also hide non-player entities inside their region; player visibility stays separate. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
 - An optional fluid-boundary setting can hide fluid faces cut by a render boundary, including lava, flowing states, waterlogged blocks, and modded fluids using the supported fluid renderer, independently of the block boundary mode.
-- One shared virtual-skylight setting lets light reach render regions, hidden regions and active block filters from above, from the sides, from both, or from neither, independently of the inactive-interaction setting.
+- One shared virtual-skylight setting lets light reach render regions, hidden regions and active block filters from above, from the sides, from both, or from neither, independently of the inactive-interaction setting. Skylight for entities, particles and block entities is computed over several client ticks with a soft 2 ms budget; until a result is ready, the existing Minecraft light is used.
 - The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
 - With no active filters or render/hide regions, rendering takes the normal no-op path. Interaction restrictions are also inactive by default; Follow region rules explicitly keeps them active for saved regions. Fresh installations do not change world rendering or interactions.
 - Water, fire, in-wall overlays, and underwater fog are suppressed when the camera is inside content the mod hides.
 
 ## Compatibility and limitations
 
-Selective Render has builds for Minecraft 1.20.1, 1.21.1, and 26.2. Use the matching JAR; these builds are not interchangeable. The 1.20.1 and 1.21.1 builds target their corresponding Java/Fabric environments, and the 26.2 build targets Java 25. See the release assets and project metadata for exact dependency requirements.
+Selective Render has builds for Minecraft 1.20.1 (Java 17), 1.21.1 (Java 21), 26.1 / 26.1.1 / 26.1.2, 26.2 and 26.3 (Java 25). Use the matching JAR; these builds are not interchangeable. See the release assets and project metadata for exact dependency requirements.
 
 The mod does not reduce render distance, server-sent chunks, or network traffic. Selected content must already be within the normal client render distance. Distant Horizons LODs and some custom mod renderers may not be filtered. Conquest Reforged extension-toggle boundaries are not fully supported in custom/culled modes. Particle and dropped-item lighting can briefly be inaccurate under filtered roofs.
 
 ## Building and contributing
 
-Use JDK 17 or newer and run:
+All Minecraft targets build from one Gradle project. Run Gradle with Java 21 or newer; the Java 17, 21 and 25 toolchains for the individual targets are found or downloaded automatically.
 
 ```powershell
-.\gradlew.bat build
+.\gradlew.bat build                  # all targets
+.\gradlew.bat :mc1.20.1:build        # one target
+.\gradlew.bat :mc26.3:runClient      # development client
 ```
 
-The installable JAR is generated in `build/libs`. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Report issues with the requested logs and game/mod versions. Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
+Installable JARs are generated in `versions/<target>/build/libs`. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Report issues with the requested logs and game/mod versions. Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
 
 Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
-
-Virtual skylight for entities, particles and block entities is computed over multiple client ticks with a soft 2 ms work budget. New sections use existing Minecraft light until their result is ready; affected cached results remain available while being refreshed. Valid interior light from terrain builds can be reused. Diagnostics expose `SAMPLER_BUDGET_STEP` and `SAMPLER_TERRAIN_REUSE` for comparisons.

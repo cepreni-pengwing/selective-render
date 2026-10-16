@@ -3,104 +3,73 @@ name: Build
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TOOLCHAINS: -Porg.gradle.java.installations.auto-detect=false -Porg.gradle.java.installations.fromEnv=JAVA_HOME_17_X64,JAVA_HOME_21_X64,JAVA_HOME_25_X64
+
 jobs:
-  source-parity:
+  scripts:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - run: python3 .github/scripts/check-source-parity.py
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Check release version format
+        run: grep -Eq '^mod_version=[0-9]+\.[0-9]+\.[0-9]+$' gradle.properties
       - run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-visual-selection.py
       - run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-beam-catalog.py
-  build-1-20-1:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        sodium:
-          - mc1.20.1-0.5.8
-          - mc1.20.1-0.5.11
-          - mc1.20.1-0.5.13-fabric
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew
-      - run: ./gradlew build -Psodium_version=${{ matrix.sodium }} --stacktrace
-      - uses: actions/upload-artifact@v4
-        if: matrix.sodium == 'mc1.20.1-0.5.13-fabric'
-        with:
-          name: selective-render-mc1.20.1
-          path: build/libs/*.jar
-  build-1-21-1:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x gradlew
-      - run: ./gradlew -p versions/mc1.21.1 build --stacktrace
-      - uses: actions/upload-artifact@v4
-        with:
-          name: selective-render-mc1.21.1
-          path: versions/mc1.21.1/build/libs/*.jar
-  build-26-2:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x versions/mc26.2/gradlew
-      - run: ./versions/mc26.2/gradlew -p versions/mc26.2 build --stacktrace
-      - uses: actions/upload-artifact@v4
-        with:
-          name: selective-render-mc26.2
-          path: versions/mc26.2/build/libs/*.jar
+      - run: python3 -m pip install --disable-pip-version-check Pillow==11.3.0
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-visual-report.py
 
-  build-26-1:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew build ${{ env.TOOLCHAINS }} --stacktrace
+      - uses: actions/upload-artifact@v7
+        with:
+          name: selective-render-jars
+          path: |
+            versions/*/build/libs/*.jar
+            !versions/*/build/libs/*-sources.jar
+
+  sodium-compatibility:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        sodium: [mc26.1.1-0.8.9-fabric, mc26.1.2-0.9.2-fabric]
+        include:
+          - target: mc1.20.1
+            sodium: mc1.20.1-0.5.8
+          - target: mc1.20.1
+            sodium: mc1.20.1-0.5.11
+          - target: mc26.1
+            sodium: mc26.1.1-0.8.9-fabric
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x versions/mc26.1/gradlew
-      - run: ./versions/mc26.1/gradlew -p versions/mc26.1 build -Psodium_version=${{ matrix.sodium }} --stacktrace
-      - uses: actions/upload-artifact@v4
-        if: matrix.sodium == 'mc26.1.2-0.9.2-fabric'
-        with:
-          name: selective-render-mc26.1.x
-          path: versions/mc26.1/build/libs/*.jar
-  build-26-3:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
-      - run: chmod +x versions/mc26.3/gradlew
-      - run: ./versions/mc26.3/gradlew -p versions/mc26.3 build --stacktrace
-      - uses: actions/upload-artifact@v4
-        with:
-          name: selective-render-mc26.3
-          path: versions/mc26.3/build/libs/*.jar
+          java-version: |
+            17
+            21
+            25
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew :${{ matrix.target }}:build -P${{ matrix.target }}.sodium_version=${{ matrix.sodium }} ${{ env.TOOLCHAINS }} --stacktrace

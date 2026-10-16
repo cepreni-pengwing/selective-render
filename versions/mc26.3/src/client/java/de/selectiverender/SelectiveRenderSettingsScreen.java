@@ -307,10 +307,18 @@ public final class SelectiveRenderSettingsScreen extends Screen {
         return commitGrid() && commitNumber(reloadField, false) && commitNumber(plotHeightField, true) && commitNumber(plotMaximumField, true);
     }
 
+    private static int plotBound(EditBox field, int fallback) {
+        if (field == null) return fallback;
+        try { return Integer.parseInt(field.getValue()); } catch (NumberFormatException error) { return fallback; }
+    }
+
     private boolean commitNumber(EditBox field, boolean plot) {
         if (field == null) return true;
         try {
             int value = Integer.parseInt(field.getValue());
+            if (field == plotMaximumField && value < plotBound(plotHeightField, SelectiveRenderSettings.defaultPlotMinY())
+                    || field == plotHeightField && value > plotBound(plotMaximumField, SelectiveRenderSettings.defaultPlotMaxY()))
+                throw new NumberFormatException("Plot minimum Y must not exceed maximum Y");
             if (field == plotMaximumField) SelectiveRenderSettings.setDefaultPlotMaxY(value);
             else if (plot) SelectiveRenderSettings.setDefaultPlotMinY(value);
             else SelectiveRenderSettings.setFullReloadThreshold(value);

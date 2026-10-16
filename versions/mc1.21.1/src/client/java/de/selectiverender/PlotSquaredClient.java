@@ -145,7 +145,7 @@ public final class PlotSquaredClient {
             if (raw == null) { send(red("You are not standing on a plot.")); return 0; }
             List<BlockRegion> adjusted = PlotRegionTransform.apply(List.of(raw),requestedMinY,requestedMaxY,xzMargin);
             if (adjusted.isEmpty()) { send(red("The margin removes the entire plot.")); return 0; }
-            if (action == ACTION_TOGGLE) togglePlot(client,"grid",List.of(raw),adjusted);
+            if (action == ACTION_TOGGLE) togglePlot(client,"grid",List.of(new BlockRegion(raw.minX(),raw.maxX(),0,0,raw.minZ(),raw.maxZ())),adjusted);
             else if (!SelectiveRenderConfig.saveRegions(client,name,adjusted)) { send(red("The plot could not be saved.")); return 0; }
             else send(green("Plot saved."));
             return Command.SINGLE_SUCCESS;
