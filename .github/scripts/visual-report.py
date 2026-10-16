@@ -72,7 +72,7 @@ def main():
     args.add_argument("--require-visual",action="store_true")
     args.add_argument("--ui-only",action="store_true")
     options=args.parse_args()
-    plan=Path(__file__).resolve().parents[2]/"src/client/java/de/selectiverender/VisualScenarioPlan.java"
+    plan=Path(__file__).resolve().parents[2]/"shared/common/src/client/java/de/selectiverender/VisualScenarioPlan.java"
     scenarios=dict(re.findall(r'new Case\("([^"]+)",\s*"([^"]+)"',plan.read_text()))
     if options.ui_only:
         scenarios={key:value for key,value in scenarios.items() if "-ui-" in key}

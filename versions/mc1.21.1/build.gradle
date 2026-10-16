@@ -1,95 +1,17 @@
 plugins {
-    id 'fabric-loom' version '1.6.12'
-    id 'maven-publish'
+    id 'net.fabricmc.fabric-loom-remap'
 }
 
-version = project.mod_version
-group = project.maven_group
-
-base { archivesName = project.archives_base_name }
-
-repositories {
-    mavenCentral()
-    maven { url = 'https://maven.fabricmc.net/' }
-    maven { url = 'https://maven.terraformersmc.com/releases/' }
-    maven { url = 'https://api.modrinth.com/maven' }
-}
+apply from: rootProject.file('gradle/target.gradle')
 
 dependencies {
-    minecraft "com.mojang:minecraft:${project.minecraft_version}"
-    mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
-    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-    implementation annotationProcessor("io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}")
-    include "io.github.llamalad7:mixinextras-fabric:${project.mixinextras_version}"
-    modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
-    modCompileOnly "com.terraformersmc:modmenu:11.0.3"
-    modLocalRuntime "maven.modrinth:sodium:${project.sodium_version}"
-    testImplementation platform('org.junit:junit-bom:5.10.2')
-    testImplementation 'org.junit.jupiter:junit-jupiter'
-    testImplementation 'com.google.code.gson:gson:2.10.1'
-}
-
-loom {
-    splitEnvironmentSourceSets()
-    runs {
-        client {
-            vmArg "-Dsodium.checks.issue2561=false"
-        }
-    }
-    mods {
-        selectiverender {
-            sourceSet sourceSets.client
-        }
-    }
-}
-
-sourceSets.test {
-    compileClasspath += sourceSets.client.output
-    runtimeClasspath += sourceSets.client.output
-}
-
-tasks.test {
-    useJUnitPlatform()
-}
-
-tasks.withType(ProcessResources).configureEach {
-    inputs.property 'version', project.version
-    filesMatching('fabric.mod.json') { expand version: project.version }
-}
-
-tasks.named('processClientResources', ProcessResources) {
-    from('../../docs/images/icon.png') { into 'assets/selectiverender' }
-}
-
-tasks.withType(JavaCompile).configureEach {
-    options.release = 21
-    options.encoding = 'UTF-8'
-}
-
-java {
-    withSourcesJar()
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
-}
-
-// Reserved slots allow texture alpha without changing Sodium's vertex-light channel.
-tasks.named('processClientResources', ProcessResources) {
-    doLast {
-        (0..100).each { opacity ->
-            def pixel = new File(destinationDir, "assets/selectiverender/textures/block/boundary_alpha_${opacity}.png")
-            pixel.parentFile.mkdirs()
-            def bitmap = new java.awt.image.BufferedImage(16, 16, java.awt.image.BufferedImage.TYPE_INT_ARGB)
-            int argb = (((opacity * 255 + 50).intdiv(100)) << 24) | 0xFFFFFF
-            for (int y = 0; y < 16; y++) for (int x = 0; x < 16; x++) bitmap.setRGB(x, y, argb)
-            javax.imageio.ImageIO.write(bitmap, 'png', pixel)
-        }
-        ['boundary_white': 16, 'boundary_rainbow': 256, 'boundary_texture': 128, 'boundary_combined': 128].each { name, size ->
-            def pixel = new File(destinationDir, "assets/selectiverender/textures/block/${name}.png")
-            pixel.parentFile.mkdirs()
-            def bitmap = new java.awt.image.BufferedImage(size, size, java.awt.image.BufferedImage.TYPE_INT_ARGB)
-            for (int y = 0; y < size; y++) for (int x = 0; x < size; x++) bitmap.setRGB(x, y, -1)
-            javax.imageio.ImageIO.write(bitmap, 'png', pixel)
-        }
-    }
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings "net.fabricmc:yarn:${yarn_mappings}:v2"
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
+    implementation annotationProcessor("io.github.llamalad7:mixinextras-fabric:${mixinextras_version}")
+    include "io.github.llamalad7:mixinextras-fabric:${mixinextras_version}"
+    modCompileOnly "maven.modrinth:sodium:${sodium_version}"
+    modLocalRuntime "maven.modrinth:sodium:${sodium_version}"
+    modCompileOnly "com.terraformersmc:modmenu:${modmenu_version}"
 }

@@ -1,7 +1,10 @@
 .gradle/
+.kotlin/
 build/
 run/
 out/
 *.iml
 .idea/
 .vscode/
+__pycache__/
+PROJECT_HANDOFF.*

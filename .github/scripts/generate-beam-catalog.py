@@ -70,9 +70,9 @@ LITERALS
     }
 }
 '''.replace('LITERALS',literals)
-    for prefix in ['', 'versions/mc1.21.1/','versions/mc26.1/','versions/mc26.2/','versions/mc26.3/']:
-        (root/prefix/'src/client/java/de/selectiverender/BeamBlockCatalog.java').write_text(source,encoding='utf-8')
+    (root/'shared/common/src/client/java/de/selectiverender/BeamBlockCatalog.java').write_text(source,encoding='utf-8')
     report={'included':ids,'excluded':rejected,'inputs':{ns:{'filename':p.name,'sha256':hashlib.sha256(p.read_bytes()).hexdigest()} for ns,p in jars.items()}}
+    (root/'build').mkdir(exist_ok=True)
     (root/'build/beam-catalog-audit.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(f'{len(ids)} structural IDs included; {len(rejected)} candidate IDs rejected')
 
