@@ -61,7 +61,7 @@ final class BoundaryColorControls implements AutoCloseable {
         void sync() { value=kind==0?hue:kind==1?saturation:kind==2?brightness:opacity/100d; updateMessage(); }
         @Override protected void updateMessage() { setMessage(Component.literal(Math.round(value*(kind==0?360:100))+(kind==0?"°":"%"))); }
         @Override protected void applyValue() {
-            if(kind==0) { hue=(float)value; rainbow=false; } else if(kind==1) saturation=(float)value;
+            if(kind==0) { hue=(float)value; rainbow=false; if(saturation==0||brightness==0) { saturation=brightness=1; for(Bar bar:bars) if(bar!=this) bar.sync(); } } else if(kind==1) saturation=(float)value;
             else if(kind==2) brightness=(float)value; else opacity=(int)Math.round(value*100);
             changed=true;
         }

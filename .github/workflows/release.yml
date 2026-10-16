@@ -58,9 +58,11 @@ jobs:
           mapfile -t assets < <(find versions/*/build/libs -maxdepth 1 -name '*.jar' ! -name '*-sources.jar' | sort)
           test "${#assets[@]}" -eq 5
           previous=$(git describe --tags --abbrev=0 "$SHA" 2>/dev/null || true)
+          awk -v v="## ${TAG#v}" '$0==v{f=1;next} /^## /{f=0} f' CHANGELOG.md | sed '/^$/d' > notes.md
+          [[ -s notes.md ]] && echo >> notes.md
           if [[ -n "$previous" ]]; then
-            printf '**Full Changelog**: [%s...%s](https://github.com/%s/compare/%s...%s)\n' "$previous" "$TAG" "$GITHUB_REPOSITORY" "$previous" "$TAG" > notes.md
+            printf '**Full Changelog**: [%s...%s](https://github.com/%s/compare/%s...%s)\n' "$previous" "$TAG" "$GITHUB_REPOSITORY" "$previous" "$TAG" >> notes.md
           else
-            printf '**Full Changelog**: [Commits](https://github.com/%s/commits/%s)\n' "$GITHUB_REPOSITORY" "$TAG" > notes.md
+            printf '**Full Changelog**: [Commits](https://github.com/%s/commits/%s)\n' "$GITHUB_REPOSITORY" "$TAG" >> notes.md
           fi
           gh release create "$TAG" "${assets[@]}" --target "$SHA" --title "$TAG" --notes-file notes.md --prerelease

@@ -39,4 +39,8 @@ Visual fixtures are destructive only in disposable CI worlds enabled by `-Dselec
 
 Regenerate the ID-only catalog with `.github/scripts/generate-beam-catalog.py --conquest PATH --architects PATH` using the installed mod JARs, then run `.github/scripts/test-beam-catalog.py`. Models are inspected only to exclude volume-building shapes; no third-party assets are distributed.
 
+## Changelog
+
+Add a short bullet list under `## <version>` in `CHANGELOG.md` when raising `mod_version`. The release workflow copies these bullets into the release notes, so write them for players.
+
 Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).

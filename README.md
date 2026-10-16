@@ -1,20 +1,30 @@
 # Selective Render
 
-[Download Selective Render on Modrinth](https://modrinth.com/mod/selective-render)
+[Modrinth](https://modrinth.com/mod/selective-render) · [Releases](https://github.com/cepreni-pengwing/selective-render/releases) · [Changelog](CHANGELOG.md)
 
-Selective Render is a client-side Fabric mod for focusing the view on selected parts of a Minecraft world. Create block-accurate regions, hide unwanted areas, filter particular blocks, or work with a server's plot integration. It changes what your client draws and targets; it does not change world data, collision, or server chunk loading.
+Client-side Fabric mod that shows only the parts of a world you choose. Render selected regions, hide others, or filter blocks by ID or tag. It only changes what your client draws and targets, never the world itself.
 
-## Getting started
+## Requirements
 
-Available builds cover Minecraft **1.20.1**, **1.21.1**, **26.1 / 26.1.1 / 26.1.2** (one shared JAR), **26.2**, and **26.3**. The 26.1.x JAR supports Sodium 0.8.9 and 0.9.2; use the Sodium release matching your Minecraft patch.
+| Minecraft | Java | Notes |
+| --- | --- | --- |
+| 1.20.1 | 17 | |
+| 1.21.1 | 21 | |
+| 26.1 / 26.1.1 / 26.1.2 | 25 | One JAR for Sodium 0.8.9 and 0.9.2 |
+| 26.2, 26.3 | 25 | |
 
-Install the JAR matching your Minecraft version together with Fabric Loader, Fabric API, and Sodium. Iris is optional. Open the in-game settings with its default keybind, or open the Selective Render category in Controls to change bindings.
+Required: Fabric Loader, Fabric API, Sodium. Optional: Iris.
 
-To make a region, select a cuboid with WorldEdit (the default selection source) and save it with `/sr create NAME`. Without WorldEdit, switch the selection source to SR positions in the settings, mark two opposite block corners with `/sr pos1` and `/sr pos2`, then run `/sr create NAME`. You can also create a region from coordinates in one command. Saved regions can be enabled together, hidden, filtered, and organized independently.
+## Quick start
+
+1. Select a cuboid with WorldEdit, or mark corners with `/sr pos1` and `/sr pos2`.
+2. Save it with `/sr create NAME`.
+3. Press `F9` to show only your render regions, `F10` to toggle hidden regions.
+4. Press `#` to open the settings.
 
 ## Commands
 
-`/sr` is the short form of `/selectiverender`. Every command below works with either root. Arguments in square brackets are optional. Commands have no dedicated keybind unless a default is listed; group keybinds affect the whole group, not a single named region. Commands may differ for older versions. This table lists all commands for the latest mod releases, including pre-releases.
+`/sr` is short for `/selectiverender`. Arguments in brackets are optional. Keybinds can be changed under **Options → Controls → Selective Render**.
 
 <table>
 <thead><tr><th>Alias</th><th>Expanded command</th><th>Purpose</th><th>Key</th></tr></thead>
@@ -38,9 +48,10 @@ To make a region, select a cuboid with WorldEdit (the default selection source) 
 <tr><td><code>filter NAME hide SELECTOR</code></td><td>Hide matches by block ID or tag</td><td></td></tr>
 <tr><td><code>filter NAME only SELECTOR</code></td><td>Keep only matches by block ID or tag</td><td></td></tr>
 <tr><td><code>filter NAME clear</code></td><td>Clear region filters</td><td></td></tr>
-<tr><td rowspan="3"><code>/sr p</code></td><td><code>plot [minY] [maxY] [xzMargin]</code></td><td>Add or remove current plot</td><td>Not Bound</td></tr>
+<tr><td rowspan="4"><code>/sr p</code></td><td><code>plot [minY] [maxY] [xzMargin]</code></td><td>Add or remove current plot</td><td>Not Bound</td></tr>
 <tr><td><code>plot clear</code> / <code>/sr p c</code></td><td>Clear temporary plots</td><td>Not Bound</td></tr>
 <tr><td><code>plot save NAME [minY] [maxY] [xzMargin]</code></td><td>Save plot as a region</td><td></td></tr>
+<tr><td><code>plot grid</code></td><td>Set up the client-only plot grid from two marked plots</td><td></td></tr>
 <tr><td rowspan="4"><code>/sr diagnose</code></td><td><code>diagnose</code></td><td>Show diagnostic status</td><td></td></tr>
 <tr><td><code>diagnose start [seconds]</code></td><td>Start recording (120 seconds by default); a chat message confirms completion</td><td></td></tr>
 <tr><td><code>diagnose mark LABEL</code></td><td>Add diagnostic marker</td><td></td></tr>
@@ -51,51 +62,49 @@ To make a region, select a cuboid with WorldEdit (the default selection source) 
 </tbody>
 </table>
 
-Keybinds shown in the table are defaults. The settings key is `#`, hide-group toggle is `F10`, and render-group toggle is `F9`. All other keybinds are Not Bound by default. Change them under **Options → Controls → Selective Render**.
+## Filters
 
-Filters accept block IDs and block tags known to the client. A built-in `selectiverender:beams` tag covers 3,388 structural IDs from Conquest Reforged 1.7.0 and Architects 1.0.3, including branches, fences/gates, railings, doors, shelves and pipes. Full blocks, generic small blocks, layers, stairs, slabs and quarter/eighth shapes are excluded. Filtered blocks can follow the hidden-region interaction setting. Filters are visual/client-side and do not change server state or collision.
+- Accept block IDs and tags, e.g. `minecraft:oak_log` or `#minecraft:logs`.
+- `hide` removes matches, `only` keeps nothing but matches.
+- Purely visual: collision and server state stay unchanged.
 
-## Server plot integration
+## Plots
 
-The optional [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots) server add-on supplies exact plot outlines to the client. The commands above are client commands; the server add-on has no separate player command. The first plot added to an empty group enables isolation automatically. Further plots can be added or removed independently, and the temporary group survives reconnects and dimension changes during the current Minecraft session. `/sr plot save` turns a plot into a normal saved region.
+- `/sr plot` adds or removes the plot you are standing on. The first plot enables isolation automatically.
+- `/sr plot save NAME` turns a plot into a normal region.
+- Plot outlines come from one of two sources, chosen in the **Plots** tab:
+  - **SRP:** exact outlines from the [Selective Render Plots](https://github.com/cepreni-pengwing/selective-render-plots) server add-on.
+  - **Grid:** no server needed. Run `/sr plot grid`, mark one plot, run it again, then set the road width in **Plots**.
+- Y limits default to `-64` and `319`. A positive margin expands the plot, a negative one shrinks it.
 
-Optional Y limits are inclusive. When omitted, both limits come from the Selective Render settings (defaults `-64` and `319`). A positive X/Z margin expands the plot; a negative margin shrinks it. If a margin would remove the entire plot, it is rejected. Servers using LuckPerms or another permission manager must grant `selectiverender.plot.solo` to players allowed to use the integration.
+## Settings
 
-## Client-only plot grid
+| Section | What it controls |
+| --- | --- |
+| Boundaries | Cut faces: Normal (default), Texture, Color with opacity, lighting and presets |
+| Players | Who is visible (Everyone, Nobody, Only you, Others) and where |
+| Interactions | Where you can break and place blocks (default: inside regions) |
+| Skylight | Lets light reach hidden areas from above, the sides, both or neither |
+| Fluids | Optionally hide water and lava faces at region edges |
 
-Use `/sr plot grid`, mark two opposite block corners of one plot with the current WorldEdit/SR selection source, then repeat the command. The first plot is saved immediately and appears in **Plots** with three editable values: Corner 1 (X Z), Corner 2 (X Z), and Road width. Enter the road width manually, or mark a directly adjacent, equally sized plot and run `/sr plot grid` a third time to calculate it. Both axes use the same road width; merged plots and irregular grids are not inferred.
+Every region can use the global boundary style or its own.
 
-The saved grid belongs to the current server and dimension. Choose **Grid** or **SRP** in Plots, edit the values, or delete the grid using its top button. Valid edits save on Enter or focus loss. Once road width is known, equivalent corners are normalized to the smallest nonnegative X/Z plot example. Existing `/sr plot`, its keybind, and `/sr plot save` use the selected source. Streets are excluded. Grid data survives reconnects and restarts in the settings file; moving that file to another device preserves multiplayer profiles when the server address and dimension match. Singleplayer save paths still require the same world assignment.
+## Limitations
 
-## Settings and behavior
+- Does not reduce render distance, server chunks or network traffic.
+- Distant Horizons LODs and some custom renderers are not filtered.
+- Transparent color boundaries cost more performance than opaque ones.
 
-- Player visibility combines a player group (Everyone, Nobody, Only you or Other players) with an independent region scope (Everywhere, Inside regions, Outside regions or Nowhere). Scope follows the currently rendered area; player hitboxes use the same policy. Existing player choices are preserved.
-- Selection source is a single WorldEdit / SR positions toggle. New settings default to WorldEdit; existing selections are retained. Explicit coordinate commands remain independent of the source.
-- The region editor lists only regions in the current dimension and groups controls into Filters, Boundaries, Interactions and Bounding boxes. Texture and Color can each inherit global settings or have a region-specific appearance, including their own texture ID, color, opacity, lighting and presets.
-- Interactions default to Inside regions and can also be allowed outside them or everywhere; existing saved choices are retained. “Interactions while rendering is off” offers Unrestricted (default) or Follow region rules. Active filters keep their hidden-block interaction rules independently of this choice. A separate option controls interactions with hidden regions and filtered blocks, taking priority over the general interaction scope for that content.
-- Boundary faces offer independent Normal, Texture and Color toggles. Normal is enabled by default; Texture replaces it, and Color overlays either surface. With both replacement layers off, Normal controls whether the original face is visible. Texture receives normal lighting, including virtual skylight; Color defaults to unlit; **Shade overlay** applies ordinary world lighting to it when enabled. Opacity from 0–100% affects only Color. Texture now queries loaded block models at the boundary, including resource-pack replacements and supported Fabric connected-texture transforms with virtual boundary neighbors. CTM queries use an isolated scratch context during terrain rendering, and model UV rotation/mirroring is preserved. The representative texture is retained as a fallback for unsupported models; multipart/compact CTM implementations are not universally reproduced. Color presets include Rainbow, which maps one hue cycle around each cuboid's horizontal perimeter, plus White and Black. Saturation, brightness and opacity remain adjustable; clicking Hue leaves Rainbow for a single color. Optional Iris hooks prevent Color from inheriting the underlying block's material classification, while shaderpack post-processing can still affect final appearance. Each region exposes its own inline appearance controls; disabled Color hides the entire palette, presets, preview and lighting controls, while disabled Texture hides its block input. Use global follows the corresponding global layer toggle. Section expansion and scroll position are remembered per region. Color edits inherit global lighting unless lighting is explicitly overridden. Transparent Color boundaries may cost more than opaque faces. Legacy Black settings become Color with black. Only block filters also hide non-player entities inside their region; player visibility stays separate. Hidden-region boundaries stay normal. Debug boxes are independent and can outline inactive regions too.
-- An optional fluid-boundary setting can hide fluid faces cut by a render boundary, including lava, flowing states, waterlogged blocks, and modded fluids using the supported fluid renderer, independently of the block boundary mode.
-- One shared virtual-skylight setting lets light reach render regions, hidden regions and active block filters from above, from the sides, from both, or from neither, independently of the inactive-interaction setting. Skylight for entities, particles and block entities is computed over several client ticks with a soft 2 ms budget; until a result is ready, the existing Minecraft light is used.
-- The settings screen controls how much local section rebuilding is attempted before a full renderer reload is used.
-- With no active filters or render/hide regions, rendering takes the normal no-op path. Interaction restrictions are also inactive by default; Follow region rules explicitly keeps them active for saved regions. Fresh installations do not change world rendering or interactions.
-- Water, fire, in-wall overlays, and underwater fog are suppressed when the camera is inside content the mod hides.
+## Building
 
-## Compatibility and limitations
-
-Selective Render has builds for Minecraft 1.20.1 (Java 17), 1.21.1 (Java 21), 26.1 / 26.1.1 / 26.1.2, 26.2 and 26.3 (Java 25). Use the matching JAR; these builds are not interchangeable. See the release assets and project metadata for exact dependency requirements.
-
-The mod does not reduce render distance, server-sent chunks, or network traffic. Selected content must already be within the normal client render distance. Distant Horizons LODs and some custom mod renderers may not be filtered. Conquest Reforged extension-toggle boundaries are not fully supported in custom/culled modes. Particle and dropped-item lighting can briefly be inaccurate under filtered roofs.
-
-## Building and contributing
-
-All Minecraft targets build from one Gradle project. Run Gradle with Java 21 or newer; the Java 17, 21 and 25 toolchains for the individual targets are found or downloaded automatically.
+Requires Java 21 or newer. Toolchains for each target are downloaded automatically.
 
 ```powershell
-.\gradlew.bat build                  # all targets
-.\gradlew.bat :mc1.20.1:build        # one target
-.\gradlew.bat :mc26.3:runClient      # development client
+.\gradlew.bat build                # all targets
+.\gradlew.bat :mc1.20.1:build      # one target
+.\gradlew.bat :mc26.3:runClient    # development client
 ```
 
-Installable JARs are generated in `versions/<target>/build/libs`. See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a change. Report issues with the requested logs and game/mod versions. Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
+JARs end up in `versions/<target>/build/libs`. See [CONTRIBUTING.md](CONTRIBUTING.md). Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com)
 
-Licensed under GPL-3.0-only. See [LICENSE](LICENSE).
+Licensed under GPL-3.0-only.

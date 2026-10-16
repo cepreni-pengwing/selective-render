@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.13.2
+
+- Picking a hue after the White or Black preset now applies the color immediately
+- Shorter, clearer README and Modrinth page
+- Release notes now list the changes
+
 ## 1.13.1
 
 - Built all Minecraft targets from one Gradle project with shared sources, removing four duplicated copies of common code
