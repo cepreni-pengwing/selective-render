@@ -377,14 +377,14 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     private boolean scrollKey(int key) {
-        if (key != 266 && key != 267 && key != 268 && key != 269) return false;
+        if (key != com.mojang.blaze3d.platform.InputConstants.KEY_PAGEUP && key != com.mojang.blaze3d.platform.InputConstants.KEY_PAGEDOWN && key != com.mojang.blaze3d.platform.InputConstants.KEY_HOME && key != com.mojang.blaze3d.platform.InputConstants.KEY_END) return false;
         if ((reloadField != null && reloadField.isFocused())
                 || (plotHeightField != null && plotHeightField.isFocused())
                 || (plotMaximumField != null && plotMaximumField.isFocused())) return false;
         if(gridFields.values().stream().anyMatch(field -> field.isFocused())) return false;
         int maximum = Math.max(0, rows.size() - visibleRows);
-        int next = key == 268 ? 0 : key == 269 ? maximum
-                : Math.max(0, Math.min(maximum, scroll + (key == 266 ? -visibleRows : visibleRows)));
+        int next = key == com.mojang.blaze3d.platform.InputConstants.KEY_HOME ? 0 : key == com.mojang.blaze3d.platform.InputConstants.KEY_END ? maximum
+                : Math.max(0, Math.min(maximum, scroll + (key == com.mojang.blaze3d.platform.InputConstants.KEY_PAGEUP ? -visibleRows : visibleRows)));
         if (next != scroll) navigate(tab, regionName, next);
         return true;
     }
@@ -392,14 +392,14 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
         for(var entry:gridFields.entrySet()) if(entry.getValue().isFocused()) {
-            if(event.key()==257 || event.key()==335) { if(commitGrid()) setFocused(null); return true; }
-            if(event.key()==256) {
+            if(event.key()==com.mojang.blaze3d.platform.InputConstants.KEY_RETURN || event.key()==com.mojang.blaze3d.platform.InputConstants.KEY_NUMPADENTER) { if(commitGrid()) setFocused(null); return true; }
+            if(event.key()==com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
                 var grid=PlotGridClient.current();
                 if(grid!=null) entry.getValue().setValue(entry.getKey()==4?grid.x1()+" "+grid.z1():entry.getKey()==5?grid.x2()+" "+grid.z2():grid.roadWidth()==null?"":grid.roadWidth().toString());
                 entry.getValue().setTextColor(0xFFFFFFFF); setFocused(null); return true;
             }
         }
-        if (event.key() == 256) {
+        if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
             if (reloadField != null && reloadField.isFocused()) {
                 reloadField.setValue(Integer.toString(SelectiveRenderSettings.fullReloadThreshold()));
                 setFocused(null); return true;
@@ -413,7 +413,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
                 setFocused(null); return true;
             }
         }
-        if (event.key() == 257 || event.key() == 335) {
+        if (event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_RETURN || event.key() == com.mojang.blaze3d.platform.InputConstants.KEY_NUMPADENTER) {
             if (reloadField != null && reloadField.isFocused()) { commitNumber(reloadField, false); return true; }
             if (plotHeightField != null && plotHeightField.isFocused()) { commitNumber(plotHeightField, true); return true; }
             if (plotMaximumField != null && plotMaximumField.isFocused()) { commitNumber(plotMaximumField, true); return true; }

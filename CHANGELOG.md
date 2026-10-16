@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.13.3
+
+- Fixed Tab, Enter, arrow and page keys in menus on Minecraft 26.3
+
 ## 1.13.2
 
 - Picking a hue after the White or Black preset now applies the color immediately

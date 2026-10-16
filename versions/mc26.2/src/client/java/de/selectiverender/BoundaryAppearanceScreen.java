@@ -145,10 +145,10 @@ final class BoundaryAppearanceScreen extends Screen {
         scroll = Math.max(0, Math.min(Math.max(0, contentHeight - (height - 34)), scroll + (amount > 0 ? -24 : 24))); rebuild(); return true;
     }
     @Override public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
-        int key = event.key(), modifiers = event.modifiers();
-        if (texture.isFocused() && (key == 264 || key == 265)) { complete(key == 265 ? -1 : 1); setFocused(texture); texture.setFocused(true); return true; }
-        if (key == 258 && complete((modifiers & 1) == 0 ? 1 : -1)) return true;
-        if (key == 257 && texture.isFocused()) { commit(); texture.setFocused(false); return true; }
+        int key = event.key();
+        if (texture.isFocused() && (key == com.mojang.blaze3d.platform.InputConstants.KEY_DOWN || key == com.mojang.blaze3d.platform.InputConstants.KEY_UP)) { complete(key == com.mojang.blaze3d.platform.InputConstants.KEY_UP ? -1 : 1); setFocused(texture); texture.setFocused(true); return true; }
+        if (key == com.mojang.blaze3d.platform.InputConstants.KEY_TAB && complete(!event.hasShiftDown() ? 1 : -1)) return true;
+        if (key == com.mojang.blaze3d.platform.InputConstants.KEY_RETURN && texture.isFocused()) { commit(); texture.setFocused(false); return true; }
         boolean handled = super.keyPressed(event); if (draftChanged && !texture.isFocused()) commit(); return handled;
     }
     @Override public void onClose() { commit(); minecraft.gui.setScreen(parent); }

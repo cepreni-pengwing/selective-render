@@ -408,7 +408,7 @@ final class BoundaryRuntimeSmoke {
                 .map(child -> (net.minecraft.client.gui.components.EditBox) child).findFirst().orElseThrow();
         appearance.setFocused(field); field.setFocused(true);
         field.setValue("minecraft:s");
-        appearance.keyPressed(new net.minecraft.client.input.KeyEvent(264, 0, 0));
+        appearance.keyPressed(new net.minecraft.client.input.KeyEvent(com.mojang.blaze3d.platform.InputConstants.KEY_DOWN, 0, 0));
         if (!field.isFocused() || appearance.getFocused() != field)
             throw new IllegalStateException("Autocomplete arrow navigation escaped the input field");
         field.setValue("selectiverender:missing_smoke_block");

@@ -553,25 +553,24 @@ final class RegionEditorScreen extends Screen {
     @Override
     public boolean keyPressed(net.minecraft.client.input.KeyEvent event) {
         int keyCode = event.key();
-        int modifiers = event.modifiers();
         for (Input input : inputs) if (input.widget.isFocused()) {
-            if ((keyCode == 264 || keyCode == 265) && input.definition.completion()) return input.complete(keyCode == 265);
-            if (keyCode == 256 && input.popup()) { input.popupClosed = true; return true; }
-            if (keyCode == 256) {
+            if ((keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_DOWN || keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_UP) && input.definition.completion()) return input.complete(keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_UP);
+            if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE && input.popup()) { input.popupClosed = true; return true; }
+            if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_ESCAPE) {
                 input.widget.setValue(input.committed);
                 setFocused(null); error = ""; return true;
             }
-            if (keyCode == 257 || keyCode == 335) {
+            if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_RETURN || keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_NUMPADENTER) {
                 if (input.commit()) { setFocused(null); if (refreshRequested) rebuild(); }
                 return true;
             }
-            if (keyCode == 258 && input.complete((modifiers & 1) != 0)) return true;
+            if (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_TAB && input.complete(event.hasShiftDown())) return true;
             return super.keyPressed(event);
         }
-        if (keyCode >= 266 && keyCode <= 269) {
+        if ((keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_PAGEUP || keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_PAGEDOWN || keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_HOME || keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_END)) {
             int maximum = Math.max(0, rows.size() - visibleRows);
-            scroll = keyCode == 268 ? 0 : keyCode == 269 ? maximum
-                    : Math.max(0, Math.min(maximum, scroll + (keyCode == 266 ? -visibleRows : visibleRows)));
+            scroll = keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_HOME ? 0 : keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_END ? maximum
+                    : Math.max(0, Math.min(maximum, scroll + (keyCode == com.mojang.blaze3d.platform.InputConstants.KEY_PAGEUP ? -visibleRows : visibleRows)));
             runAction(() -> { }); return true;
         }
         return super.keyPressed(event);
