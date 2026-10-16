@@ -33,6 +33,8 @@ loom {
     }
     runs {
         client {
+            configName = "Minecraft Client (${project.name})"
+            ideConfigGenerated true
             vmArg '-Dsodium.checks.issue2561=false'
             runDir 'run'
         }

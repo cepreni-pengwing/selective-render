@@ -1,61 +1,42 @@
 # Contributing
 
-Use Java 17 for Minecraft 1.20.1, Java 21 for Minecraft 1.21.1, and Java 25 for Minecraft 26.x:
+## Project layout
+
+| Path | Contents |
+|---|---|
+| `versions/mc1.20.1`, `mc1.21.1` | Yarn-mapped targets (Java 17 / 21) |
+| `versions/mc26.1`, `mc26.2`, `mc26.3` | Unobfuscated targets (Java 25); `mc26.1` serves 26.1, 26.1.1 and 26.1.2 |
+| `shared/common` | Code, tests and assets identical for every target |
+| `shared/legacy` | Code identical for 1.20.1 and 1.21.1 |
+| `shared/modern` | Code identical for all 26.x targets |
+| `gradle/target.gradle` | Build logic applied to every target |
+
+Each target directory only contains what differs for that Minecraft version, plus its `gradle.properties` with the dependency versions. Shared directories are added to every matching target's source set, so a class must exist in exactly one place per target. When a shared class needs a version-specific change, move it from `shared/` into each affected `versions/<target>` directory.
+
+## Building
+
+Run Gradle with Java 21 or newer. Target toolchains (Java 17, 21, 25) are detected or downloaded automatically.
 
 ```bash
-./gradlew build
-./gradlew -p versions/mc1.21.1 build
-./versions/mc26.1/gradlew -p versions/mc26.1 build
-./versions/mc26.2/gradlew -p versions/mc26.2 build
-./versions/mc26.3/gradlew -p versions/mc26.3 build
+./gradlew build                 # all targets, including tests
+./gradlew :mc1.21.1:build       # one target
+./gradlew :mc26.2:runClient     # development client with Sodium
 ```
 
-Keep changes focused, preserve client-only behavior, and do not alter chunk loading, networking,
-collision, or world state unless the change explicitly introduces and documents a new mode.
+Dependency versions can be overridden per target for compatibility checks, e.g. `-Pmc1.20.1.sodium_version=mc1.20.1-0.5.8`.
 
-Rendering changes should be tested with Minecraft 1.20.1/Sodium 0.5.13,
-Minecraft 1.21.1/Sodium 0.8.13, and Minecraft 26.2/Sodium 0.9.2. Test with Iris shaders both
-enabled and disabled. Include reproduction steps, logs,
-screenshots, and the exact mod list for
-visual or compatibility bugs. Add unit tests for changes to regions, configuration migration,
-or region-group behavior.
+Keep changes focused, preserve client-only behavior, and do not alter chunk loading, networking, collision, or world state unless the change explicitly introduces and documents a new mode. Add unit tests for changes to regions, configuration migration, or region-group behavior.
 
-GitHub's client smoke workflow starts every supported build with its matching Sodium version,
-joins a singleplayer world, and uploads logs, crash reports, and screenshots. It catches startup,
-Mixin, and world-entry regressions but does not replace manual visual, shader, mod-compatibility,
-or performance testing.
+## Continuous integration and releases
 
-For 1.9.x, preserve the inactive fast paths and the configurable rebuild threshold for visibility
-changes. Test first/last-region transitions, plot clear, and hidden-only changes. Do not present
-deferred Conquest extension-boundary support or unmeasured performance gains as verified fixes.
-Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
+- **Build** compiles and tests every target and checks older Sodium versions for 1.20.1 and 26.1.x.
+- **Client Smoke Test** starts every target in a real client, joins a singleplayer world and runs runtime assertions, including WorldEdit and connected-texture profiles. Menu changes automatically add UI screenshots; dispatch the workflow with **visual** enabled for the complete 23-case world/UI suite before a larger release. Reports and images stay in Actions artifacts for seven days and are never committed.
+- **Release** runs after a successful smoke test on `main`. If `mod_version` in `gradle.properties` has no tag yet, it builds all targets and publishes a GitHub prerelease with all five JARs. Raising `mod_version` on `main` is therefore the release trigger.
 
-Shared pure logic and matching tests listed in `.github/scripts/source-parity.json` must stay in sync across their version roots. Run `python .github/scripts/check-source-parity.py` before publishing; mappings and renderer APIs remain version-specific. Update the manifest explicitly if a listed file needs an intentional version difference.
-
-## Runtime and optional visual checks
-
-Every main push tests startup, world join, compatibility profiles and runtime assertions for all
-seven Minecraft versions through five build targets. The 26.1.x target additionally tests Sodium 0.8.9 and 0.9.2. Screenshots are off for ordinary logic, docs and version changes. Menu changes
-automatically select only the UI screenshot scenarios on baseline profiles. No screenshots are
-created by the compatibility profiles.
-
-Before a full release, explicitly dispatch **Client Smoke Test** with its **visual** input enabled
-to run the complete 23-case world/UI suite, including boundary colors, opacity, textures and Rainbow.
-The visual selection policy is tested by `.github/scripts/test-visual-selection.py`.
-
-Download a baseline artifact and open `index.html` when a visual run was selected. Reports and
-images stay in expiring GitHub Actions artifacts (seven days), never in Git or release assets.
-Ordinary runs retain logs. Full images need inspection only when relevant to the change.
-
-Visual fixtures are destructive only in disposable integrated-server CI worlds, enabled by
-`-Dselectiverender.visual.smoke=true`. Do not enable them in an existing save. Automatic menu runs
-also set `-Dselectiverender.visual.uiOnly=true`. The suite refuses multiplayer worlds.
-
-Runtime assertions compare saved and temporary plot lighting/geometry under each skylight mode,
-check hidden interaction priority, grid setup/persistence and plot-clear aliases. Visual assertions
-check widget bounds, palette visibility, region reset, normalized grid values and automatic saving.
-These checks do not certify every resource pack, shader or far-distance camera angle.
+Visual fixtures are destructive only in disposable CI worlds enabled by `-Dselectiverender.visual.smoke=true`. Do not enable them in an existing save.
 
 ## Structural block catalog
 
-Regenerate the ID-only catalog with `.github/scripts/generate-beam-catalog.py --conquest PATH --architects PATH` using the installed mod JARs. Models are inspected only to exclude volume-building shapes; no third-party assets are distributed. Run `.github/scripts/test-beam-catalog.py` and source parity after regeneration.
+Regenerate the ID-only catalog with `.github/scripts/generate-beam-catalog.py --conquest PATH --architects PATH` using the installed mod JARs, then run `.github/scripts/test-beam-catalog.py`. Models are inspected only to exclude volume-building shapes; no third-party assets are distributed.
+
+Contact: [pengwing.ac@gmail.com](mailto:pengwing.ac@gmail.com).
