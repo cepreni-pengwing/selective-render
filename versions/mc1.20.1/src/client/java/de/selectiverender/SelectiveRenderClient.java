@@ -62,6 +62,11 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         SelectiveRenderSettings.load();
+        net.fabricmc.fabric.api.event.lifecycle.v1.CommonLifecycleEvents.TAGS_LOADED.register((registries, client) -> {
+            if (!client) return;
+            invalidateFilterMetadata();
+            if (SelectiveRenderState.filteredRegionCount() > 0) SelectiveRenderState.refreshRenderer();
+        });
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new SimpleSynchronousResourceReloadListener() {
                     @Override
@@ -72,7 +77,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                     @Override
                     public void reload(ResourceManager manager) {
                         BoundaryColorTexture.invalidate();
-                        BlockFilterMetadata.clear();
+                        invalidateFilterMetadata();
                     }
 
                     @Override
@@ -126,7 +131,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     }
 
     public static void worldChanged(MinecraftClient client, ClientWorld world) {
-        BlockFilterMetadata.clear();
+        invalidateFilterMetadata();
         WorldEditClient.worldChanged(world);
         WORLD_SESSION.switchTo(world, () -> {
             PlotSquaredClient.leaveWorld();
@@ -254,16 +259,28 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                                                 StringArgumentType.getString(context, "selector"))))));
     }
 
-    static List<String> blockFilterSuggestions(String remaining) {
+    private static volatile List<String> filterSelectors;
+
+    static List<String> filterSelectors() {
+        List<String> cached = filterSelectors;
+        if (cached != null) return cached;
         List<String> suggestions = new java.util.ArrayList<>();
         suggestions.add("#" + BuiltInBlockTags.BEAMS);
-        {
-            net.minecraft.registry.Registries.BLOCK.getIds().forEach(id -> suggestions.add(id.toString()));
-        }
-        {
-            net.minecraft.registry.Registries.BLOCK.forEach(block -> block.getRegistryEntry().streamTags()
-                    .forEach(tag -> suggestions.add("#" + tag.id())));
-        }
+        net.minecraft.registry.Registries.BLOCK.getIds().forEach(id -> suggestions.add(id.toString()));
+        net.minecraft.registry.Registries.BLOCK.forEach(block -> block.getRegistryEntry().streamTags()
+                .forEach(tag -> suggestions.add("#" + tag.id())));
+        cached = suggestions.stream().distinct().toList();
+        filterSelectors = cached;
+        return cached;
+    }
+
+    static void invalidateFilterMetadata() {
+        BlockFilterMetadata.clear();
+        filterSelectors = null;
+    }
+
+    static List<String> blockFilterSuggestions(String remaining) {
+        List<String> suggestions = filterSelectors();
         int comma = remaining.lastIndexOf(',');
         String prefix = comma < 0 ? "" : remaining.substring(0, comma + 1);
         String tail = remaining.substring(comma + 1);

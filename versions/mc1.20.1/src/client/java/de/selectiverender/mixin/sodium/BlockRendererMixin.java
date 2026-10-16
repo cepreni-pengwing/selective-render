@@ -113,12 +113,13 @@ abstract class BlockRendererMixin {
                                              ChunkBuildBuffers buffers, CallbackInfo ci) {
         selectiverender$quads.reset();
         selectiverender$rainbowPos.set(context.pos());
+        selectiverender$buffers.remove();
+        var pos = context.pos();
+        if (!SelectiveRenderState.shouldRender(context.state(), pos.getX(), pos.getY(), pos.getZ())) { ci.cancel(); return; }
         if (SelectiveRenderState.filteringActive()
                 && (de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR)
                 || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE)))
             selectiverender$buffers.set(buffers);
-        var pos = context.pos();
-        if (!SelectiveRenderState.shouldRender(context.state(), pos.getX(), pos.getY(), pos.getZ())) ci.cancel();
     }
 
     @Inject(method = "renderModel", at = @At("RETURN"))
@@ -132,14 +133,16 @@ abstract class BlockRendererMixin {
                                                     BakedQuadView quad,
                                                     CallbackInfoReturnable<int[]> cir) {
         if (selectiverender$solidColor.get()) selectiverender$solidColor.set(false);
+        if (!SelectiveRenderState.filteringActive()) {
+            if (selectiverender$nativeColors.get() != null) selectiverender$nativeColors.remove();
+            return;
+        }
         boolean needsOriginal = BoundaryColorTexture.preserveSourceTexture(context.state())
-                || SelectiveRenderState.filteringActive()
-                && de.selectiverender.BoundaryRenderContext.normalAt(context.pos())
+                || de.selectiverender.BoundaryRenderContext.normalAt(context.pos())
                 && de.selectiverender.BoundaryStyle.color(SelectiveRenderState.boundaryModeAt(
                         context.pos().getX(), context.pos().getY(), context.pos().getZ()));
         selectiverender$nativeColors.set(needsOriginal ? cir.getReturnValue().clone() : null);
-        if (!SelectiveRenderState.filteringActive()
-                || !(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
+        if (!(de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.COLOR) || de.selectiverender.SelectiveRenderConfig.hasBoundaryMode(SelectiveRenderSettings.BoundaryMode.TEXTURE))) return;
         SelectiveRenderSettings.BoundaryMode extensionMode =
                 selectiverender$boundaryMode(context, quad);
         if (BoundaryColorTexture.custom(extensionMode)) {

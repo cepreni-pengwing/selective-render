@@ -366,6 +366,11 @@ public final class SelectiveRenderConfig {
     }
 
     public static void reset() {
+        clearRegions();
+        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of(), List.of());
+    }
+
+    private static void clearRegions() {
         REGIONS.clear();
         ACTIVE_REGIONS.clear();
         HIDDEN_REGIONS.clear();
@@ -377,7 +382,6 @@ public final class SelectiveRenderConfig {
         hideGroupEnabled = true;
         allNormalRegionIndex = RegionIndex.empty();
         allHiddenRegionIndex = RegionIndex.empty();
-        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of(), List.of());
     }
 
     public static void endSession() {
@@ -551,7 +555,7 @@ public final class SelectiveRenderConfig {
         if (!writeStored(editorPath(dimension), stored, backupPrimary)) throw new IllegalArgumentException("Could not save the region file");
         if (client.world.getRegistryKey().getValue().toString().equals(dimension)) {
             VisibilitySnapshot previous = SelectiveRenderState.snapshot();
-            reset();
+            clearRegions();
             applyStoredConfig(stored);
             SelectiveRenderState.refreshChange(previous);
             RegionOptions before = current.options().getOrDefault(oldName, RegionOptions.DEFAULT);

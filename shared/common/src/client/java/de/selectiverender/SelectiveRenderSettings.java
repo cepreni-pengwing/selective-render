@@ -328,6 +328,7 @@ public final class SelectiveRenderSettings {
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             return SettingsFile.GSON.fromJson(reader, StoredSettings.class);
         } catch (IOException | RuntimeException exception) {
+            SelectiveRenderClient.LOGGER.warn("Could not read selective render settings {}", path, exception);
             return null;
         }
     }

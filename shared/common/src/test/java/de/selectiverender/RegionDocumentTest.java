@@ -52,7 +52,7 @@ class RegionDocumentTest {
         var original = new RegionDocument("minecraft:overworld", Map.of("old name", List.of(BOX)),
                 Set.of(), Set.of(), Set.of(), Map.of(), false, true);
         assertTrue(original.edit("old name", "old name", List.of(BOX), true, true, List.of()).hidden().contains("old name"));
-        assertTrue(original.edit("old name", "custom:region", List.of(BOX), false, false, List.of()).regions().containsKey("custom:region"));
+        assertTrue(original.edit("old name", "custom-region.2", List.of(BOX), false, false, List.of()).regions().containsKey("custom-region.2"));
     }
 
     private static final BlockRegion BOX = new BlockRegion(0, 10, -64, 20, 0, 10);
@@ -97,7 +97,7 @@ class RegionDocumentTest {
 
     @Test void invalidEditsDoNotModifyTheSource() {
         var original = source("minecraft:overworld");
-        for (String name : List.of("", "all", "a", "other", "two names")) {
+        for (String name : List.of("", "all", "a", "other", "two names", "custom:region", "größe", "slash/name")) {
             assertThrows(IllegalArgumentException.class,
                     () -> original.edit("test", name, List.of(BOX), false, true, List.of(RULE)));
         }

@@ -34,9 +34,9 @@ record RegionDocument(String dimension, Map<String, List<BlockRegion>> regions,
                         boolean hide, boolean active, List<BlockFilterRule> rules) {
         newName = newName.trim().toLowerCase(java.util.Locale.ROOT);
         if (!regions.containsKey(oldName)) throw new IllegalArgumentException("This region no longer exists");
-        if (!newName.equals(oldName) && (newName.isBlank() || newName.chars().anyMatch(value -> Character.isWhitespace(value) || Character.isISOControl(value))
+        if (!newName.equals(oldName) && (!newName.matches("[0-9a-z_.+-]+")
                 || newName.equals("all") || newName.equals("a"))) {
-            throw new IllegalArgumentException("Use a name without spaces; 'all' and 'a' are reserved");
+            throw new IllegalArgumentException("Use only letters, digits and _ - . +; 'all' and 'a' are reserved");
         }
         if (!oldName.equals(newName) && regions.containsKey(newName)) {
             throw new IllegalArgumentException("A region with that name already exists in this dimension");
