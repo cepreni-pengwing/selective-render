@@ -25,6 +25,8 @@ jobs:
           python-version: '3.12'
       - name: Check release version format
         run: grep -Eq '^mod_version=[0-9]+\.[0-9]+\.[0-9]+$' gradle.properties
+      - name: Check sources and docs
+        run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/check-sources.py
       - run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-visual-selection.py
       - run: PYTHONDONTWRITEBYTECODE=1 python3 .github/scripts/test-beam-catalog.py
       - run: python3 -m pip install --disable-pip-version-check Pillow==11.3.0
@@ -42,7 +44,10 @@ jobs:
             21
             25
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew build ${{ env.TOOLCHAINS }} --stacktrace
+      - run: ./gradlew build ${{ env.TOOLCHAINS }} --continue --stacktrace 2>&1 | tee build.log
+        shell: bash
+      - if: failure()
+        run: python3 .github/scripts/ci-summary.py build.log >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v7
         with:
           name: selective-render-jars
@@ -72,4 +77,7 @@ jobs:
             21
             25
       - uses: gradle/actions/setup-gradle@v6
-      - run: ./gradlew :${{ matrix.target }}:build -P${{ matrix.target }}.sodium_version=${{ matrix.sodium }} ${{ env.TOOLCHAINS }} --stacktrace
+      - run: ./gradlew :${{ matrix.target }}:build -P${{ matrix.target }}.sodium_version=${{ matrix.sodium }} ${{ env.TOOLCHAINS }} --stacktrace 2>&1 | tee build.log
+        shell: bash
+      - if: failure()
+        run: python3 .github/scripts/ci-summary.py build.log >> "$GITHUB_STEP_SUMMARY"

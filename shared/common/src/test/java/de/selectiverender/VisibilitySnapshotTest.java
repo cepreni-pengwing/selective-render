@@ -42,6 +42,22 @@ class VisibilitySnapshotTest {
     }
 
     @Test
+    void plotModeKeepsAlreadyActiveRegions() {
+        VisibilitySnapshot normal = VisibilitySnapshot.create(
+                List.of(NORMAL), true, List.of(), false, List.of(),
+                List.of(), false, false, 2);
+        VisibilitySnapshot plot = normal.withPlotState(List.of(PLOT), true, true, 3);
+        assertEquals(List.of(PLOT, NORMAL), plot.activeRegions());
+        assertTrue(plot.enabled());
+        VisibilitySnapshot plotOff = normal.withPlotState(List.of(PLOT), true, false, 4);
+        assertEquals(List.of(NORMAL), plotOff.activeRegions());
+        assertTrue(plotOff.enabled());
+        VisibilitySnapshot inactive = normal.toggleConfiguredState(5).withPlotState(List.of(PLOT), true, true, 6);
+        assertEquals(List.of(PLOT), inactive.activeRegions());
+        assertFalse(normal.toggleConfiguredState(7).withPlotState(List.of(PLOT), true, false, 8).enabled());
+    }
+
+    @Test
     void configuredToggleCreatesANewSnapshot() {
         VisibilitySnapshot enabled = VisibilitySnapshot.create(
                 List.of(NORMAL), true, List.of(OVERRIDE), false, List.of(),

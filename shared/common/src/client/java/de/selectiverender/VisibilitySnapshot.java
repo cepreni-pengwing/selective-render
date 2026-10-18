@@ -81,10 +81,18 @@ final class VisibilitySnapshot {
         List<BlockRegion> hidden = List.copyOf(hiddenRegions);
         List<BlockRegion> overrides = List.copyOf(visibleOverrides);
         List<BlockRegion> plots = List.copyOf(plotRegions);
-        List<BlockRegion> active = plotModeActive ? plots : configured;
-        boolean enabled = plotModeActive
-                ? plotRenderingConfigured && !plots.isEmpty()
-                : configuredEnabled && !configured.isEmpty();
+        boolean configuredOn = configuredEnabled && !configured.isEmpty();
+        boolean plotsOn = plotModeActive && plotRenderingConfigured && !plots.isEmpty();
+        List<BlockRegion> active = configured;
+        if (plotsOn && configuredOn) {
+            ArrayList<BlockRegion> merged = new ArrayList<>(plots.size() + configured.size());
+            merged.addAll(plots);
+            merged.addAll(configured);
+            active = List.copyOf(merged);
+        } else if (plotModeActive && (plotsOn || !configuredOn)) {
+            active = plots;
+        }
+        boolean enabled = plotsOn || configuredOn;
         boolean hideEnabled = hideConfiguredEnabled && !hidden.isEmpty();
 
         List<BlockRegion> traversal = active;

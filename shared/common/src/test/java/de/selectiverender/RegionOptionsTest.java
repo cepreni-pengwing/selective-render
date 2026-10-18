@@ -67,7 +67,7 @@ class RegionOptionsTest {
         assertEquals(256, saved.get("defaultPlotMaxY").getAsInt());
     }
     @Test void emptyInputSuggestsBothIdsAndTags() {
-        assertEquals(List.of("#minecraft:slabs", "minecraft:stone"),
+        assertEquals(List.of("minecraft:stone", "#minecraft:slabs"),
                 FilterCompletion.matches("", List.of("minecraft:stone", "#minecraft:slabs")));
     }
 }

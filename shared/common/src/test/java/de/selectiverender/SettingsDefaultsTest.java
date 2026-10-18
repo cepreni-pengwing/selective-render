@@ -29,6 +29,17 @@ class SettingsDefaultsTest {
         assertNull(RegionOptions.DEFAULT.inheritedColor());
     }
 
+    @Test void globalBoundaryLayersDefaultToNormalOnly() {
+        var target = new BoundaryEditorTarget();
+        assertTrue(target.normal());
+        assertFalse(target.textureEnabled());
+        assertFalse(target.colorEnabled());
+        assertFalse(target.rainbow());
+        assertEquals(SelectiveRenderSettings.InteractionMode.INSIDE, SelectiveRenderSettings.interactionMode());
+        assertTrue(SelectiveRenderSettings.globalFilters().isEmpty());
+        assertTrue(SelectiveRenderSettings.globalFiltersActive());
+    }
+
     @Test void modesCycleThroughEveryValueAndWrap() {
         for (var value : SelectiveRenderSettings.PlayerVisibility.values()) {
             var cycled = value;

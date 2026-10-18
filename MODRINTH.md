@@ -48,6 +48,7 @@ Show only the parts of your world you choose. Render selected regions, hide othe
 - Regions from WorldEdit or `/sr pos1` / `/sr pos2`
 - Boundary faces: original, texture or color with rainbow preset
 - Per-region or global boundary style
+- Block filters per region or global, with word search for IDs and tags
 - Plot isolation via [Selective Render Plots](https://modrinth.com/plugin/selective-render-plots) or a client-only grid
 - Can improve FPS when large areas are hidden
 

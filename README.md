@@ -65,11 +65,14 @@ Required: Fabric Loader, Fabric API, Sodium. Optional: Iris.
 
 - Accept block IDs and tags, e.g. `minecraft:oak_log` or `#minecraft:logs`.
 - `hide` removes matches, `only` keeps nothing but matches.
+- Region filters live in the region editor, global filters in the **Filters** tab and apply everywhere.
+- Search finds words and parts of IDs, e.g. `oak` or `stripped` also suggests `minecraft:stripped_oak_log`.
 - Purely visual: collision and server state stay unchanged.
 
 ## Plots
 
-- `/sr plot` adds or removes the plot you are standing on. The first plot enables isolation automatically.
+- `/sr plot` adds or removes the plot you are standing on. The first plot enables isolation automatically. Regions you already toggled stay visible.
+- Running it again with other Y limits updates the plot instead of removing it. Changing the default Y limits updates active plots.
 - `/sr plot save NAME` turns a plot into a normal region.
 - Plot outlines come from one of two sources, chosen in the **Plots** tab:
   - **SRP:** exact outlines from the [Selective Render Plots](https://github.com/cepreni-pengwing/selective-render-plots) server add-on.

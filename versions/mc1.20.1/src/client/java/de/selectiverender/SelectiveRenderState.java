@@ -224,6 +224,11 @@ public final class SelectiveRenderState {
         BlockFilterMetadata metadata = null;
         for (FilteredRegion filtered : snapshot.filteredRegions()) {
             if (!filtered.region().contains(blockX, blockY, blockZ)) continue;
+            if (filtered.global()) {
+                if (metadata == null) metadata = BlockFilterMetadata.of(state.getBlock());
+                if (!BlockFilterRule.allows(filtered.rules(), metadata.id(), metadata.tags())) return false;
+                continue;
+            }
             inFilteredRegion = true;
             if (filtered.rules().isEmpty()) return true;
             if (metadata == null) metadata = BlockFilterMetadata.of(state.getBlock());

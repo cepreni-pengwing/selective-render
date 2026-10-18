@@ -13,7 +13,7 @@ import net.minecraft.text.Text;
 /** Fixed navigation column and viewport-sized, scrollable settings content. */
 public final class SelectiveRenderSettingsScreen extends Screen {
     enum Tab {
-        GENERAL("General"), REGIONS("Regions"), INTERACTIONS("Interactions"), BOUNDARIES("Boundaries"), PLOTS("Plots");
+        GENERAL("General"), REGIONS("Regions"), FILTERS("Filters"), INTERACTIONS("Interactions"), BOUNDARIES("Boundaries"), PLOTS("Plots");
         final String label;
         Tab(String label) { this.label = label; }
     }
@@ -58,7 +58,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
     }
 
     static Screen page(Screen parent, Tab tab) {
-        return tab == Tab.REGIONS ? new RegionEditorScreen(parent) : tab == Tab.BOUNDARIES ? new BoundaryAppearanceScreen(parent)
+        return tab == Tab.FILTERS ? new RegionEditorScreen(parent, true) : tab == Tab.REGIONS ? new RegionEditorScreen(parent) : tab == Tab.BOUNDARIES ? new BoundaryAppearanceScreen(parent)
                 : new SelectiveRenderSettingsScreen(parent, tab, null, SelectiveRenderSettings.menuNavigation().scroll(tab.name()));
     }
 
@@ -268,7 +268,7 @@ public final class SelectiveRenderSettingsScreen extends Screen {
 
     private void navigate(Tab nextTab, String nextRegion, int nextScroll) {
         if (!applyNumericSettings()) return;
-        client.setScreen(nextTab == Tab.BOUNDARIES ? new BoundaryAppearanceScreen(parent) : nextTab == Tab.REGIONS ? new RegionEditorScreen(parent)
+        client.setScreen(nextTab == Tab.BOUNDARIES ? new BoundaryAppearanceScreen(parent) : nextTab == Tab.FILTERS ? new RegionEditorScreen(parent, true) : nextTab == Tab.REGIONS ? new RegionEditorScreen(parent)
                 : new SelectiveRenderSettingsScreen(parent, nextTab, nextRegion, nextScroll));
     }
 

@@ -184,7 +184,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .executes(context -> {
                     feedback(context.getSource(), message(white("Performance diagnostics: "),
                             aqua(PerformanceDiagnostics.enabled() ? "ON" : "OFF"),
-                            white(" Â· /sr diagnose start [seconds] | mark LABEL | stop")));
+                            white(" · /sr diagnose start [seconds] | mark LABEL | stop")));
                     return Command.SINGLE_SUCCESS;
                 })
                 .then(ClientCommands.literal("start")
@@ -195,7 +195,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                 .then(ClientCommands.literal("stop").executes(context -> {
                     PerformanceDiagnostics.stop();
                     feedback(context.getSource(), message(green("Diagnostics stopped"),
-                            white(" Â· send logs/latest.log")));
+                            white(" · send logs/latest.log")));
                     return Command.SINGLE_SUCCESS;
                 }))
                 .then(ClientCommands.literal("mark")
@@ -211,8 +211,8 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static int startPerformanceDiagnostics(FabricClientCommandSource source, int seconds) {
         PerformanceDiagnostics.start(seconds, LOGGER::info);
         logPerformanceContext();
-        feedback(source, message(green("Diagnostics recording"), white(" Â· " + seconds
-                + " seconds Â· /sr diagnose stop Â· output: logs/latest.log")));
+        feedback(source, message(green("Diagnostics recording"), white(" · " + seconds
+                + " seconds · /sr diagnose stop · output: logs/latest.log")));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -242,10 +242,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         .executes(context -> listBlockFilters(context.getSource(), StringArgumentType.getString(context, "region")))
                         .then(ClientCommands.literal("clear").executes(context -> clearBlockFilters(context.getSource(), StringArgumentType.getString(context, "region"))))
                         .then(ClientCommands.literal("hide").then(ClientCommands.argument("selector", StringArgumentType.greedyString())
-                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(blockFilterSuggestions(builder.getRemaining()), builder))
+                                .suggests((context, builder) -> suggestFilters(builder))
                                 .executes(context -> setBlockFilter(context.getSource(), StringArgumentType.getString(context, "region"), BlockFilterRule.Mode.HIDE, StringArgumentType.getString(context, "selector")))))
                         .then(ClientCommands.literal("only").then(ClientCommands.argument("selector", StringArgumentType.greedyString())
-                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(blockFilterSuggestions(builder.getRemaining()), builder))
+                                .suggests((context, builder) -> suggestFilters(builder))
                                 .executes(context -> setBlockFilter(context.getSource(), StringArgumentType.getString(context, "region"), BlockFilterRule.Mode.ONLY, StringArgumentType.getString(context, "selector"))))));
     }
 
@@ -267,6 +267,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     static void invalidateFilterMetadata() {
         BlockFilterMetadata.clear();
         filterSelectors = null;
+    }
+
+    static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestFilters(
+            com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
+        FilterCompletion.matches(builder.getRemaining(), filterSelectors()).forEach(builder::suggest);
+        return builder.buildFuture();
     }
 
     static List<String> blockFilterSuggestions(String remaining) {
@@ -533,7 +539,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     private static int createRegion(FabricClientCommandSource source, String name, BlockRegion region, boolean hidden) {
         SelectiveRenderConfig.saveRegion(Minecraft.getInstance(), name, region, hidden);
         feedback(source, message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
-                green(" created"), white(" Â· " + region.blockCount() + " blocks Â· "),
+                green(" created"), white(" · " + region.blockCount() + " blocks · "),
                 hidden ? red("hidden") : green("render")));
         return Command.SINGLE_SUCCESS;
     }
@@ -553,7 +559,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
             return 0;
         }
         feedback(source, message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
-                green(" redefined"), white(" Â· " + region.blockCount() + " blocks")));
+                green(" redefined"), white(" · " + region.blockCount() + " blocks")));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -579,9 +585,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         } else {
             boolean active = SelectiveRenderConfig.isRegionActive(name);
             MutableComponent content = message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
-                    white(" Â· "), active ? green("added") : red("removed"), white(active ? " to render group" : " from render group"));
+                    white(" · "), active ? green("added") : red("removed"), white(active ? " to render group" : " from render group"));
             if (!SelectiveRenderConfig.groupEnabled()) {
-                content.append(white(" Â· group ")).append(red("disabled"));
+                content.append(white(" · group ")).append(red("disabled"));
             }
             feedback(source, content);
         }
@@ -612,9 +618,9 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         } else {
             boolean hidden = SelectiveRenderConfig.isHiddenRegionActive(name);
             MutableComponent content = message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)),
-                    white(" Â· "), hidden ? green("added") : red("removed"), white(hidden ? " to hide group" : " from hide group"));
+                    white(" · "), hidden ? green("added") : red("removed"), white(hidden ? " to hide group" : " from hide group"));
             if (!SelectiveRenderConfig.hideGroupEnabled()) {
-                content.append(white(" Â· group ")).append(red("disabled"));
+                content.append(white(" · group ")).append(red("disabled"));
             }
             feedback(source, content);
         }
@@ -652,7 +658,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         boolean anyActive = hidden
                 ? !SelectiveRenderConfig.hiddenRegionNames().isEmpty()
                 : !SelectiveRenderConfig.activeRegionNames().isEmpty();
-        feedback(source, message(aqua(hidden ? "Hidden regions" : "Render regions"), white(" Â· all "),
+        feedback(source, message(aqua(hidden ? "Hidden regions" : "Render regions"), white(" · all "),
                 anyActive ? green("enabled") : red("disabled")));
         return Command.SINGLE_SUCCESS;
     }
@@ -669,7 +675,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
         boolean groupEnabled = hiddenOnly
                 ? SelectiveRenderConfig.hideGroupEnabled() : SelectiveRenderConfig.groupEnabled();
         feedback(source, message(aqua(hiddenOnly ? "Hidden regions" : "Render regions"),
-                white(" Â· group "), groupEnabled ? green("enabled") : red("disabled")));
+                white(" · group "), groupEnabled ? green("enabled") : red("disabled")));
         int width = names.stream().mapToInt(String::length).max().orElse(0);
         for (String name : names) {
             BlockRegion region = SelectiveRenderConfig.regionRegion(name);
@@ -750,7 +756,7 @@ public final class SelectiveRenderClient implements ClientModInitializer {
 
     private static MutableComponent regionExists(String name) {
         return message(white("Region "), aqua(name.toLowerCase(Locale.ROOT)), red(" already exists"),
-                white(" Â· delete or rename it first"));
+                white(" · delete or rename it first"));
     }
 
     private static MutableComponent white(String text) {

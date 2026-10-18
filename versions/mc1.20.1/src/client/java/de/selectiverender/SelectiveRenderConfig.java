@@ -28,7 +28,9 @@ import java.util.Map;
 
 public final class SelectiveRenderConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final Path DIRECTORY = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
+    private static final class Directory {
+        static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve("selectiverender");
+    }
     private static final Map<String, List<BlockRegion>> REGIONS = new LinkedHashMap<>();
     private static final LinkedHashSet<String> ACTIVE_REGIONS = new LinkedHashSet<>();
     private static final LinkedHashSet<String> HIDDEN_REGIONS = new LinkedHashSet<>();
@@ -367,7 +369,7 @@ public final class SelectiveRenderConfig {
 
     public static void reset() {
         clearRegions();
-        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of(), List.of());
+        SelectiveRenderState.setSavedState(List.of(), false, List.of(), false, List.of(), filteredRegions());
     }
 
     private static void clearRegions() {
@@ -423,7 +425,7 @@ public final class SelectiveRenderConfig {
         if (client.getNetworkHandler() != null) client.getNetworkHandler().getWorldKeys()
                 .forEach(key -> dimensions.add(key.getValue().toString()));
         // New metadata also finds saved dimensions no longer announced by the server.
-        if (Files.isDirectory(DIRECTORY)) try (var files = Files.list(DIRECTORY)) {
+        if (Files.isDirectory(Directory.PATH)) try (var files = Files.list(Directory.PATH)) {
             files.filter(path -> path.getFileName().toString().endsWith(".json")).forEach(path -> {
                 try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
                     var json = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
@@ -446,7 +448,7 @@ public final class SelectiveRenderConfig {
     }
 
     private static Path editorPath(String dimension) {
-        return DIRECTORY.resolve(sha256(sessionOwner + "|" + dimension) + ".json");
+        return Directory.PATH.resolve(sha256(sessionOwner + "|" + dimension) + ".json");
     }
 
     private static StoredConfig snapshotStored(String dimension) {
@@ -474,6 +476,30 @@ public final class SelectiveRenderConfig {
                 : ConfigRecovery.load(editorPath(dimension), SelectiveRenderConfig::readStoredConfig).value();
         return stored == null ? null : toDocument(dimension, stored);
     }
+
+    static StoredConfig storedDocument(RegionDocument edited) {
+        StoredConfig stored = new StoredConfig();
+        stored.formatVersion = 8;
+        stored.dimension = edited.dimension();
+        stored.regionOptions = new LinkedHashMap<>(edited.options());
+        stored.enabled = edited.rendering();
+        stored.hideEnabled = edited.hiding();
+        stored.activeRegions = List.copyOf(edited.selected());
+        stored.hiddenRegions = List.copyOf(edited.hidden());
+        stored.activeHiddenRegions = List.copyOf(edited.selectedHidden());
+        stored.regionGroups = new LinkedHashMap<>();
+        edited.regions().forEach((name, value) -> stored.regionGroups.put(name, value.stream().map(StoredRegion::from).toList()));
+        stored.blockFilters = new LinkedHashMap<>();
+        edited.filters().forEach((name, value) -> stored.blockFilters.put(name, value.stream().map(StoredBlockFilter::from).toList()));
+        return stored;
+    }
+
+    static RegionDocument readDocument(String json) {
+        StoredConfig stored = GSON.fromJson(json, StoredConfig.class);
+        return toDocument(stored.dimension, stored);
+    }
+
+    static String writeDocument(RegionDocument document) { return GSON.toJson(storedDocument(document)); }
 
     private static RegionDocument toDocument(String dimension, StoredConfig stored) {
         Map<String, List<BlockRegion>> regions = new LinkedHashMap<>();
@@ -535,21 +561,9 @@ public final class SelectiveRenderConfig {
     private static void persistEditorDocument(MinecraftClient client, String dimension,
             RegionDocument current, RegionDocument edited, String oldName, String newName,
             List<BlockRegion> boxes, RegionOptions options) {
-        StoredConfig stored = new StoredConfig();
-        stored.formatVersion = 8;
+        StoredConfig stored = storedDocument(edited);
         stored.ownerHash = sha256(sessionOwner);
-        stored.dimension = dimension;
-        stored.regionOptions = new LinkedHashMap<>(edited.options());
         if (options != null) stored.regionOptions.put(newName.trim().toLowerCase(java.util.Locale.ROOT), options);
-        stored.enabled = edited.rendering();
-        stored.hideEnabled = edited.hiding();
-        stored.activeRegions = List.copyOf(edited.selected());
-        stored.hiddenRegions = List.copyOf(edited.hidden());
-        stored.activeHiddenRegions = List.copyOf(edited.selectedHidden());
-        stored.regionGroups = new LinkedHashMap<>();
-        edited.regions().forEach((name, value) -> stored.regionGroups.put(name, value.stream().map(StoredRegion::from).toList()));
-        stored.blockFilters = new LinkedHashMap<>();
-        edited.filters().forEach((name, value) -> stored.blockFilters.put(name, value.stream().map(StoredBlockFilter::from).toList()));
         // A recovered backup must not be replaced with a corrupt primary file.
         boolean backupPrimary = readStoredConfig(editorPath(dimension)) != null;
         if (!writeStored(editorPath(dimension), stored, backupPrimary)) throw new IllegalArgumentException("Could not save the region file");
@@ -572,7 +586,7 @@ public final class SelectiveRenderConfig {
 
     private static boolean writeStored(Path path, StoredConfig stored, boolean backupExisting) {
         try {
-            Files.createDirectories(DIRECTORY);
+            Files.createDirectories(Directory.PATH);
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
             if (backupExisting && Files.isRegularFile(path)) Files.copy(path, ConfigRecovery.backupPath(path),
                     StandardCopyOption.REPLACE_EXISTING);
@@ -624,9 +638,10 @@ public final class SelectiveRenderConfig {
     }
 
     private static List<FilteredRegion> filteredRegions() {
-        if (!SelectiveRenderSettings.blockFiltersEnabled()
-                || FILTERS.isEmpty()) return List.of();
+        if (!SelectiveRenderSettings.blockFiltersEnabled()) return List.of();
         java.util.ArrayList<FilteredRegion> result = new java.util.ArrayList<>();
+        var global = SelectiveRenderSettings.activeGlobalFilters();
+        if (!global.isEmpty()) result.add(FilteredRegion.everywhere(new LinkedHashSet<>(global)));
         for (Map.Entry<String, LinkedHashSet<BlockFilterRule>> entry : FILTERS.entrySet()) {
             String name = entry.getKey();
             if (entry.getValue().isEmpty() || !OPTIONS.getOrDefault(name, RegionOptions.DEFAULT).filtersActive()) continue;
@@ -774,7 +789,7 @@ public final class SelectiveRenderConfig {
 
     private static Path pathFor(ClientWorld world, String owner) {
         String dimension = world.getRegistryKey().getValue().toString();
-        return DIRECTORY.resolve(sha256(owner + "|" + dimension) + ".json");
+        return Directory.PATH.resolve(sha256(owner + "|" + dimension) + ".json");
     }
 
     private static String legacyOwnerFor(MinecraftClient client) {

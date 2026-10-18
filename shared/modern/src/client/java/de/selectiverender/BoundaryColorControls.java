@@ -15,12 +15,14 @@ final class BoundaryColorControls implements AutoCloseable {
     private float hue, saturation, brightness;
     private int opacity;
     private boolean rainbow, changed;
+    private HuePresetReset presetReset;
     private final java.util.List<Bar> bars=new java.util.ArrayList<>();
     boolean editing() { return bars.stream().anyMatch(bar->bar.isFocused()); }
     BoundaryColorControls(BoundaryEditorTarget target, net.minecraft.client.gui.Font font, Consumer<String> reportError) {
         this.target=target; this.font=font; this.reportError=reportError;
         var hsv=BoundaryStyle.hsv(target.color()); hue=hsv[0]; saturation=hsv[1]; brightness=hsv[2];
         opacity=target.opacity(); rainbow=target.rainbow();
+        presetReset=new HuePresetReset(target.color(),rainbow);
     }
     private void apply() {
         changed=false;
@@ -37,6 +39,7 @@ final class BoundaryColorControls implements AutoCloseable {
             add.accept(Button.builder(Component.literal(label),b-> {
                 if(kind==0) { rainbow=true; saturation=brightness=1; }
                 else { rainbow=false; hue=0; saturation=0; brightness=kind==1?1:0; }
+                presetReset.preset();
                 for (Bar bar : bars) bar.sync();
                 apply();
             }).bounds(x+sliderWidth+8,y,presetWidth,20).build());
@@ -61,8 +64,9 @@ final class BoundaryColorControls implements AutoCloseable {
         void sync() { value=kind==0?hue:kind==1?saturation:kind==2?brightness:opacity/100d; updateMessage(); }
         @Override protected void updateMessage() { setMessage(Component.literal(Math.round(value*(kind==0?360:100))+(kind==0?"°":"%"))); }
         @Override protected void applyValue() {
-            if(kind==0) { hue=(float)value; rainbow=false; if(saturation==0||brightness==0) { saturation=brightness=1; for(Bar bar:bars) if(bar!=this) bar.sync(); } } else if(kind==1) saturation=(float)value;
+            if(kind==0) { hue=(float)value; rainbow=false; if(presetReset.hue()) { saturation=brightness=1; opacity=100; for(Bar bar:bars) if(bar!=this) bar.sync(); } } else { presetReset.manual(); if(kind==1) saturation=(float)value;
             else if(kind==2) brightness=(float)value; else opacity=(int)Math.round(value*100);
+            }
             changed=true;
         }
         @Override public boolean mouseClicked(net.minecraft.client.input.MouseButtonEvent event,boolean doubleClick) {

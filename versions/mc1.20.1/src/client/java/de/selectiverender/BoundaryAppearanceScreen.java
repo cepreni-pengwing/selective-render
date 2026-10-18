@@ -22,13 +22,15 @@ final class BoundaryAppearanceScreen extends Screen {
     private int completionIndex = -1, opacity, right, rightWidth, sliderWidth, presetLeft, presetWidth, scroll;
     private float hue, saturation, brightness;
     private boolean rainbow, initialized, draftChanged, colorChanged, textureChanged, fieldFocused;
+    private HuePresetReset presetReset;
+    private final List<Bar> bars = new java.util.ArrayList<>();
     BoundaryAppearanceScreen(Screen parent) { this(parent,new BoundaryEditorTarget()); }
     BoundaryAppearanceScreen(Screen parent,BoundaryEditorTarget target) { super(Text.literal(target.regional()?"Region boundaries":"Selective Render")); this.parent=parent; this.target=target; }
     @Override protected void init() {
         if (!initialized) {
             float[] hsv = BoundaryStyle.hsv(target.color());
             hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; opacity = target.opacity();
-            rainbow = target.rainbow();
+            rainbow = target.rainbow(); presetReset = new HuePresetReset(target.color(), rainbow);
             draftTexture = target.texture(); scroll = target.regional()?0:SelectiveRenderSettings.menuNavigation().scroll("BOUNDARIES"); initialized = true;
         } else if (texture != null) draftTexture = texture.getText();
         blocks = Registries.BLOCK.getIds().stream().map(Object::toString).sorted().toList();
@@ -80,7 +82,7 @@ final class BoundaryAppearanceScreen extends Screen {
         texture.setMaxLength(256); texture.setText(draftTexture);
         texture.setChangedListener(value -> { draftTexture = value; completionBase = null; completionIndex = -1; updateMatches(); draftChanged = true; textureChanged=true; });
         addDrawableChild(texture); clip(texture); texture.visible &= textureVisible; if(!textureVisible) texture.setFocused(false); updateMatches();
-        if(colorVisible) for (int i = 0; i < 4; i++) { var bar = addDrawableChild(new Bar(i, right, colorTop + i * 38 - scroll, sliderWidth)); clip(bar); }
+        bars.clear(); if(colorVisible) for (int i = 0; i < 4; i++) { var bar = addDrawableChild(new Bar(i, right, colorTop + i * 38 - scroll, sliderWidth)); clip(bar); }
         String[] names = {"Rainbow", "White", "Black"};
         int[] colors = {0, 0xFFFFFF, 0};
         if(colorVisible) for (int i = 0; i < names.length; i++) {
@@ -88,7 +90,7 @@ final class BoundaryAppearanceScreen extends Screen {
             var button = addDrawableChild(ButtonWidget.builder(Text.literal(names[i]), b -> {
                 if (preset == 0) { rainbow = true; saturation = brightness = 1; }
                 else { rainbow = false; var hsv = BoundaryStyle.hsv(colors[preset]); hue = hsv[0]; saturation = hsv[1]; brightness = hsv[2]; }
-                draftChanged = true; colorChanged=true;
+                presetReset.preset(); draftChanged = true; colorChanged=true;
                 if (commit()) target.setColorEnabled(true);
                 rebuild();
             }).dimensions(presetLeft, colorTop + i * 26 - scroll, presetWidth, 20).build()); clip(button);
@@ -100,7 +102,7 @@ final class BoundaryAppearanceScreen extends Screen {
     private void rebuild() { clearChildren(); init(); }
     private void updateMatches() {
         String prefix = completionBase == null ? draftTexture : completionBase;
-        matches = blocks.stream().filter(v -> v.startsWith(prefix) || (!prefix.contains(":") && v.substring(v.indexOf(':') + 1).startsWith(prefix))).limit(100).toList();
+        matches = (prefix.contains(",") ? List.<String>of() : FilterCompletion.matches(prefix, blocks)).stream().limit(100).toList();
     }
     private boolean complete(int direction) {
         if (!texture.isFocused()) return false;
@@ -124,7 +126,7 @@ final class BoundaryAppearanceScreen extends Screen {
     }
     private void reloadDraft() {
         var hsv=BoundaryStyle.hsv(target.color()); hue=hsv[0]; saturation=hsv[1]; brightness=hsv[2];
-        opacity=target.opacity(); rainbow=target.rainbow(); draftTexture=target.texture();
+        opacity=target.opacity(); rainbow=target.rainbow(); presetReset=new HuePresetReset(target.color(),rainbow); draftTexture=target.texture();
         if(texture!=null) texture.setText(draftTexture);
         draftChanged=false; colorChanged=false; textureChanged=false;
     }
@@ -153,13 +155,14 @@ final class BoundaryAppearanceScreen extends Screen {
     @Override public void removed() { if (sliderTexture != null) { sliderTexture.close(); sliderTexture = null; } if(!target.regional()) { var s = SelectiveRenderSettings.menuNavigation(); s.tab = "BOUNDARIES"; s.scrolls.put("BOUNDARIES", scroll); SelectiveRenderSettings.saveMenuNavigation(); } super.removed(); }
     private final class Bar extends SliderWidget {
         private final int kind;
-        Bar(int kind, int x, int y, int size) { super(x, y, size, 20, Text.empty(), kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d); this.kind = kind; updateMessage(); }
+        Bar(int kind, int x, int y, int size) { super(x, y, size, 20, Text.empty(), kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d); this.kind = kind; updateMessage(); bars.add(this); }
+        void sync() { value = kind == 0 ? hue : kind == 1 ? saturation : kind == 2 ? brightness : opacity / 100d; updateMessage(); }
         @Override public boolean mouseClicked(double x, double y, int button) {
             if (kind == 0 && visible && button == 0 && isMouseOver(x, y)) { rainbow = false; draftChanged = true; colorChanged=true; }
             return super.mouseClicked(x, y, button);
         }
         @Override protected void updateMessage() { setMessage(Text.literal(Math.round(value * (kind == 0 ? 360 : 100)) + (kind == 0 ? "°" : "%"))); }
-        @Override protected void applyValue() { if (kind == 0) { hue = (float)value; rainbow = false; } else if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); draftChanged = true; colorChanged=true; }
+        @Override protected void applyValue() { if (kind == 0) { hue = (float)value; rainbow = false; if (presetReset.hue()) { saturation = brightness = 1; opacity = 100; for (Bar bar : bars) if (bar != this) bar.sync(); } } else { presetReset.manual(); if (kind == 1) saturation = (float)value; else if (kind == 2) brightness = (float)value; else opacity = (int)Math.round(value * 100); } draftChanged = true; colorChanged=true; }
         @Override public void renderButton(DrawContext draw, int mouseX, int mouseY, float delta) {
             draw.getMatrices().push(); draw.getMatrices().translate(0, 0, 300);
             if (sliderTexture == null) sliderTexture = new BoundarySliderTexture();

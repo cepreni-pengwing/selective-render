@@ -242,10 +242,10 @@ public final class SelectiveRenderClient implements ClientModInitializer {
                         .executes(context -> listBlockFilters(context.getSource(), StringArgumentType.getString(context, "region")))
                         .then(ClientCommands.literal("clear").executes(context -> clearBlockFilters(context.getSource(), StringArgumentType.getString(context, "region"))))
                         .then(ClientCommands.literal("hide").then(ClientCommands.argument("selector", StringArgumentType.greedyString())
-                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(blockFilterSuggestions(builder.getRemaining()), builder))
+                                .suggests((context, builder) -> suggestFilters(builder))
                                 .executes(context -> setBlockFilter(context.getSource(), StringArgumentType.getString(context, "region"), BlockFilterRule.Mode.HIDE, StringArgumentType.getString(context, "selector")))))
                         .then(ClientCommands.literal("only").then(ClientCommands.argument("selector", StringArgumentType.greedyString())
-                                .suggests((context, builder) -> SharedSuggestionProvider.suggest(blockFilterSuggestions(builder.getRemaining()), builder))
+                                .suggests((context, builder) -> suggestFilters(builder))
                                 .executes(context -> setBlockFilter(context.getSource(), StringArgumentType.getString(context, "region"), BlockFilterRule.Mode.ONLY, StringArgumentType.getString(context, "selector"))))));
     }
 
@@ -267,6 +267,12 @@ public final class SelectiveRenderClient implements ClientModInitializer {
     static void invalidateFilterMetadata() {
         BlockFilterMetadata.clear();
         filterSelectors = null;
+    }
+
+    static java.util.concurrent.CompletableFuture<com.mojang.brigadier.suggestion.Suggestions> suggestFilters(
+            com.mojang.brigadier.suggestion.SuggestionsBuilder builder) {
+        FilterCompletion.matches(builder.getRemaining(), filterSelectors()).forEach(builder::suggest);
+        return builder.buildFuture();
     }
 
     static List<String> blockFilterSuggestions(String remaining) {

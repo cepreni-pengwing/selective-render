@@ -13,13 +13,26 @@ class FilterCompletionTest {
         assertEquals(List.of("#minecraft:slabs"), FilterCompletion.matches("#minecraft:s", selectors));
         assertEquals(List.of("tag:minecraft:slabs"), FilterCompletion.matches("tag:minecraft:s", selectors));
         assertEquals(List.of("id:minecraft:stone"), FilterCompletion.matches("id:minecraft:st", selectors));
-        assertEquals(List.of("minecraft:oak_log"), FilterCompletion.matches("oak", selectors));
+        assertEquals(List.of("minecraft:oak_log", "architects:thin_stripped_oak_log"),
+                FilterCompletion.matches("oak", selectors));
+    }
+
+    @Test void findsWordsAndPartsInsideIdsAndTags() {
+        assertEquals(List.of("architects:thin_stripped_oak_log"), FilterCompletion.matches("stripped", selectors));
+        assertEquals(List.of("architects:thin_stripped_oak_log"), FilterCompletion.matches("ripp", selectors));
+        assertEquals(List.of("#minecraft:slabs"), FilterCompletion.matches("slab", selectors));
+        assertEquals(List.of("#selectiverender:beams"), FilterCompletion.matches("#beam", selectors));
+        assertEquals(List.of("minecraft:oak_log", "architects:thin_stripped_oak_log"),
+                FilterCompletion.matches("oak log", selectors));
+        assertEquals(List.of("tag:minecraft:slabs"), FilterCompletion.matches("tag:slab", selectors));
+        assertEquals(List.of("id:architects:thin_stripped_oak_log"), FilterCompletion.matches("id:thin", selectors));
+        assertEquals(List.of("architects:thin_stripped_oak_log"), FilterCompletion.matches("cts:thin", selectors));
     }
 
     @Test void batchesKeepPreviouslyEnteredSelectorsAndSpacing() {
         assertEquals(List.of("minecraft:stone, #selectiverender:beams"),
                 FilterCompletion.matches("minecraft:stone, #selectiverender:b", selectors));
-        assertEquals(List.of("minecraft:stone,minecraft:oak_log"),
+        assertEquals(List.of("minecraft:stone,minecraft:oak_log", "minecraft:stone,architects:thin_stripped_oak_log"),
                 FilterCompletion.matches("minecraft:stone,oak", selectors));
     }
 

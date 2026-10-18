@@ -19,6 +19,7 @@ final class RegionEditorScreen extends Screen {
     private record Caption(String text, int x, int y, int width) { }
     private record Navigation(String dimension, String name) { }
     private final Screen parent;
+    private final boolean global;
     private final Set<String> collapsed = new HashSet<>();
     private final List<Row> rows = new ArrayList<>();
     private final List<Caption> captions = new ArrayList<>();
@@ -42,9 +43,12 @@ final class RegionEditorScreen extends Screen {
     private Input newFilterInput;
     private boolean addingFilter;
 
-    RegionEditorScreen(Screen parent) {
+    RegionEditorScreen(Screen parent) { this(parent, false); }
+    RegionEditorScreen(Screen parent, boolean global) {
         super(Component.literal("Selective Render"));
         this.parent = parent;
+        this.global = global;
+        if (global) { navigationRestored = true; scroll = SelectiveRenderSettings.menuNavigation().scroll("FILTERS"); }
     }
 
     private List<RegionDocument> currentDocuments() {
@@ -55,6 +59,13 @@ final class RegionEditorScreen extends Screen {
 
     @Override
     public void removed() {
+        if (global) {
+            var filters = SelectiveRenderSettings.menuNavigation();
+            filters.tab = "FILTERS"; filters.scrolls.put("FILTERS", scroll);
+            SelectiveRenderSettings.saveMenuNavigation();
+            super.removed();
+            return;
+        }
         var state = SelectiveRenderSettings.menuNavigation();
         state.tab = "REGIONS";
         rememberRegion();
@@ -104,18 +115,18 @@ final class RegionEditorScreen extends Screen {
         if (document != null && restoredDimension != null) { restoreRegion(); restoredDimension=null; }
         SettingsViewport viewport = SettingsViewport.of(width, height, 0, 0);
         navLeft = viewport.paneLeft();
-        navWidth = Math.min(120, Math.max(72, viewport.paneWidth() / 4));
-        paneLeft = navLeft + navWidth + 12;
-        paneWidth = Math.max(80, viewport.paneWidth() - navWidth - 12);
+        navWidth = global ? 0 : Math.min(120, Math.max(72, viewport.paneWidth() / 4));
+        paneLeft = global ? navLeft : navLeft + navWidth + 12;
+        paneWidth = global ? viewport.paneWidth() : Math.max(80, viewport.paneWidth() - navWidth - 12);
         visibleRows = Math.max(1, (height - (error.isEmpty() ? 58 : 82)) / 24);
         for (var tab : SelectiveRenderSettingsScreen.Tab.values()) {
             var button = addRenderableWidget(Button.builder(Component.literal(tab.label), b -> {
                 if (commitInputs()) minecraft.gui.setScreen(SelectiveRenderSettingsScreen.page(parent, tab));
             }).bounds(viewport.left(), 36 + tab.ordinal() * 26, viewport.navigationWidth(), 20).build());
-            button.active = tab != SelectiveRenderSettingsScreen.Tab.REGIONS;
+            button.active = tab != (global ? SelectiveRenderSettingsScreen.Tab.FILTERS : SelectiveRenderSettingsScreen.Tab.REGIONS);
         }
         List<Navigation> navigation = new ArrayList<>();
-        for (RegionDocument value : documents) {
+        for (RegionDocument value : global ? List.<RegionDocument>of() : documents) {
             for (String name : value.regions().keySet()) {
                 navigation.add(new Navigation(value.dimension(), name));
             }
@@ -150,7 +161,8 @@ final class RegionEditorScreen extends Screen {
             }
 
         }
-        if (document == null) info("No saved regions in this dimension");
+        if (global) buildGlobalRows();
+        else if (document == null) info("No saved regions in this dimension");
         else buildRows();
         scroll = Math.max(0, Math.min(scroll, Math.max(0, rows.size() - visibleRows)));
         for (int i = scroll; i < Math.min(rows.size(), scroll + visibleRows); i++) {
@@ -245,30 +257,7 @@ final class RegionEditorScreen extends Screen {
             RegionOptions currentOptions = document.options().getOrDefault(region, RegionOptions.DEFAULT);
             options("Enabled", List.of(new Choice("Off", !currentOptions.filtersActive(), () -> setOption(0, false)),
                     new Choice("On", currentOptions.filtersActive(), () -> setOption(0, true))));
-            List<BlockFilterRule> existing = rules();
-            for (int i = 0; i < existing.size(); i++) {
-                BlockFilterRule rule = existing.get(i);
-                filterRow("filter-" + i, rule.selector(), value -> {
-                    List<BlockFilterRule> parsed = BlockFilterRule.parse(rule.mode(), value);
-                    if (parsed.size() != 1) throw new IllegalArgumentException("Enter one block ID or tag per row");
-                    replaceRule(rule, parsed.get(0));
-                }, List.of(
-                        new Choice("Hide", rule.mode() == BlockFilterRule.Mode.HIDE, () -> setRuleMode(rule, BlockFilterRule.Mode.HIDE)),
-                        new Choice("Only", rule.mode() == BlockFilterRule.Mode.ONLY, () -> setRuleMode(rule, BlockFilterRule.Mode.ONLY)),
-                        new Choice("×", false, () -> replaceRule(rule, null))));
-            }
-            if (addingFilter) filterRow("new-filter", "", value -> {
-                if (value.isBlank()) return;
-                List<BlockFilterRule> next = new ArrayList<>(rules());
-                next.addAll(BlockFilterRule.parse(newFilterMode, value));
-                save(region, boxes(), hidden(), selected(), next);
-                addingFilter = false;
-                if (newFilterInput != null) newFilterInput.widget.setValue("");
-            }, List.of(
-                    new Choice("Hide", newFilterMode == BlockFilterRule.Mode.HIDE, () -> newFilterMode = BlockFilterRule.Mode.HIDE),
-                    new Choice("Only", newFilterMode == BlockFilterRule.Mode.ONLY, () -> newFilterMode = BlockFilterRule.Mode.ONLY),
-                    new Choice("×", false, () -> addingFilter = false)));
-            rows.add(new Row("", List.of(new Choice("+", addingFilter, () -> addingFilter = true)), null, 0));
+            filterRows();
         }
         RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
         accordion("Boundaries", -1, boundariesOpen, () -> boundariesOpen=!boundariesOpen);
@@ -323,6 +312,45 @@ final class RegionEditorScreen extends Screen {
         }
     }
 
+    private void buildGlobalRows() {
+        options("Enabled", List.of(new Choice("Off", !SelectiveRenderSettings.globalFiltersActive(), () -> SelectiveRenderSettings.setGlobalFiltersActive(false)),
+                new Choice("On", SelectiveRenderSettings.globalFiltersActive(), () -> SelectiveRenderSettings.setGlobalFiltersActive(true))));
+        info("Applies to every block in addition to region filters");
+        filterRows();
+    }
+
+    private void filterRows() {
+        List<BlockFilterRule> existing = rules();
+        for (int i = 0; i < existing.size(); i++) {
+            BlockFilterRule rule = existing.get(i);
+            filterRow("filter-" + i, rule.selector(), value -> {
+                List<BlockFilterRule> parsed = BlockFilterRule.parse(rule.mode(), value);
+                if (parsed.size() != 1) throw new IllegalArgumentException("Enter one block ID or tag per row");
+                replaceRule(rule, parsed.get(0));
+            }, List.of(
+                    new Choice("Hide", rule.mode() == BlockFilterRule.Mode.HIDE, () -> setRuleMode(rule, BlockFilterRule.Mode.HIDE)),
+                    new Choice("Only", rule.mode() == BlockFilterRule.Mode.ONLY, () -> setRuleMode(rule, BlockFilterRule.Mode.ONLY)),
+                    new Choice("×", false, () -> replaceRule(rule, null))));
+        }
+        if (addingFilter) filterRow("new-filter", "", value -> {
+            if (value.isBlank()) return;
+            List<BlockFilterRule> next = new ArrayList<>(rules());
+            next.addAll(BlockFilterRule.parse(newFilterMode, value));
+            saveRules(next);
+            addingFilter = false;
+            if (newFilterInput != null) newFilterInput.widget.setValue("");
+        }, List.of(
+                new Choice("Hide", newFilterMode == BlockFilterRule.Mode.HIDE, () -> newFilterMode = BlockFilterRule.Mode.HIDE),
+                new Choice("Only", newFilterMode == BlockFilterRule.Mode.ONLY, () -> newFilterMode = BlockFilterRule.Mode.ONLY),
+                new Choice("×", false, () -> addingFilter = false)));
+        rows.add(new Row("", List.of(new Choice("+", addingFilter, () -> addingFilter = true)), null, 0));
+    }
+
+    private void saveRules(List<BlockFilterRule> next) {
+        if (global) { SelectiveRenderSettings.setGlobalFilters(next); refreshRequested = true; }
+        else save(region, boxes(), hidden(), selected(), next);
+    }
+
     private BoundaryEditorTarget boundaryTarget() {
         return new BoundaryEditorTarget(()->document.options().getOrDefault(region,RegionOptions.DEFAULT),this::setBoundaryOptions);
     }
@@ -363,7 +391,7 @@ final class RegionEditorScreen extends Screen {
         options(label, choices);
     }
     private List<BlockRegion> boxes() { return document.regions().get(region); }
-    private List<BlockFilterRule> rules() { return document.filters().getOrDefault(region, List.of()); }
+    private List<BlockFilterRule> rules() { return global ? SelectiveRenderSettings.globalFilters() : document.filters().getOrDefault(region, List.of()); }
     private boolean hidden() { return document.hidden().contains(region); }
     private boolean selected() { return document.isSelected(region); }
     private static String cornerText(BlockRegion box, boolean minimum) {
@@ -393,7 +421,7 @@ final class RegionEditorScreen extends Screen {
         int index = next.indexOf(current);
         if (index < 0) throw new IllegalArgumentException("This filter changed; reopen its entry");
         if (replacement == null) next.remove(index); else next.set(index, replacement);
-        save(region, boxes(), hidden(), selected(), next);
+        saveRules(next);
         filterEdits.replaced(current, replacement);
     }
 

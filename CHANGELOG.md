@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.14.0
+
+- New Filters tab: global block filters that apply everywhere, on top of region filters
+- Filter search finds words and parts of IDs and also suggests matching tags
+- Picking a hue after a preset sets saturation, brightness and opacity to 100%
+- `/sr plot` keeps already toggled regions visible
+- Changing plot Y limits updates active plots instead of needing to toggle them again
+- Fixed broken `·` characters in 26.3 chat messages
+- CI: source and docs checks, defaults and save/load tests, short failure summary
+
 ## 1.13.3
 
 - Fixed Tab, Enter, arrow and page keys in menus on Minecraft 26.3

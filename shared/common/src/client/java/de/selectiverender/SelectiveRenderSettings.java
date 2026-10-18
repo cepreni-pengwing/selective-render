@@ -20,8 +20,8 @@ public final class SelectiveRenderSettings {
     static final int MIN_FULL_RELOAD_THRESHOLD = 256;
     static final int MAX_FULL_RELOAD_THRESHOLD = 65536;
     static final int DEFAULT_PLOT_MIN_Y = -64;
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final class SettingsFile {
-        private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
         private static final Path PATH = FabricLoader.getInstance().getConfigDir()
                 .resolve("selectiverender").resolve("settings.json");
     }
@@ -46,6 +46,8 @@ public final class SelectiveRenderSettings {
     private static volatile int fullReloadThreshold = DEFAULT_FULL_RELOAD_THRESHOLD;
     private static volatile int defaultPlotMaxY = 319;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
+    private static volatile java.util.List<BlockFilterRule> globalFilters = java.util.List.of();
+    private static volatile boolean globalFiltersActive = true;
 
     private static java.util.Map<String, PlotGrid> plotGrids = new java.util.HashMap<>();
     static PlotGrid plotGrid(String context) { return plotGrids.get(context); }
@@ -72,6 +74,12 @@ public final class SelectiveRenderSettings {
             }
             return;
         }
+        apply(stored);
+        BoundaryColorTexture.invalidate();
+        if (recovery.recoveredFromBackup() || stored.formatVersion < SETTINGS_FORMAT_VERSION) save(false);
+    }
+
+    static void apply(StoredSettings stored) {
         plotGrids = stored.plotGrids == null ? new java.util.HashMap<>() : new java.util.HashMap<>(stored.plotGrids);
         plotGrids.values().removeIf(java.util.Objects::isNull);
         menuNavigation = stored.menuNavigation == null ? new MenuNavigationState() : stored.menuNavigation;
@@ -91,7 +99,6 @@ public final class SelectiveRenderSettings {
         boundaryOpacity = stored.boundaryOpacity == null ? 100 : BoundaryStyle.opacity(stored.boundaryOpacity);
         boundaryTexture = stored.boundaryTexture == null ? "minecraft:stone" : stored.boundaryTexture;
         if (boundaryMode == BoundaryMode.CULLED) { boundaryMode = BoundaryMode.COLOR; boundaryOpacity = 0; boundaryNormal=false; }
-        BoundaryColorTexture.invalidate();
         cullFluidBoundaryFaces = stored.cullFluidBoundaryFaces;
         worldEditSelection = stored.worldEditSelection == null || stored.worldEditSelection;
         debugBoxes = stored.debugBoxes;
@@ -106,8 +113,43 @@ public final class SelectiveRenderSettings {
         defaultPlotMaxY = stored.defaultPlotMaxY == null ? 319 : stored.defaultPlotMaxY;
         defaultPlotMinY = stored.defaultPlotMinY == null || migrateLegacyPlotMinimum
                 ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
-        if (recovery.recoveredFromBackup() || stored.formatVersion < SETTINGS_FORMAT_VERSION) save(false);
+        globalFilters = readGlobalFilters(stored.globalFilters);
+        globalFiltersActive = stored.globalFiltersActive == null || stored.globalFiltersActive;
     }
+
+    static StoredSettings capture() {
+        StoredSettings stored = new StoredSettings();
+        stored.formatVersion = SETTINGS_FORMAT_VERSION;
+        stored.menuNavigation = menuNavigation;
+        stored.plotGrids = plotGrids;
+        stored.playerVisibility = playerVisibility(); // Legacy readers cannot represent both dimensions simultaneously.
+        stored.playerGroup = playerGroup; stored.playerScope = playerScope;
+        stored.interactionMode = interactionMode;
+        stored.boundaryMode = boundaryMode;
+        stored.boundaryColor = boundaryColor;
+        stored.boundaryOpacity = boundaryOpacity;
+        stored.boundaryColorLighting = boundaryColorLighting;
+        stored.boundaryNormal = boundaryNormal;
+        stored.boundaryRainbow = boundaryRainbow;
+        stored.boundaryTexture = boundaryTexture;
+        stored.cullFluidBoundaryFaces = cullFluidBoundaryFaces;
+        stored.worldEditSelection = worldEditSelection;
+        stored.debugBoxes = debugBoxes;
+        stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
+        stored.blockFiltersEnabled = blockFiltersEnabled;
+        stored.interactWithHiddenRegions = interactWithHiddenRegions;
+        stored.virtualLightMode = virtualLightMode;
+        stored.hiddenVirtualLightMode = virtualLightMode; // Retain downgrade compatibility.
+        stored.fullReloadThreshold = fullReloadThreshold;
+        stored.defaultPlotMaxY = defaultPlotMaxY;
+        stored.defaultPlotMinY = defaultPlotMinY;
+        stored.globalFilters = globalFilters.stream().map(StoredFilter::from).toList();
+        stored.globalFiltersActive = globalFiltersActive;
+        return stored;
+    }
+
+    static String toJson() { return GSON.toJson(capture()); }
+    static void fromJson(String json) { apply(GSON.fromJson(json, StoredSettings.class)); }
 
     public static PlayerRenderPolicy.Group playerGroup() { return playerGroup; }
     public static PlayerRenderPolicy.Scope playerScope() { return playerScope; }
@@ -174,6 +216,35 @@ public final class SelectiveRenderSettings {
     public static int fullReloadThreshold() { return fullReloadThreshold; }
     public static int defaultPlotMaxY() { return defaultPlotMaxY; }
     public static int defaultPlotMinY() { return defaultPlotMinY; }
+    public static java.util.List<BlockFilterRule> globalFilters() { return globalFilters; }
+    public static boolean globalFiltersActive() { return globalFiltersActive; }
+    public static java.util.List<BlockFilterRule> activeGlobalFilters() {
+        return globalFiltersActive ? globalFilters : java.util.List.of();
+    }
+    public static void setGlobalFilters(java.util.List<BlockFilterRule> value) {
+        var next = java.util.List.copyOf(new java.util.LinkedHashSet<>(value));
+        if (globalFilters.equals(next)) return;
+        globalFilters = next;
+        save();
+        SelectiveRenderConfig.refreshBlockFilters();
+    }
+    public static void setGlobalFiltersActive(boolean value) {
+        if (globalFiltersActive == value) return;
+        globalFiltersActive = value;
+        save();
+        SelectiveRenderConfig.refreshBlockFilters();
+    }
+    static java.util.List<BlockFilterRule> readGlobalFilters(java.util.List<StoredFilter> stored) {
+        if (stored == null) return java.util.List.of();
+        var rules = new java.util.LinkedHashSet<BlockFilterRule>();
+        for (StoredFilter filter : stored) {
+            try {
+                rules.add(new BlockFilterRule(BlockFilterRule.Mode.valueOf(filter.mode),
+                        BlockFilterRule.Kind.valueOf(filter.kind), filter.value));
+            } catch (RuntimeException ignored) { }
+        }
+        return java.util.List.copyOf(rules);
+    }
 
     public static void setPlayerVisibility(PlayerVisibility value) {
         var migrated = PlayerRenderPolicy.migrate(value);
@@ -260,11 +331,13 @@ public final class SelectiveRenderSettings {
         if (defaultPlotMaxY == value) return;
         defaultPlotMaxY = value;
         save();
+        PlotSquaredClient.defaultHeightsChanged();
     }
     public static void setDefaultPlotMinY(int value) {
         if (defaultPlotMinY == value) return;
         defaultPlotMinY = value;
         save();
+        PlotSquaredClient.defaultHeightsChanged();
     }
 
     private static int clampReloadThreshold(int value) {
@@ -279,34 +352,10 @@ public final class SelectiveRenderSettings {
         Path path = SettingsFile.PATH;
         try {
             Files.createDirectories(path.getParent());
-            StoredSettings stored = new StoredSettings();
-            stored.formatVersion = SETTINGS_FORMAT_VERSION;
-            stored.menuNavigation = menuNavigation;
-            stored.plotGrids = plotGrids;
-            stored.playerVisibility = playerVisibility(); // Legacy readers cannot represent both dimensions simultaneously.
-            stored.playerGroup = playerGroup; stored.playerScope = playerScope;
-            stored.interactionMode = interactionMode;
-            stored.boundaryMode = boundaryMode;
-            stored.boundaryColor = boundaryColor;
-            stored.boundaryOpacity = boundaryOpacity;
-            stored.boundaryColorLighting = boundaryColorLighting;
-            stored.boundaryNormal = boundaryNormal;
-            stored.boundaryRainbow = boundaryRainbow;
-            stored.boundaryTexture = boundaryTexture;
-            stored.cullFluidBoundaryFaces = cullFluidBoundaryFaces;
-            stored.worldEditSelection = worldEditSelection;
-            stored.debugBoxes = debugBoxes;
-            stored.filterInteractionsWhenInactive = filterInteractionsWhenInactive;
-            stored.blockFiltersEnabled = blockFiltersEnabled;
-            stored.interactWithHiddenRegions = interactWithHiddenRegions;
-            stored.virtualLightMode = virtualLightMode;
-            stored.hiddenVirtualLightMode = virtualLightMode; // Retain downgrade compatibility.
-            stored.fullReloadThreshold = fullReloadThreshold;
-            stored.defaultPlotMaxY = defaultPlotMaxY;
-            stored.defaultPlotMinY = defaultPlotMinY;
+            StoredSettings stored = capture();
             Path temporary = path.resolveSibling(path.getFileName() + ".tmp");
             try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
-                SettingsFile.GSON.toJson(stored, writer);
+                GSON.toJson(stored, writer);
             }
             if (backupExisting && Files.isRegularFile(path)) {
                 Files.copy(path, ConfigRecovery.backupPath(path),
@@ -326,7 +375,7 @@ public final class SelectiveRenderSettings {
     private static StoredSettings read(Path path) {
         if (!Files.isRegularFile(path)) return null;
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-            return SettingsFile.GSON.fromJson(reader, StoredSettings.class);
+            return GSON.fromJson(reader, StoredSettings.class);
         } catch (IOException | RuntimeException exception) {
             SelectiveRenderClient.LOGGER.warn("Could not read selective render settings {}", path, exception);
             return null;
@@ -432,5 +481,16 @@ public final class SelectiveRenderSettings {
         int fullReloadThreshold;
         Integer defaultPlotMinY;
         Integer defaultPlotMaxY;
+        java.util.List<StoredFilter> globalFilters;
+        Boolean globalFiltersActive;
+    }
+
+    static final class StoredFilter {
+        String mode, kind, value;
+        static StoredFilter from(BlockFilterRule rule) {
+            StoredFilter stored = new StoredFilter();
+            stored.mode = rule.mode().name(); stored.kind = rule.kind().name(); stored.value = rule.value();
+            return stored;
+        }
     }
 }
