@@ -38,7 +38,7 @@ Show only the parts of your world you choose. Render selected regions, hide othe
 <tr><td><code>diagnose start [seconds]</code></td><td>Record diagnostics (default 120 s)</td><td></td></tr>
 <tr><td><code>diagnose mark LABEL</code></td><td>Add marker</td><td></td></tr>
 <tr><td><code>diagnose stop</code></td><td>Stop recording</td><td></td></tr>
-<tr><td></td><td></td><td>Open settings</td><td><code>#</code> (<code>'</code> on US)</td></tr>
+<tr><td></td><td></td><td>Open settings</td><td><code>'</code></td></tr>
 <tr><td></td><td></td><td>Toggle all block filters</td><td>Not bound</td></tr>
 </tbody>
 </table>

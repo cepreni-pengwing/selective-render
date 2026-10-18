@@ -20,7 +20,7 @@ Required: Fabric Loader, Fabric API, Sodium. Optional: Iris.
 1. Select a cuboid with WorldEdit, or mark corners with `/sr pos1` and `/sr pos2`.
 2. Save it with `/sr create NAME`.
 3. Press `F9` to show only your render regions, `F10` to toggle hidden regions.
-4. Press `#` to open the settings.
+4. Press `'` to open the settings.
 
 ## Commands
 
@@ -56,7 +56,7 @@ Required: Fabric Loader, Fabric API, Sodium. Optional: Iris.
 <tr><td><code>diagnose start [seconds]</code></td><td>Record diagnostics (default 120 s)</td><td></td></tr>
 <tr><td><code>diagnose mark LABEL</code></td><td>Add marker</td><td></td></tr>
 <tr><td><code>diagnose stop</code></td><td>Stop recording</td><td></td></tr>
-<tr><td></td><td></td><td>Open settings</td><td><code>#</code> (<code>'</code> on US)</td></tr>
+<tr><td></td><td></td><td>Open settings</td><td><code>'</code></td></tr>
 <tr><td></td><td></td><td>Toggle all block filters</td><td>Not bound</td></tr>
 </tbody>
 </table>
