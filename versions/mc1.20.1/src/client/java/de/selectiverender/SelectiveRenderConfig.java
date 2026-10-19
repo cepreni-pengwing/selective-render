@@ -644,9 +644,10 @@ public final class SelectiveRenderConfig {
         if (!global.isEmpty()) result.add(FilteredRegion.everywhere(new LinkedHashSet<>(global)));
         for (Map.Entry<String, LinkedHashSet<BlockFilterRule>> entry : FILTERS.entrySet()) {
             String name = entry.getKey();
-            if (entry.getValue().isEmpty() || !OPTIONS.getOrDefault(name, RegionOptions.DEFAULT).filtersActive()) continue;
+            var rules = BlockFilterRule.active(entry.getValue());
+            if (rules.isEmpty() || !OPTIONS.getOrDefault(name, RegionOptions.DEFAULT).filtersActive()) continue;
             for (BlockRegion region : REGIONS.getOrDefault(name, List.of())) {
-                result.add(new FilteredRegion(region, entry.getValue()));
+                result.add(new FilteredRegion(region, new LinkedHashSet<>(rules)));
             }
         }
         return List.copyOf(result);
@@ -678,6 +679,7 @@ public final class SelectiveRenderConfig {
         try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             StoredConfig stored = GSON.fromJson(reader, StoredConfig.class);
             if (stored != null) validateStoredConfig(stored);
+            if (stored != null) migrateInactiveFilters(stored);
             if (stored == null) {
                 SelectiveRenderClient.LOGGER.error("Selective render config {} is empty", path);
             }
@@ -686,6 +688,22 @@ public final class SelectiveRenderConfig {
             SelectiveRenderClient.LOGGER.error("Could not load selective render config {}", path, exception);
             return null;
         }
+    }
+
+    static void migrateInactiveFilters(StoredConfig stored) {
+        if (stored.regionOptions == null) return;
+        for (var entry : new java.util.ArrayList<>(stored.regionOptions.entrySet())) {
+            if (entry.getValue() == null || entry.getValue().filtersActive()) continue;
+            if (stored.blockFilters != null && stored.blockFilters.get(entry.getKey()) != null)
+                stored.blockFilters.get(entry.getKey()).forEach(filter -> filter.enabled = false);
+            stored.regionOptions.put(entry.getKey(), entry.getValue().with(0, null));
+        }
+    }
+
+    static RegionDocument readMigratedDocument(String json) {
+        StoredConfig stored = GSON.fromJson(json, StoredConfig.class);
+        migrateInactiveFilters(stored);
+        return toDocument(stored.dimension, stored);
     }
 
     private static void applyStoredConfig(StoredConfig stored) {
@@ -835,21 +853,16 @@ public final class SelectiveRenderConfig {
     }
 
     private static final class StoredBlockFilter {
-        String mode;
-        String kind;
-        String value;
-
+        String mode; String kind; String value; Boolean enabled;
         static StoredBlockFilter from(BlockFilterRule rule) {
             StoredBlockFilter stored = new StoredBlockFilter();
-            stored.mode = rule.mode().name();
-            stored.kind = rule.kind().name();
-            stored.value = rule.value();
+            stored.mode = rule.mode().name(); stored.kind = rule.kind().name(); stored.value = rule.value();
+            stored.enabled = rule.enabled() ? null : false;
             return stored;
         }
-
         BlockFilterRule toRule() {
-            return new BlockFilterRule(BlockFilterRule.Mode.valueOf(mode),
-                    BlockFilterRule.Kind.valueOf(kind), value);
+            return new BlockFilterRule(BlockFilterRule.Mode.valueOf(mode), BlockFilterRule.Kind.valueOf(kind), value,
+                    !Boolean.FALSE.equals(enabled));
         }
     }
 

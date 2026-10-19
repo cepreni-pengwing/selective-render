@@ -52,12 +52,7 @@ public final class BoundaryStyle {
     }
     public static int previewPixel(int x, int y, float hue, float saturation, float brightness, int opacity, boolean rainbow) {
         int color = hsv(rainbow ? x / 255f : hue, saturation, brightness);
-        float a = opacity(opacity) / 100f;
-        int gray = ((x / 4 + y / 4) & 1) == 0 ? 0x55 : 0x99;
-        int r = Math.round(gray * (1 - a) + (color >> 16 & 255) * a);
-        int g = Math.round(gray * (1 - a) + (color >> 8 & 255) * a);
-        int b = Math.round(gray * (1 - a) + (color & 255) * a);
-        return 0xFF000000 | r << 16 | g << 8 | b;
+        return alpha(opacity) << 24 | (color & 0xFFFFFF);
     }
     public static int opacity(int value) { return Math.max(0, Math.min(100, value)); }
     public static int alpha(int percent) { return (opacity(percent) * 255 + 50) / 100; }

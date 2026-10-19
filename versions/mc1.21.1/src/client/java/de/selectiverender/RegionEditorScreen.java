@@ -254,9 +254,7 @@ final class RegionEditorScreen extends Screen {
                 new Choice("Hidden", hidden(), () -> save(region, boxes(), true, selected(), rules()))));
         accordion("Filters", rules().size(), filtersOpen, () -> filtersOpen = !filtersOpen);
         if (filtersOpen) {
-            RegionOptions currentOptions = document.options().getOrDefault(region, RegionOptions.DEFAULT);
-            options("Enabled", List.of(new Choice("Off", !currentOptions.filtersActive(), () -> setOption(0, false)),
-                    new Choice("On", currentOptions.filtersActive(), () -> setOption(0, true))));
+            allFiltersRow();
             filterRows();
         }
         RegionOptions overrides = document.options().getOrDefault(region, RegionOptions.DEFAULT);
@@ -313,10 +311,15 @@ final class RegionEditorScreen extends Screen {
     }
 
     private void buildGlobalRows() {
-        options("Enabled", List.of(new Choice("Off", !SelectiveRenderSettings.globalFiltersActive(), () -> SelectiveRenderSettings.setGlobalFiltersActive(false)),
-                new Choice("On", SelectiveRenderSettings.globalFiltersActive(), () -> SelectiveRenderSettings.setGlobalFiltersActive(true))));
+        allFiltersRow();
         info("Applies to every block in addition to region filters");
         filterRows();
+    }
+
+    private void allFiltersRow() {
+        boolean on = SelectiveRenderSettings.blockFiltersEnabled();
+        options("All filters", List.of(new Choice("Off", !on, () -> SelectiveRenderSettings.setBlockFiltersEnabled(false)),
+                new Choice("On", on, () -> SelectiveRenderSettings.setBlockFiltersEnabled(true))));
     }
 
     private void filterRows() {
@@ -326,10 +329,10 @@ final class RegionEditorScreen extends Screen {
             filterRow("filter-" + i, rule.selector(), value -> {
                 List<BlockFilterRule> parsed = BlockFilterRule.parse(rule.mode(), value);
                 if (parsed.size() != 1) throw new IllegalArgumentException("Enter one block ID or tag per row");
-                replaceRule(rule, parsed.get(0));
+                replaceRule(rule, parsed.get(0).withEnabled(filterEdits.current(rule).enabled()));
             }, List.of(
-                    new Choice("Hide", rule.mode() == BlockFilterRule.Mode.HIDE, () -> setRuleMode(rule, BlockFilterRule.Mode.HIDE)),
-                    new Choice("Only", rule.mode() == BlockFilterRule.Mode.ONLY, () -> setRuleMode(rule, BlockFilterRule.Mode.ONLY)),
+                    new Choice(rule.mode() == BlockFilterRule.Mode.HIDE ? "Hide" : "Only", false, () -> replaceRule(rule, filterEdits.current(rule).toggledMode())),
+                    new Choice(rule.enabled() ? "On" : "Off", false, () -> replaceRule(rule, filterEdits.current(rule).withEnabled(!filterEdits.current(rule).enabled()))),
                     new Choice("×", false, () -> replaceRule(rule, null))));
         }
         if (addingFilter) filterRow("new-filter", "", value -> {
@@ -340,8 +343,8 @@ final class RegionEditorScreen extends Screen {
             addingFilter = false;
             if (newFilterInput != null) newFilterInput.widget.setText("");
         }, List.of(
-                new Choice("Hide", newFilterMode == BlockFilterRule.Mode.HIDE, () -> newFilterMode = BlockFilterRule.Mode.HIDE),
-                new Choice("Only", newFilterMode == BlockFilterRule.Mode.ONLY, () -> newFilterMode = BlockFilterRule.Mode.ONLY),
+                new Choice(newFilterMode == BlockFilterRule.Mode.HIDE ? "Hide" : "Only", false,
+                        () -> newFilterMode = newFilterMode == BlockFilterRule.Mode.HIDE ? BlockFilterRule.Mode.ONLY : BlockFilterRule.Mode.HIDE),
                 new Choice("×", false, () -> addingFilter = false)));
         rows.add(new Row("", List.of(new Choice("+", addingFilter, () -> addingFilter = true)), null, 0));
     }
@@ -408,11 +411,6 @@ final class RegionEditorScreen extends Screen {
         document = SelectiveRenderConfig.editorDocument(client, document.dimension());
         documents = documents.stream().map(value -> value.dimension().equals(document.dimension()) ? document : value).toList();
         refreshRequested = true;
-    }
-
-    private void setRuleMode(BlockFilterRule original, BlockFilterRule.Mode mode) {
-        BlockFilterRule current = filterEdits.current(original);
-        replaceRule(original, new BlockFilterRule(mode, current.kind(), current.value()));
     }
 
     private void replaceRule(BlockFilterRule old, BlockFilterRule replacement) {

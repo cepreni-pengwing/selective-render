@@ -4,7 +4,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /** One hide or only predicate attached to one saved region. */
-public record BlockFilterRule(Mode mode, Kind kind, String value) {
+public record BlockFilterRule(Mode mode, Kind kind, String value, boolean enabled) {
     private static final Pattern NAMESPACED_ID = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
     public enum Mode { HIDE, ONLY }
@@ -14,6 +14,16 @@ public record BlockFilterRule(Mode mode, Kind kind, String value) {
         if (mode == null || kind == null || value == null || !NAMESPACED_ID.matcher(value).matches()) {
             throw new IllegalArgumentException("Expected a namespaced block id or tag");
         }
+    }
+
+    public BlockFilterRule(Mode mode, Kind kind, String value) { this(mode, kind, value, true); }
+
+    public BlockFilterRule withMode(Mode next) { return new BlockFilterRule(next, kind, value, enabled); }
+    public BlockFilterRule withEnabled(boolean next) { return new BlockFilterRule(mode, kind, value, next); }
+    public BlockFilterRule toggledMode() { return withMode(mode == Mode.HIDE ? Mode.ONLY : Mode.HIDE); }
+
+    public static java.util.List<BlockFilterRule> active(java.util.Collection<BlockFilterRule> rules) {
+        return rules.stream().filter(BlockFilterRule::enabled).toList();
     }
 
     /** Parse the complete batch before modifying any region. */
@@ -43,6 +53,7 @@ public record BlockFilterRule(Mode mode, Kind kind, String value) {
         boolean hasOnly = false;
         boolean matchesOnly = false;
         for (BlockFilterRule rule : rules) {
+            if (!rule.enabled) continue;
             boolean matches = rule.matches(blockId, blockTags);
             if (rule.mode == Mode.HIDE && matches) return false;
             if (rule.mode == Mode.ONLY) {

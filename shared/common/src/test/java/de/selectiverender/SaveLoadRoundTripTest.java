@@ -40,10 +40,9 @@ class SaveLoadRoundTripTest {
         assertEquals(-10, SelectiveRenderSettings.defaultPlotMinY());
         assertEquals(200, SelectiveRenderSettings.defaultPlotMaxY());
         assertEquals(new PlotGrid(1, 2, 40, 41, 7, true), SelectiveRenderSettings.plotGrid("server:test"));
-        assertEquals(List.of(new BlockFilterRule(BlockFilterRule.Mode.HIDE, BlockFilterRule.Kind.TAG, "minecraft:slabs"),
-                new BlockFilterRule(BlockFilterRule.Mode.ONLY, BlockFilterRule.Kind.ID, "minecraft:stone")),
+        assertEquals(List.of(new BlockFilterRule(BlockFilterRule.Mode.HIDE, BlockFilterRule.Kind.TAG, "minecraft:slabs", false),
+                new BlockFilterRule(BlockFilterRule.Mode.ONLY, BlockFilterRule.Kind.ID, "minecraft:stone", false)),
                 SelectiveRenderSettings.globalFilters());
-        assertFalse(SelectiveRenderSettings.globalFiltersActive());
         assertTrue(SelectiveRenderSettings.activeGlobalFilters().isEmpty());
         assertEquals("FILTERS", SelectiveRenderSettings.menuNavigation().tab);
         assertEquals(3, SelectiveRenderSettings.menuNavigation().scroll("FILTERS"));
@@ -56,6 +55,15 @@ class SaveLoadRoundTripTest {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers()) || field.isSynthetic()) continue;
             assertTrue(saved.has(field.getName()), field.getName());
         }
+    }
+
+    @Test void singleGlobalFiltersCanBeSwitchedOff() {
+        SelectiveRenderSettings.fromJson("{\"globalFilters\":[{\"mode\":\"HIDE\",\"kind\":\"ID\",\"value\":\"minecraft:dirt\",\"enabled\":false},{\"mode\":\"ONLY\",\"kind\":\"TAG\",\"value\":\"minecraft:logs\"}]}");
+        assertEquals(List.of(new BlockFilterRule(BlockFilterRule.Mode.ONLY, BlockFilterRule.Kind.TAG, "minecraft:logs")),
+                SelectiveRenderSettings.activeGlobalFilters());
+        var saved = JsonParser.parseString(SelectiveRenderSettings.toJson()).getAsJsonObject().getAsJsonArray("globalFilters");
+        assertFalse(saved.get(0).getAsJsonObject().get("enabled").getAsBoolean());
+        assertFalse(saved.get(1).getAsJsonObject().has("enabled"));
     }
 
     @Test void invalidGlobalFiltersAreSkipped() {
@@ -78,5 +86,20 @@ class SaveLoadRoundTripTest {
         RegionDocument loaded = SelectiveRenderConfig.readDocument(SelectiveRenderConfig.writeDocument(document));
         assertEquals(document, loaded);
         assertEquals(document, SelectiveRenderConfig.readDocument(SelectiveRenderConfig.writeDocument(loaded)));
+    }
+
+    @Test void inactiveRegionFiltersBecomeSwitchedOffRules() {
+        String json = """
+                {"formatVersion":8,"dimension":"minecraft:overworld","enabled":true,"hideEnabled":true,
+                 "regionGroups":{"a":[{"minX":0,"maxX":1,"minY":0,"maxY":1,"minZ":0,"maxZ":1}]},
+                 "activeRegions":["a"],"hiddenRegions":[],"activeHiddenRegions":[],
+                 "regionOptions":{"a":{"filtersEnabled":false}},
+                 "blockFilters":{"a":[{"mode":"HIDE","kind":"ID","value":"minecraft:stone"}]}}
+                """;
+        RegionDocument document = SelectiveRenderConfig.readMigratedDocument(json);
+        assertEquals(List.of(new BlockFilterRule(BlockFilterRule.Mode.HIDE, BlockFilterRule.Kind.ID, "minecraft:stone", false)),
+                document.filters().get("a"));
+        assertTrue(document.options().get("a").filtersActive());
+        assertEquals(document, SelectiveRenderConfig.readDocument(SelectiveRenderConfig.writeDocument(document)));
     }
 }

@@ -37,7 +37,6 @@ class SettingsDefaultsTest {
         assertFalse(target.rainbow());
         assertEquals(SelectiveRenderSettings.InteractionMode.INSIDE, SelectiveRenderSettings.interactionMode());
         assertTrue(SelectiveRenderSettings.globalFilters().isEmpty());
-        assertTrue(SelectiveRenderSettings.globalFiltersActive());
     }
 
     @Test void modesCycleThroughEveryValueAndWrap() {

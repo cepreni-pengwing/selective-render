@@ -1,5 +1,4 @@
 package de.selectiverender;
-/** Opaque native GUI texture: no colored-triangle batching or per-strip alpha/depth artifacts. */
 final class BoundarySliderTexture implements AutoCloseable {
     private static int next;
     private final com.mojang.blaze3d.platform.NativeImage image = new com.mojang.blaze3d.platform.NativeImage(256, 100, false);

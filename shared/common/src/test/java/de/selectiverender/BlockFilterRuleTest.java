@@ -41,4 +41,13 @@ class BlockFilterRuleTest {
         assertTrue(BlockFilterRule.allows(rules, "minecraft:oak_slab", Set.of("minecraft:slabs")));
         assertFalse(BlockFilterRule.allows(rules, "minecraft:dirt", Set.of()));
     }
+    @Test void disabledRulesAreIgnored() {
+        var hideStone = new BlockFilterRule(BlockFilterRule.Mode.HIDE, BlockFilterRule.Kind.ID, "minecraft:stone");
+        var onlyDirt = new BlockFilterRule(BlockFilterRule.Mode.ONLY, BlockFilterRule.Kind.ID, "minecraft:dirt");
+        assertFalse(BlockFilterRule.allows(java.util.Set.of(hideStone), "minecraft:stone", java.util.Set.of()));
+        assertTrue(BlockFilterRule.allows(java.util.Set.of(hideStone.withEnabled(false)), "minecraft:stone", java.util.Set.of()));
+        assertTrue(BlockFilterRule.allows(java.util.Set.of(onlyDirt.withEnabled(false)), "minecraft:stone", java.util.Set.of()));
+        assertEquals(BlockFilterRule.Mode.ONLY, hideStone.toggledMode().mode());
+        assertFalse(hideStone.withEnabled(false).toggledMode().enabled());
+    }
 }

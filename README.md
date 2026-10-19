@@ -66,6 +66,7 @@ Required: Fabric Loader, Fabric API, Sodium. Optional: Iris.
 - Accept block IDs and tags, e.g. `minecraft:oak_log` or `#minecraft:logs`.
 - `hide` removes matches, `only` keeps nothing but matches.
 - Region filters live in the region editor, global filters in the **Filters** tab and apply everywhere.
+- Every filter has its own On/Off switch. **All filters** (or the keybind) turns all of them on or off at once.
 - Search finds words and parts of IDs, e.g. `oak` or `stripped` also suggests `minecraft:stripped_oak_log`.
 - Purely visual: collision and server state stay unchanged.
 

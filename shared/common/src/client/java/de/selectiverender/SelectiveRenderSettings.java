@@ -47,7 +47,6 @@ public final class SelectiveRenderSettings {
     private static volatile int defaultPlotMaxY = 319;
     private static volatile int defaultPlotMinY = DEFAULT_PLOT_MIN_Y;
     private static volatile java.util.List<BlockFilterRule> globalFilters = java.util.List.of();
-    private static volatile boolean globalFiltersActive = true;
 
     private static java.util.Map<String, PlotGrid> plotGrids = new java.util.HashMap<>();
     static PlotGrid plotGrid(String context) { return plotGrids.get(context); }
@@ -114,7 +113,8 @@ public final class SelectiveRenderSettings {
         defaultPlotMinY = stored.defaultPlotMinY == null || migrateLegacyPlotMinimum
                 ? DEFAULT_PLOT_MIN_Y : stored.defaultPlotMinY;
         globalFilters = readGlobalFilters(stored.globalFilters);
-        globalFiltersActive = stored.globalFiltersActive == null || stored.globalFiltersActive;
+        if (Boolean.FALSE.equals(stored.globalFiltersActive))
+            globalFilters = globalFilters.stream().map(rule -> rule.withEnabled(false)).toList();
     }
 
     static StoredSettings capture() {
@@ -144,7 +144,7 @@ public final class SelectiveRenderSettings {
         stored.defaultPlotMaxY = defaultPlotMaxY;
         stored.defaultPlotMinY = defaultPlotMinY;
         stored.globalFilters = globalFilters.stream().map(StoredFilter::from).toList();
-        stored.globalFiltersActive = globalFiltersActive;
+        stored.globalFiltersActive = true;
         return stored;
     }
 
@@ -217,20 +217,13 @@ public final class SelectiveRenderSettings {
     public static int defaultPlotMaxY() { return defaultPlotMaxY; }
     public static int defaultPlotMinY() { return defaultPlotMinY; }
     public static java.util.List<BlockFilterRule> globalFilters() { return globalFilters; }
-    public static boolean globalFiltersActive() { return globalFiltersActive; }
     public static java.util.List<BlockFilterRule> activeGlobalFilters() {
-        return globalFiltersActive ? globalFilters : java.util.List.of();
+        return BlockFilterRule.active(globalFilters);
     }
     public static void setGlobalFilters(java.util.List<BlockFilterRule> value) {
         var next = java.util.List.copyOf(new java.util.LinkedHashSet<>(value));
         if (globalFilters.equals(next)) return;
         globalFilters = next;
-        save();
-        SelectiveRenderConfig.refreshBlockFilters();
-    }
-    public static void setGlobalFiltersActive(boolean value) {
-        if (globalFiltersActive == value) return;
-        globalFiltersActive = value;
         save();
         SelectiveRenderConfig.refreshBlockFilters();
     }
@@ -240,7 +233,7 @@ public final class SelectiveRenderSettings {
         for (StoredFilter filter : stored) {
             try {
                 rules.add(new BlockFilterRule(BlockFilterRule.Mode.valueOf(filter.mode),
-                        BlockFilterRule.Kind.valueOf(filter.kind), filter.value));
+                        BlockFilterRule.Kind.valueOf(filter.kind), filter.value, !Boolean.FALSE.equals(filter.enabled)));
             } catch (RuntimeException ignored) { }
         }
         return java.util.List.copyOf(rules);
@@ -487,9 +480,11 @@ public final class SelectiveRenderSettings {
 
     static final class StoredFilter {
         String mode, kind, value;
+        Boolean enabled;
         static StoredFilter from(BlockFilterRule rule) {
             StoredFilter stored = new StoredFilter();
             stored.mode = rule.mode().name(); stored.kind = rule.kind().name(); stored.value = rule.value();
+            stored.enabled = rule.enabled() ? null : false;
             return stored;
         }
     }

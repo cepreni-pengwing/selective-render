@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.14.1
+
+- Each filter can be switched on or off on its own
+- Hide/Only is now a single toggle button per filter
+- The filter on/off switch now controls all filters, same as the keybind
+- Color preview shows the real opacity without a checkerboard background
+
 ## 1.14.0
 
 - New Filters tab: global block filters that apply everywhere, on top of region filters
@@ -8,7 +15,6 @@
 - `/sr plot` keeps already toggled regions visible
 - Changing plot Y limits updates active plots instead of needing to toggle them again
 - Fixed broken `·` characters in 26.3 chat messages
-- CI: source and docs checks, defaults and save/load tests, short failure summary
 
 ## 1.13.3
 

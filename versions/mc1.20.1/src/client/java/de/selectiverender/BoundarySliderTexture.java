@@ -1,5 +1,4 @@
 package de.selectiverender;
-/** Opaque native GUI texture: no colored-triangle batching or per-strip alpha/depth artifacts. */
 final class BoundarySliderTexture implements AutoCloseable {
     private static int next;
     private final net.minecraft.client.texture.NativeImage image = new net.minecraft.client.texture.NativeImage(256, 100, false);
@@ -19,7 +18,9 @@ final class BoundarySliderTexture implements AutoCloseable {
         texture.upload();
     }
     void draw(net.minecraft.client.gui.DrawContext draw, int kind, int x, int y, int width) {
+        if (kind == 4) { com.mojang.blaze3d.systems.RenderSystem.enableBlend(); com.mojang.blaze3d.systems.RenderSystem.defaultBlendFunc(); }
         draw.drawTexture(id, x, y, width, 20, 0f, kind * 20f, 256, 20, 256, 100);
+        if (kind == 4) com.mojang.blaze3d.systems.RenderSystem.disableBlend();
     }
     @Override public void close() { net.minecraft.client.MinecraftClient.getInstance().getTextureManager().destroyTexture(id); }
 }

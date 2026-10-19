@@ -17,9 +17,12 @@ class BoundaryRainbowTest {
         assertEquals(.5,BoundaryRainbow.hue(box,20,5),.00001);
         assertEquals(.9,BoundaryRainbow.hue(box,-20,5),.00001);
     }
-    @Test void previewIsOpaqueInThePreviouslyBrokenBlueRange() {
-        for(int hue=240;hue<=270;hue++) for(int opacity=0;opacity<=100;opacity+=5)
-            assertEquals(255,BoundaryStyle.previewPixel(100,7,hue/360f,1,1,opacity,false)>>>24);
+    @Test void previewCarriesTheChosenOpacityWithoutBackground() {
+        for(int hue=240;hue<=270;hue++) for(int opacity=0;opacity<=100;opacity+=5) {
+            int pixel=BoundaryStyle.previewPixel(100,7,hue/360f,1,1,opacity,false);
+            assertEquals(BoundaryStyle.alpha(opacity),pixel>>>24);
+            assertEquals(BoundaryStyle.hsv(hue/360f,1,1)&0xFFFFFF,pixel&0xFFFFFF);
+        }
         assertEquals(0xFFFF0000,BoundaryStyle.previewPixel(0,0,0,1,1,100,true));
         assertEquals(0xFFFF0000,BoundaryStyle.previewPixel(255,0,0,1,1,100,true));
     }
